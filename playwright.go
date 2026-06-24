@@ -1,11 +1,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"strconv"
 	"strings"
@@ -16,10 +15,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
-
-var playwrightUpgrader = websocket.Upgrader{
-	CheckOrigin: func(_ *http.Request) bool { return true },
-}
 
 func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 	requestId := serial()
@@ -103,26 +98,31 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 	sessionCreated = true
 	log.Printf("[%d] [PLAYWRIGHT_SESSION_CREATED] [%s] [%s] [%s]", requestId, sessionId, browser, version)
 
-	clientConn, err := playwrightUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Printf("[%d] [PLAYWRIGHT_UPGRADE_FAILED] [%s] [%v]", requestId, sessionId, err)
-		playwrightDeleteSession(requestId, sessionId)
-		return
-	}
-	defer clientConn.Close()
-
-	backendURL := startedService.Url.String()
-	log.Printf("[%d] [PLAYWRIGHT_CONNECTING] [%s] [%s]", requestId, sessionId, backendURL)
-	backendConn, _, err := websocket.DefaultDialer.Dial(backendURL, nil)
-	if err != nil {
-		log.Printf("[%d] [PLAYWRIGHT_BACKEND_DIAL_FAILED] [%s] [%v]", requestId, sessionId, err)
-		playwrightDeleteSession(requestId, sessionId)
-		return
-	}
-	defer backendConn.Close()
-
-	proxyPlaywrightWebSocket(requestId, sessionId, clientConn, backendConn)
+	backendURL := startedService.Url
+	log.Printf("[%d] [PLAYWRIGHT_CONNECTING] [%s] [%s]", requestId, sessionId, backendURL.String())
+	proxyPlaywright(w, r, backendURL)
 	playwrightDeleteSession(requestId, sessionId)
+}
+
+func proxyPlaywright(w http.ResponseWriter, r *http.Request, backend *url.URL) {
+	target := &url.URL{
+		Scheme: "http",
+		Host:   backend.Host,
+		Path:   backend.Path,
+	}
+	if backend.Scheme == "wss" {
+		target.Scheme = "https"
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		req.URL.Path = backend.Path
+		req.URL.RawPath = ""
+		req.URL.RawQuery = ""
+	}
+	proxy.ServeHTTP(w, r)
 }
 
 func playwrightDeleteSession(requestId uint64, sessionId string) {
@@ -145,56 +145,11 @@ func playwrightDeleteSession(requestId uint64, sessionId string) {
 	log.Printf("[%d] [PLAYWRIGHT_SESSION_DELETED] [%s]", requestId, sessionId)
 }
 
-func proxyPlaywrightWebSocket(requestId uint64, sessionId string, clientConn, backendConn *websocket.Conn) {
-	errCh := make(chan error, 2)
-
-	go func() {
-		for {
-			messageType, message, err := clientConn.ReadMessage()
-			if err != nil {
-				errCh <- err
-				return
-			}
-			if err := backendConn.WriteMessage(messageType, message); err != nil {
-				errCh <- err
-				return
-			}
-		}
-	}()
-
-	go func() {
-		for {
-			messageType, message, err := backendConn.ReadMessage()
-			if err != nil {
-				errCh <- err
-				return
-			}
-			if err := clientConn.WriteMessage(messageType, message); err != nil {
-				errCh <- err
-				return
-			}
-		}
-	}()
-
-	err := <-errCh
-	if err != nil && !isExpectedWSClose(err) {
-		log.Printf("[%d] [PLAYWRIGHT_PROXY_ERROR] [%s] [%v]", requestId, sessionId, err)
-		return
-	}
-	log.Printf("[%d] [PLAYWRIGHT_SESSION_CLOSED] [%s]", requestId, sessionId)
-}
-
-func isExpectedWSClose(err error) bool {
-	return websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) ||
-		errors.Is(err, io.EOF) ||
-		strings.Contains(err.Error(), "use of closed network connection")
-}
-
 func parsePlaywrightRequest(u *url.URL) (browser, version string, caps session.Caps, err error) {
 	trimmed := strings.TrimPrefix(u.Path, paths.Playwright)
 	trimmed = strings.Trim(trimmed, "/")
 	if trimmed == "" {
-		return "", "", caps, errors.New("browser name is required in Playwright URL")
+		return "", "", caps, fmt.Errorf("browser name is required in Playwright URL")
 	}
 
 	parts := strings.Split(trimmed, "/")

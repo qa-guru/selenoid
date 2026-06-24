@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/aerokube/selenoid/config"
 	"github.com/aerokube/selenoid/info"
 	"github.com/aerokube/selenoid/session"
+	"github.com/docker/docker/api/types"
 	ctr "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
@@ -119,19 +121,26 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 	}
 	log.Printf("[%d] [PLAYWRIGHT_CONTAINER_STARTED] [%s] [%s] [%.2fs]", requestId, image, browserContainerId, info.SecondsSince(browserContainerStartTime))
 
-	stat, err := d.Client.ContainerInspect(ctx, browserContainerId)
+	stat, err := waitPlaywrightContainerInspect(ctx, d.Client, browserContainerId, portConfig.SeleniumPort, d.StartupTimeout)
 	if err != nil {
 		removeContainer(ctx, d.Client, requestId, browserContainerId)
-		return nil, fmt.Errorf("inspect playwright container %s: %s", browserContainerId, err)
+		return nil, err
 	}
 
 	servicePort := d.Service.Port
-	pc := map[string]nat.Port{servicePort: portConfig.SeleniumPort}
-	hostPort := getHostPort(d.Environment, servicePort, d.Caps, stat, pc)
-	if hostPort.Playwright == "" {
+	bindings := stat.NetworkSettings.Ports[portConfig.SeleniumPort]
+	if len(bindings) == 0 || bindings[0].HostPort == "" {
 		removeContainer(ctx, d.Client, requestId, browserContainerId)
 		return nil, fmt.Errorf("no bindings available for playwright port %s", servicePort)
 	}
+
+	playwrightHost := net.JoinHostPort("127.0.0.1", bindings[0].HostPort)
+	if d.Environment.InDocker {
+		playwrightHost = net.JoinHostPort(getContainerIP(d.Environment.Network, stat), servicePort)
+	} else if d.Environment.IP != "" {
+		playwrightHost = net.JoinHostPort(d.Environment.IP, bindings[0].HostPort)
+	}
+	hostPort := session.HostPort{Playwright: playwrightHost, Selenium: playwrightHost}
 
 	servicePath := d.Service.Path
 	if servicePath == "" {
@@ -140,7 +149,7 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 	wsURL := &url.URL{Scheme: "ws", Host: hostPort.Playwright, Path: servicePath}
 
 	serviceStartTime := time.Now()
-	if err = waitTCP(hostPort.Playwright, d.StartupTimeout); err != nil {
+	if err = waitPlaywrightServer(hostPort.Playwright, d.StartupTimeout); err != nil {
 		removeContainer(ctx, d.Client, requestId, browserContainerId)
 		return nil, fmt.Errorf("wait playwright server: %v", err)
 	}
@@ -160,6 +169,22 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 	}, nil
 }
 
+func waitPlaywrightContainerInspect(ctx context.Context, cl *client.Client, containerID string, serverPort nat.Port, timeout time.Duration) (types.ContainerJSON, error) {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		stat, err := cl.ContainerInspect(ctx, containerID)
+		if err != nil {
+			return stat, fmt.Errorf("inspect playwright container %s: %s", containerID, err)
+		}
+		bindings := stat.NetworkSettings.Ports[serverPort]
+		if len(bindings) > 0 && bindings[0].HostPort != "" {
+			return stat, nil
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return types.ContainerJSON{}, fmt.Errorf("no bindings available for playwright port %s", serverPort.Port())
+}
+
 func getPlaywrightPortConfig(service *config.Browser, env Environment) (*portConfig, error) {
 	serverPort, err := nat.NewPort("tcp", service.Port)
 	if err != nil {
@@ -175,6 +200,23 @@ func getPlaywrightPortConfig(service *config.Browser, env Environment) (*portCon
 		PortBindings: portBindings,
 		ExposedPorts: exposedPorts,
 	}, nil
+}
+
+func waitPlaywrightServer(hostPort string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	client := &http.Client{Timeout: 2 * time.Second}
+	url := "http://" + hostPort + "/"
+	for time.Now().Before(deadline) {
+		resp, err := client.Get(url)
+		if err == nil {
+			_ = resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				return nil
+			}
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+	return fmt.Errorf("%s does not respond in %v", hostPort, timeout)
 }
 
 func waitTCP(hostPort string, t time.Duration) error {
