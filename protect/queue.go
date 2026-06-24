@@ -1,6 +1,7 @@
 package protect
 
 import (
+	"context"
 	"errors"
 	"github.com/aerokube/selenoid/info"
 	"log"
@@ -94,6 +95,22 @@ func (q *Queue) Pending() int {
 // Queued - get queued sessions
 func (q *Queue) Queued() int {
 	return len(q.queued)
+}
+
+// Wait blocks until a session slot is available or the context is canceled.
+func (q *Queue) Wait(ctx context.Context) bool {
+	go func() {
+		q.queued <- struct{}{}
+	}()
+	select {
+	case <-ctx.Done():
+		<-q.queued
+		return false
+	case q.limit <- struct{}{}:
+		q.pending <- struct{}{}
+	}
+	<-q.queued
+	return true
 }
 
 // Drop - session is not created

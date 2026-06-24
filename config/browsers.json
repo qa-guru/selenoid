@@ -19,5 +19,52 @@
 				"tmpfs": {"/tmp":"size=512m"}
 			}
 		}
+	},
+	"chromium": {
+		"default": "1.52.0",
+		"versions": {
+			"1.52.0": {
+				"image": "mcr.microsoft.com/playwright:v1.52.0-noble",
+				"port": "3000",
+				"path": "/",
+				"protocol": "playwright",
+				"playwrightVersion": "1.52.0",
+				"user": "pwuser",
+				"workDir": "/home/pwuser",
+				"shmSize": 2147483648
+			}
+		}
+	},
+	"firefox-playwright": {
+		"default": "1.52.0",
+		"versions": {
+			"1.52.0": {
+				"image": "mcr.microsoft.com/playwright:v1.52.0-noble",
+				"port": "3000",
+				"path": "/",
+				"protocol": "playwright",
+				"playwrightVersion": "1.52.0",
+				"user": "pwuser",
+				"workDir": "/home/pwuser",
+				"env": ["PW_BROWSER=firefox"],
+				"shmSize": 2147483648
+			}
+		}
+	},
+	"webkit": {
+		"default": "1.52.0",
+		"versions": {
+			"1.52.0": {
+				"image": "mcr.microsoft.com/playwright:v1.52.0-noble",
+				"port": "3000",
+				"path": "/",
+				"protocol": "playwright",
+				"playwrightVersion": "1.52.0",
+				"user": "pwuser",
+				"workDir": "/home/pwuser",
+				"env": ["PW_BROWSER=webkit"],
+				"shmSize": 2147483648
+			}
+		}
 	}
 }

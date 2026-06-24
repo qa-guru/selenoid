@@ -456,18 +456,30 @@ func getHostPort(env Environment, servicePort string, caps session.Caps, stat ty
 			return net.JoinHostPort(env.IP, stat.NetworkSettings.Ports[port][0].HostPort)
 		}
 	}
+	lookup := func(key string) string {
+		return lookupHostPort(fn, pc, key)
+	}
 	hp := session.HostPort{
-		Selenium:   fn(servicePort, pc[servicePort]),
-		Fileserver: fn(ports.Fileserver, pc[ports.Fileserver]),
-		Clipboard:  fn(ports.Clipboard, pc[ports.Clipboard]),
-		Devtools:   fn(ports.Devtools, pc[ports.Devtools]),
+		Selenium:   lookup(servicePort),
+		Fileserver: lookup(ports.Fileserver),
+		Clipboard:  lookup(ports.Clipboard),
+		Devtools:   lookup(ports.Devtools),
+		Playwright: lookup(servicePort),
 	}
 
 	if caps.VNC {
-		hp.VNC = fn(ports.VNC, pc[ports.VNC])
+		hp.VNC = lookup(ports.VNC)
 	}
 
 	return hp
+}
+
+func lookupHostPort(fn func(containerPort string, port nat.Port) string, pc map[string]nat.Port, key string) string {
+	port, ok := pc[key]
+	if !ok || port == "" {
+		return ""
+	}
+	return fn(key, port)
 }
 
 func getContainerPorts(stat types.ContainerJSON) map[string]string {
