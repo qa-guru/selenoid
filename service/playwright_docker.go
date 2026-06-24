@@ -126,7 +126,7 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 	}
 
 	servicePort := d.Service.Port
-	pc := map[string]nat.Port{servicePort: portConfig.ServerPort}
+	pc := map[string]nat.Port{servicePort: portConfig.SeleniumPort}
 	hostPort := getHostPort(d.Environment, servicePort, d.Caps, stat, pc)
 	if hostPort.Playwright == "" {
 		removeContainer(ctx, d.Client, requestId, browserContainerId)
