@@ -16,6 +16,27 @@ ws://localhost:4444/playwright/chromium/1.61.1?name=smoke&enableVideo=true
 wss://selenoid.example.com/playwright/webkit/1.61.1
 ```
 
+## Basic auth behind nginx
+
+На публичном hub (`selenoid.autotests.cloud`) basic auth в nginx обычно включён **только для `/wd/hub`**. Путь `/playwright/` нужно закрыть отдельно — см. [`cm/deploy/nginx-selenoid.conf`](https://github.com/qa-guru/cm/blob/main/deploy/nginx-selenoid.conf).
+
+После включения auth на `/playwright/`:
+
+```bash
+# логин/пароль в URL (user1:1234)
+export PW_TEST_CONNECT_WS_ENDPOINT=wss://user1:1234@selenoid.autotests.cloud/playwright/chromium/1.61.1
+
+# или заголовок Authorization (base64 от user1:1234)
+export PW_TEST_CONNECT_WS_ENDPOINT=wss://selenoid.autotests.cloud/playwright/chromium/1.61.1
+export PW_TEST_CONNECT_HEADERS='{"Authorization":"Basic dXNlcjE6MTIzNA=="}'
+```
+
+WebDriver:
+
+```bash
+export SELENOID_URL=http://user1:1234@selenoid.autotests.cloud/wd/hub
+```
+
 ## Client setup
 
 ### @playwright/test
