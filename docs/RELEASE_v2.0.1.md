@@ -55,4 +55,4 @@ docker pull qaguru/selenoid:v2.0.1
 | [qa-guru/selenoid-ui](https://github.com/qa-guru/selenoid-ui/releases/tag/v2.0.1) | v2.0.1 |
 | [qa-guru/cm](https://github.com/qa-guru/cm/releases/tag/v2.0.1) | v2.0.1 |
 
-Функциональность Playwright / WebDriver без изменений относительно v2.0.0.
+Следующий hub: [v2.0.2](RELEASE_v2.0.2.md)

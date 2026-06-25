@@ -6,7 +6,7 @@ Smoke test for native Playwright support in Selenoid.
 
 ```bash
 go build -o selenoid .
-docker pull mcr.microsoft.com/playwright:v1.61.1-noble
+docker pull qaguru/playwright:v1.61.1-noble
 ./selenoid -conf config/browsers.json -limit 5
 ```
 

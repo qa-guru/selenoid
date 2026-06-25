@@ -18,9 +18,7 @@ wss://selenoid.example.com/playwright/webkit/1.61.1
 
 ## Basic auth behind nginx
 
-На публичном hub (`selenoid.autotests.cloud`) basic auth в nginx обычно включён **только для `/wd/hub`**. Путь `/playwright/` нужно закрыть отдельно — см. [`cm/deploy/nginx-selenoid.conf`](https://github.com/qa-guru/cm/blob/main/deploy/nginx-selenoid.conf).
-
-После включения auth на `/playwright/`:
+На публичном hub (`selenoid.autotests.cloud`) basic auth в nginx включён для **`/wd/hub`** и **`/playwright/`** — см. [`cm/deploy/nginx-selenoid.conf`](https://github.com/qa-guru/cm/blob/main/deploy/nginx-selenoid.conf).
 
 ```bash
 # логин/пароль в URL (user1:1234)
@@ -66,7 +64,7 @@ const browser = await chromium.connect('ws://localhost:4444/playwright/chromium/
 
 ## browsers.json
 
-Playwright browsers use `"protocol": "playwright"` and `mcr.microsoft.com/playwright` images:
+Playwright browsers use `"protocol": "playwright"` and [`qaguru/playwright`](https://hub.docker.com/r/qaguru/playwright) images:
 
 ```json
 "chromium": {
@@ -148,5 +146,5 @@ Hub requires **Docker Engine 26.1.x** (API **1.45**) and **Go 1.23.x**. Start lo
 ./scripts/start-selenoid.sh
 ```
 
-See [RELEASE_v2.0.1.md](RELEASE_v2.0.1.md) and [docker-settings.adoc](docker-settings.adoc).
+See [RELEASE_v2.0.2.md](RELEASE_v2.0.2.md) and [docker-settings.adoc](docker-settings.adoc).
 

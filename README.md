@@ -82,7 +82,7 @@ See [docs/playwright.md](docs/playwright.md) and [examples/playwright](examples/
 ./scripts/start-selenoid.sh
 ```
 
-Подробности: [docs/RELEASE_v2.0.1.md](docs/RELEASE_v2.0.1.md).
+Подробности: [docs/RELEASE_v2.0.2.md](docs/RELEASE_v2.0.2.md).
 
 ## Complete Guide & Build Instructions
 
