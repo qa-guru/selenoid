@@ -20,6 +20,7 @@ type Caps struct {
 	ScreenResolution      string            `json:"screenResolution,omitempty"`
 	Skin                  string            `json:"skin,omitempty"`
 	VNC                   bool              `json:"enableVNC,omitempty"`
+	Headless              bool              `json:"headless,omitempty"`
 	Video                 bool              `json:"enableVideo,omitempty"`
 	Log                   bool              `json:"enableLog,omitempty"`
 	VideoName             string            `json:"videoName,omitempty"`
@@ -97,6 +98,7 @@ type HostPort struct {
 	Clipboard  string
 	VNC        string
 	Devtools   string
+	Playwright string
 }
 
 // Map - session uuid to sessions mapping

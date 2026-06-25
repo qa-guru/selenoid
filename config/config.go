@@ -50,10 +50,14 @@ type State struct {
 
 // Browser configuration
 type Browser struct {
-	Image           interface{}       `json:"image"`
-	Port            string            `json:"port"`
-	Path            string            `json:"path"`
-	Tmpfs           map[string]string `json:"tmpfs,omitempty"`
+	Image             interface{}       `json:"image"`
+	Port              string            `json:"port"`
+	Path              string            `json:"path"`
+	Protocol          string            `json:"protocol,omitempty"`
+	PlaywrightVersion string            `json:"playwrightVersion,omitempty"`
+	User              string            `json:"user,omitempty"`
+	WorkDir           string            `json:"workDir,omitempty"`
+	Tmpfs             map[string]string `json:"tmpfs,omitempty"`
 	Volumes         []string          `json:"volumes,omitempty"`
 	Env             []string          `json:"env,omitempty"`
 	Hosts           []string          `json:"hosts,omitempty"`
@@ -117,6 +121,42 @@ func (config *Config) Load(browsers, containerLogs string) error {
 	config.Browsers, config.ContainerLogs = br, cl
 	config.LastReloadTime = time.Now()
 	return nil
+}
+
+// FindPlaywright returns a Playwright browser configuration by public browser name.
+func (config *Config) FindPlaywright(name, version string) (*Browser, string, bool) {
+	candidates := []string{name, name + "-playwright", "playwright-" + name}
+	for _, candidate := range candidates {
+		browser, resolvedVersion, ok := config.findIfPlaywright(candidate, version)
+		if ok {
+			return browser, resolvedVersion, true
+		}
+	}
+	return nil, version, false
+}
+
+func (config *Config) findIfPlaywright(name, version string) (*Browser, string, bool) {
+	config.lock.RLock()
+	defer config.lock.RUnlock()
+	browserVersions, ok := config.Browsers[name]
+	if !ok {
+		return nil, "", false
+	}
+	if version == "" {
+		version = browserVersions.Default
+		if version == "" {
+			return nil, "", false
+		}
+	}
+	for v, browser := range browserVersions.Versions {
+		if browser == nil || !strings.EqualFold(browser.Protocol, "playwright") {
+			continue
+		}
+		if strings.HasPrefix(v, version) {
+			return browser, v, true
+		}
+	}
+	return nil, version, false
 }
 
 // Find - find concrete browser

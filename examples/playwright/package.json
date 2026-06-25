@@ -1,0 +1,13 @@
+{
+  "name": "selenoid-playwright-example",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "dotenv": "^16.5.0",
+    "typescript": "^5.8.3"
+  }
+}

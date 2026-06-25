@@ -353,20 +353,21 @@ func deleteFileIfExists(requestId uint64, w http.ResponseWriter, r *http.Request
 }
 
 var paths = struct {
-	Video, VNC, Logs, Devtools, Download, Clipboard, File, Ping, Status, Error, WdHub, Welcome string
+	Video, VNC, Logs, Devtools, Download, Clipboard, File, Ping, Status, Error, WdHub, Welcome, Playwright string
 }{
-	Video:     "/video/",
-	VNC:       "/vnc/",
-	Logs:      "/logs/",
-	Devtools:  "/devtools/",
-	Download:  "/download/",
-	Clipboard: "/clipboard/",
-	Status:    "/status",
-	File:      "/file",
-	Ping:      "/ping",
-	Error:     "/error",
-	WdHub:     "/wd/hub",
-	Welcome:   "/",
+	Video:      "/video/",
+	VNC:        "/vnc/",
+	Logs:       "/logs/",
+	Devtools:   "/devtools/",
+	Download:   "/download/",
+	Clipboard:  "/clipboard/",
+	Status:     "/status",
+	File:       "/file",
+	Ping:       "/ping",
+	Error:      "/error",
+	WdHub:      "/wd/hub",
+	Welcome:    "/",
+	Playwright: "/playwright/",
 }
 
 func handler() http.Handler {
@@ -386,6 +387,7 @@ func handler() http.Handler {
 		_ = json.NewEncoder(w).Encode(conf.State(sessions, limit, queue.Queued(), queue.Pending()))
 	})
 	root.HandleFunc(paths.Ping, ping)
+	root.HandleFunc(paths.Playwright, playwrightConnect)
 	root.Handle(paths.VNC, websocket.Handler(vnc))
 	root.HandleFunc(paths.Logs, logs)
 	root.HandleFunc(paths.Video, video)

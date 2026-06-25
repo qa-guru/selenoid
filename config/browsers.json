@@ -1,23 +1,163 @@
 {
-	"firefox": {
-		"default": "latest",
-		"versions": {
-			"latest": {
-				"image": "selenoid/firefox",
-				"port": "4444",
-				"path": "/wd/hub",
-				"tmpfs": {"/tmp":"size=512m"}
-			}
-		}
-	},
-	"chrome": {
-		"default": "latest",
-		"versions": {
-			"latest": {
-				"image": "selenoid/chrome",
-				"port": "4444",
-				"tmpfs": {"/tmp":"size=512m"}
-			}
-		}
-	}
+  "chrome": {
+    "default": "148.0",
+    "versions": {
+      "148.0": {
+        "image": "twilio/selenoid:chrome_stable_148",
+        "port": "4444",
+        "path": "/",
+        "tmpfs": { "/tmp": "size=512m" }
+      },
+      "147.0": {
+        "image": "twilio/selenoid:chrome_stable_147",
+        "port": "4444",
+        "path": "/",
+        "tmpfs": { "/tmp": "size=512m" }
+      },
+      "146.0": {
+        "image": "twilio/selenoid:chrome_stable_146",
+        "port": "4444",
+        "path": "/",
+        "tmpfs": { "/tmp": "size=512m" }
+      }
+    }
+  },
+
+  "firefox": {
+    "default": "150.0",
+    "versions": {
+      "150.0": {
+        "image": "twilio/selenoid:firefox_stable_150",
+        "port": "4444",
+        "path": "/wd/hub",
+        "tmpfs": { "/tmp": "size=512m" }
+      },
+      "149.0": {
+        "image": "twilio/selenoid:firefox_stable_149",
+        "port": "4444",
+        "path": "/wd/hub",
+        "tmpfs": { "/tmp": "size=512m" }
+      },
+      "148.0": {
+        "image": "twilio/selenoid:firefox_stable_148",
+        "port": "4444",
+        "path": "/wd/hub",
+        "tmpfs": { "/tmp": "size=512m" }
+      }
+    }
+  },
+
+  "chromium": {
+    "default": "1.61.1",
+    "versions": {
+      "1.61.1": {
+        "image": "qaguru/playwright:v1.61.1-noble",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.61.1",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "shmSize": 2147483648
+      },
+      "1.61.0": {
+        "image": "qaguru/playwright:v1.61.0-noble",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.61.0",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "shmSize": 2147483648
+      },
+      "1.60.0": {
+        "image": "qaguru/playwright:v1.60.0-noble",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.60.0",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "shmSize": 2147483648
+      }
+    }
+  },
+
+  "firefox-playwright": {
+    "default": "1.61.1",
+    "versions": {
+      "1.61.1": {
+        "image": "qaguru/playwright:v1.61.1-noble",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.61.1",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "env": ["PW_BROWSER=firefox"],
+        "shmSize": 2147483648
+      },
+      "1.61.0": {
+        "image": "qaguru/playwright:v1.61.0-noble",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.61.0",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "env": ["PW_BROWSER=firefox"],
+        "shmSize": 2147483648
+      },
+      "1.60.0": {
+        "image": "qaguru/playwright:v1.60.0-noble",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.60.0",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "env": ["PW_BROWSER=firefox"],
+        "shmSize": 2147483648
+      }
+    }
+  },
+
+  "webkit": {
+    "default": "1.61.1",
+    "versions": {
+      "1.61.1": {
+        "image": "qaguru/playwright:v1.61.1-noble",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.61.1",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "env": ["PW_BROWSER=webkit"],
+        "shmSize": 2147483648
+      },
+      "1.61.0": {
+        "image": "qaguru/playwright:v1.61.0-noble",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.61.0",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "env": ["PW_BROWSER=webkit"],
+        "shmSize": 2147483648
+      },
+      "1.60.0": {
+        "image": "qaguru/playwright:v1.60.0-noble",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.60.0",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "env": ["PW_BROWSER=webkit"],
+        "shmSize": 2147483648
+      }
+    }
+  }
 }
