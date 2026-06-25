@@ -68,6 +68,22 @@ ws://localhost:4444/playwright/chromium/1.61.1
 
 See [docs/playwright.md](docs/playwright.md) and [examples/playwright](examples/playwright) for setup and smoke test.
 
+## Toolchain
+
+| Компонент | Версия |
+|-----------|--------|
+| **Go** | 1.23.x |
+| **Docker Engine** (сервер) | 26.1.x |
+| **Docker API** (hub) | 1.45 |
+
+```bash
+./scripts/check-toolchain.sh
+./scripts/build-selenoid.sh
+./scripts/start-selenoid.sh
+```
+
+Подробности: [docs/RELEASE_v2.0.1.md](docs/RELEASE_v2.0.1.md).
+
 ## Complete Guide & Build Instructions
 
 Complete reference guide (including building instructions) can be found at: http://aerokube.com/selenoid/latest/

@@ -118,3 +118,14 @@ cd playwright-image
 ## Publish to Docker Hub
 
 См. [playwright-image](https://github.com/qa-guru/playwright-image): `docker login` и `./scripts/push.sh v1.61.1-noble`.
+
+## Toolchain
+
+Hub requires **Docker Engine 26.1.x** (API **1.45**) and **Go 1.23.x**. Start locally:
+
+```bash
+./scripts/start-selenoid.sh
+```
+
+See [RELEASE_v2.0.1.md](RELEASE_v2.0.1.md) and [docker-settings.adoc](docker-settings.adoc).
+
