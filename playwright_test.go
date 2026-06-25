@@ -19,6 +19,16 @@ func TestParsePlaywrightRequest(t *testing.T) {
 	assert.True(t, caps.Video)
 }
 
+func TestParsePlaywrightRequestLabels(t *testing.T) {
+	u, err := url.Parse("ws://localhost:4444/playwright/chromium/1.52.0?name=Manual+session&labels.manual=true")
+	assert.NoError(t, err)
+
+	_, _, caps, err := parsePlaywrightRequest(u)
+	assert.NoError(t, err)
+	assert.Equal(t, "Manual session", caps.TestName)
+	assert.Equal(t, map[string]string{"manual": "true"}, caps.Labels)
+}
+
 func TestParsePlaywrightRequestDefaultVersion(t *testing.T) {
 	u, err := url.Parse("ws://localhost:4444/playwright/chromium")
 	assert.NoError(t, err)

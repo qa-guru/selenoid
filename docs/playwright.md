@@ -72,8 +72,9 @@ Playwright browsers use `"protocol": "playwright"` and `mcr.microsoft.com/playwr
 | Parameter | Description |
 |-----------|-------------|
 | `name` | Session name (label) |
-| `enableVNC` | Enable VNC (future) |
-| `enableVideo` | Enable video (future) |
+| `enableVNC` | Enable live browser screen via VNC (requires `selenoid/playwright` image) |
+| `headless` | Run browser headed (`false`) for VNC; default `true`. Manual UI sessions pass `headless=false` automatically |
+| `enableVideo` | Enable H.264 session recording (requires `selenoid/video-recorder` image) |
 | `enableLog` | Save container logs |
 | `screenResolution` | e.g. `1920x1080x24` |
 | `sessionTimeout` | e.g. `5m` |
@@ -96,5 +97,7 @@ Or:
 
 ```bash
 docker pull mcr.microsoft.com/playwright:v1.52.0-noble
+./scripts/build-playwright-image.sh
+docker pull selenoid/video-recorder:latest-release
 ./selenoid -conf config/browsers.json -limit 5
 ```

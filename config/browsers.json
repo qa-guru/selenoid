@@ -24,7 +24,7 @@
 		"default": "1.52.0",
 		"versions": {
 			"1.52.0": {
-				"image": "mcr.microsoft.com/playwright:v1.52.0-noble",
+				"image": "selenoid/playwright:v1.52.0-noble",
 				"port": "3000",
 				"path": "/",
 				"protocol": "playwright",
@@ -39,7 +39,7 @@
 		"default": "1.52.0",
 		"versions": {
 			"1.52.0": {
-				"image": "mcr.microsoft.com/playwright:v1.52.0-noble",
+				"image": "selenoid/playwright:v1.52.0-noble",
 				"port": "3000",
 				"path": "/",
 				"protocol": "playwright",
@@ -55,7 +55,7 @@
 		"default": "1.52.0",
 		"versions": {
 			"1.52.0": {
-				"image": "mcr.microsoft.com/playwright:v1.52.0-noble",
+				"image": "selenoid/playwright:v1.52.0-noble",
 				"port": "3000",
 				"path": "/",
 				"protocol": "playwright",

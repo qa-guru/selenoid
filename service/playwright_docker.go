@@ -13,7 +13,6 @@ import (
 	"github.com/aerokube/selenoid/config"
 	"github.com/aerokube/selenoid/info"
 	"github.com/aerokube/selenoid/session"
-	"github.com/docker/docker/api/types"
 	ctr "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
@@ -37,7 +36,7 @@ type PlaywrightDocker struct {
 
 // StartWithCancel implements Starter for native Playwright sessions.
 func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
-	portConfig, err := getPlaywrightPortConfig(d.Service, d.Environment)
+	portConfig, err := getPlaywrightPortConfig(d.Service, d.Caps, d.Environment)
 	if err != nil {
 		return nil, fmt.Errorf("configuring playwright ports: %v", err)
 	}
@@ -81,10 +80,7 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 		pwVersion = "latest"
 	}
 	port := d.Service.Port
-	runServerCmd := fmt.Sprintf(
-		"npx -y playwright@%s run-server --port %s --host 0.0.0.0",
-		pwVersion, port,
-	)
+	runServerCmd := buildPlaywrightStartupScript(pwVersion, port, d.Caps.Name, d.Caps)
 
 	cfg := &ctr.Config{
 		Image:        image,
@@ -114,6 +110,7 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 
 	browserContainerStartTime := time.Now()
 	browserContainerId := container.ID
+	videoContainerId := ""
 	log.Printf("[%d] [STARTING_PLAYWRIGHT_CONTAINER] [%s] [%s]", requestId, image, browserContainerId)
 	if err = d.Client.ContainerStart(ctx, browserContainerId, ctr.StartOptions{}); err != nil {
 		removeContainer(ctx, d.Client, requestId, browserContainerId)
@@ -121,26 +118,32 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 	}
 	log.Printf("[%d] [PLAYWRIGHT_CONTAINER_STARTED] [%s] [%s] [%.2fs]", requestId, image, browserContainerId, info.SecondsSince(browserContainerStartTime))
 
-	stat, err := waitPlaywrightContainerInspect(ctx, d.Client, browserContainerId, portConfig.SeleniumPort, d.StartupTimeout)
+	stat, err := waitContainerInspect(ctx, d.Client, browserContainerId, portConfig.SeleniumPort, d.StartupTimeout)
 	if err != nil {
 		removeContainer(ctx, d.Client, requestId, browserContainerId)
 		return nil, err
 	}
 
 	servicePort := d.Service.Port
-	bindings := stat.NetworkSettings.Ports[portConfig.SeleniumPort]
-	if len(bindings) == 0 || bindings[0].HostPort == "" {
+	pc := map[string]nat.Port{
+		servicePort: portConfig.SeleniumPort,
+	}
+	if portConfig.VNCPort != "" {
+		pc[ports.VNC] = portConfig.VNCPort
+	}
+	hostPort := getHostPort(d.Environment, servicePort, d.Caps, stat, pc)
+	if hostPort.Playwright == "" {
 		removeContainer(ctx, d.Client, requestId, browserContainerId)
 		return nil, fmt.Errorf("no bindings available for playwright port %s", servicePort)
 	}
 
-	playwrightHost := net.JoinHostPort("127.0.0.1", bindings[0].HostPort)
-	if d.Environment.InDocker {
-		playwrightHost = net.JoinHostPort(getContainerIP(d.Environment.Network, stat), servicePort)
-	} else if d.Environment.IP != "" {
-		playwrightHost = net.JoinHostPort(d.Environment.IP, bindings[0].HostPort)
+	if d.Caps.Video {
+		videoContainerId, err = startVideoContainer(ctx, d.Client, requestId, stat, d.Environment, d.ServiceBase, d.Caps)
+		if err != nil {
+			removeContainer(ctx, d.Client, requestId, browserContainerId)
+			return nil, fmt.Errorf("start video container: %v", err)
+		}
 	}
-	hostPort := session.HostPort{Playwright: playwrightHost, Selenium: playwrightHost}
 
 	servicePath := d.Service.Path
 	if servicePath == "" {
@@ -150,6 +153,9 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 
 	serviceStartTime := time.Now()
 	if err = waitPlaywrightServer(hostPort.Playwright, d.StartupTimeout); err != nil {
+		if videoContainerId != "" {
+			stopVideoContainer(ctx, d.Client, requestId, videoContainerId, d.Environment)
+		}
 		removeContainer(ctx, d.Client, requestId, browserContainerId)
 		return nil, fmt.Errorf("wait playwright server: %v", err)
 	}
@@ -164,28 +170,56 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 		},
 		HostPort: hostPort,
 		Cancel: func() {
+			if videoContainerId != "" {
+				stopVideoContainer(ctx, d.Client, requestId, videoContainerId, d.Environment)
+			}
 			removeContainer(ctx, d.Client, requestId, browserContainerId)
 		},
 	}, nil
 }
 
-func waitPlaywrightContainerInspect(ctx context.Context, cl *client.Client, containerID string, serverPort nat.Port, timeout time.Duration) (types.ContainerJSON, error) {
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
-		stat, err := cl.ContainerInspect(ctx, containerID)
-		if err != nil {
-			return stat, fmt.Errorf("inspect playwright container %s: %s", containerID, err)
-		}
-		bindings := stat.NetworkSettings.Ports[serverPort]
-		if len(bindings) > 0 && bindings[0].HostPort != "" {
-			return stat, nil
-		}
-		time.Sleep(50 * time.Millisecond)
+func buildPlaywrightStartupScript(pwVersion, port, browserName string, caps session.Caps) string {
+	runServer := fmt.Sprintf("exec node /home/pwuser/node_modules/playwright/cli.js run-server --port %s --host 0.0.0.0", port)
+	if !caps.VNC && !caps.Video {
+		return runServer
 	}
-	return types.ContainerJSON{}, fmt.Errorf("no bindings available for playwright port %s", serverPort.Port())
+
+	resolution := caps.ScreenResolution
+	if resolution == "" {
+		resolution = "1920x1080x24"
+	}
+
+	vncStart := ""
+	if caps.VNC {
+		vncStart = fmt.Sprintf("x11vnc -display :99 -forever -shared -rfbport %s -passwd selenoid >/dev/null 2>&1 &\n", ports.VNC)
+	}
+
+	headedLauncher := ""
+	if caps.VNC && !caps.Headless && caps.TestName == "Manual session" {
+		pwBrowser := playwrightBrowserName(browserName)
+		headedLauncher = fmt.Sprintf(`(sleep 2; PW_BROWSER=%s PW_PORT=%s node /home/pwuser/launch-headed-browser.js >>/tmp/headed-launch.log 2>&1 &)
+`, pwBrowser, port)
+	}
+
+	return fmt.Sprintf(`set -e
+Xvfb :99 -screen 0 %s -ac +extension RANDR -noreset -listen tcp >/dev/null 2>&1 &
+export DISPLAY=:99
+for i in $(seq 1 50); do xdpyinfo -display :99 >/dev/null 2>&1 && break; sleep 0.1; done
+%s%s%s`, resolution, vncStart, headedLauncher, runServer)
 }
 
-func getPlaywrightPortConfig(service *config.Browser, env Environment) (*portConfig, error) {
+func playwrightBrowserName(browserName string) string {
+	switch strings.ToLower(browserName) {
+	case "webkit":
+		return "webkit"
+	case "firefox-playwright":
+		return "firefox"
+	default:
+		return "chromium"
+	}
+}
+
+func getPlaywrightPortConfig(service *config.Browser, caps session.Caps, env Environment) (*portConfig, error) {
 	serverPort, err := nat.NewPort("tcp", service.Port)
 	if err != nil {
 		return nil, fmt.Errorf("new playwright port: %v", err)
@@ -195,8 +229,22 @@ func getPlaywrightPortConfig(service *config.Browser, env Environment) (*portCon
 	if env.IP != "" || !env.InDocker {
 		portBindings[serverPort] = []nat.PortBinding{{HostIP: "0.0.0.0"}}
 	}
+
+	var vnc nat.Port
+	if caps.VNC {
+		vnc, err = nat.NewPort("tcp", ports.VNC)
+		if err != nil {
+			return nil, fmt.Errorf("new vnc port: %v", err)
+		}
+		exposedPorts[vnc] = struct{}{}
+		if env.IP != "" || !env.InDocker {
+			portBindings[vnc] = []nat.PortBinding{{HostIP: "0.0.0.0"}}
+		}
+	}
+
 	return &portConfig{
 		SeleniumPort: serverPort,
+		VNCPort:      vnc,
 		PortBindings: portBindings,
 		ExposedPorts: exposedPorts,
 	}, nil

@@ -6,10 +6,13 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/aerokube/selenoid/event"
 	"github.com/aerokube/selenoid/info"
 	"github.com/aerokube/selenoid/session"
 	"github.com/google/uuid"
@@ -54,6 +57,19 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 	}
 	caps.ScreenResolution = resolution
 
+	videoScreenSize, err := getVideoScreenSize(caps.VideoScreenSize, resolution)
+	if err != nil {
+		log.Printf("[%d] [PLAYWRIGHT_BAD_VIDEO_SCREEN_SIZE] [%s]", requestId, caps.VideoScreenSize)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	caps.VideoScreenSize = videoScreenSize
+
+	finalVideoName := caps.VideoName
+	if caps.Video && !disableDocker {
+		caps.VideoName = getTemporaryFileName(videoOutputDir, videoFileExtension)
+	}
+
 	sessionTimeout, err := getSessionTimeout(caps.SessionTimeout, maxTimeout, timeout)
 	if err != nil {
 		log.Printf("[%d] [PLAYWRIGHT_BAD_SESSION_TIMEOUT] [%s]", requestId, caps.SessionTimeout)
@@ -89,7 +105,7 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 		Cancel:    startedService.Cancel,
 		Timeout:   sessionTimeout,
 		TimeoutCh: onTimeout(sessionTimeout, func() {
-			playwrightDeleteSession(requestId, sessionId)
+			playwrightDeleteSession(requestId, sessionId, finalVideoName)
 		}),
 		Started: time.Now(),
 	}
@@ -101,7 +117,7 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 	backendURL := startedService.Url
 	log.Printf("[%d] [PLAYWRIGHT_CONNECTING] [%s] [%s]", requestId, sessionId, backendURL.String())
 	proxyPlaywright(w, r, backendURL)
-	playwrightDeleteSession(requestId, sessionId)
+	playwrightDeleteSession(requestId, sessionId, finalVideoName)
 }
 
 func proxyPlaywright(w http.ResponseWriter, r *http.Request, backend *url.URL) {
@@ -125,7 +141,7 @@ func proxyPlaywright(w http.ResponseWriter, r *http.Request, backend *url.URL) {
 	proxy.ServeHTTP(w, r)
 }
 
-func playwrightDeleteSession(requestId uint64, sessionId string) {
+func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName string) {
 	sess, ok := sessions.Get(sessionId)
 	if !ok {
 		return
@@ -141,6 +157,26 @@ func playwrightDeleteSession(requestId uint64, sessionId string) {
 	queue.Release()
 	if sess.Cancel != nil {
 		sess.Cancel()
+	}
+	if sess.Caps.Video && !disableDocker {
+		oldVideoName := filepath.Join(videoOutputDir, sess.Caps.VideoName)
+		if finalVideoName == "" {
+			finalVideoName = sessionId + videoFileExtension
+		}
+		newVideoName := filepath.Join(videoOutputDir, finalVideoName)
+		if err := os.Rename(oldVideoName, newVideoName); err != nil {
+			log.Printf("[%d] [VIDEO_ERROR] [%s]", requestId, fmt.Sprintf("Failed to rename %s to %s: %v", oldVideoName, newVideoName, err))
+		} else {
+			event.FileCreated(event.CreatedFile{
+				Event: event.Event{
+					RequestId: requestId,
+					SessionId: sessionId,
+					Session:   sess,
+				},
+				Name: newVideoName,
+				Type: "video",
+			})
+		}
 	}
 	log.Printf("[%d] [PLAYWRIGHT_SESSION_DELETED] [%s]", requestId, sessionId)
 }
@@ -184,6 +220,11 @@ func capsFromQuery(values url.Values, caps *session.Caps) {
 	if _, ok := values["enableVNC"]; ok {
 		caps.VNC = queryBool(values, "enableVNC")
 	}
+	if _, ok := values["headless"]; ok {
+		caps.Headless = queryBool(values, "headless")
+	} else {
+		caps.Headless = true
+	}
 	if _, ok := values["enableVideo"]; ok {
 		caps.Video = queryBool(values, "enableVideo")
 	}
@@ -196,6 +237,12 @@ func capsFromQuery(values url.Values, caps *session.Caps) {
 	for key, vals := range values {
 		if strings.HasPrefix(key, "env.") && len(vals) > 0 {
 			caps.Env = append(caps.Env, fmt.Sprintf("%s=%s", strings.TrimPrefix(key, "env."), vals[0]))
+		}
+		if strings.HasPrefix(key, "labels.") && len(vals) > 0 {
+			if caps.Labels == nil {
+				caps.Labels = make(map[string]string)
+			}
+			caps.Labels[strings.TrimPrefix(key, "labels.")] = vals[0]
 		}
 	}
 }
