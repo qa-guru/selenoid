@@ -41,7 +41,7 @@ DOCKER_API_VERSION=1.45 ./selenoid -conf /etc/selenoid/browsers.json -limit 10
 docker pull qaguru/selenoid:v2.0.1
 
 # cm
-./cm selenoid start -v v2.0.1
+./cm selenoid start
 ```
 
 На Mac с Docker Desktop (Engine 27.x) hub работает с `DOCKER_API_VERSION=1.45` — поведение совпадает с сервером на 26.1.
