@@ -197,8 +197,7 @@ func buildPlaywrightStartupScript(pwVersion, port, browserName string, caps sess
 	headedLauncher := ""
 	if caps.VNC && !caps.Headless && caps.TestName == "Manual session" {
 		pwBrowser := playwrightBrowserName(browserName)
-		headedLauncher = fmt.Sprintf(`(sleep 2; PW_BROWSER=%s PW_PORT=%s node /home/pwuser/launch-headed-browser.js >>/tmp/headed-launch.log 2>&1 &)
-`, pwBrowser, port)
+		headedLauncher = fmt.Sprintf("PW_BROWSER=%s node /home/pwuser/launch-headed-browser.js >>/tmp/headed-launch.log 2>&1 &\n", pwBrowser)
 	}
 
 	return fmt.Sprintf(`set -e
