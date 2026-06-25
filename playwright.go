@@ -141,6 +141,10 @@ func proxyPlaywright(w http.ResponseWriter, r *http.Request, backend *url.URL) {
 	proxy.ServeHTTP(w, r)
 }
 
+func isPlaywrightSession(sess *session.Session) bool {
+	return sess.HostPort.Playwright != "" || (sess.URL != nil && sess.URL.Scheme == "ws")
+}
+
 func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName string) {
 	sess, ok := sessions.Get(sessionId)
 	if !ok {

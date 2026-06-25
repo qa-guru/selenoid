@@ -539,6 +539,15 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 		done <- cancel
 	}()
 	requestId := serial()
+	fragments := strings.Split(r.URL.Path, slash)
+	if r.Method == http.MethodDelete && len(fragments) == 3 {
+		id := fragments[2]
+		if sess, ok := sessions.Get(id); ok && isPlaywrightSession(sess) {
+			playwrightDeleteSession(requestId, id, "")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+	}
 	(&httputil.ReverseProxy{
 		Director: func(r *http.Request) {
 			fragments := strings.Split(r.URL.Path, slash)
