@@ -57,6 +57,7 @@ type Starter interface {
 // Manager - interface to choose appropriate starter
 type Manager interface {
 	Find(caps session.Caps, requestId uint64) (Starter, bool)
+	FindPlaywright(browserName, version string, caps session.Caps, requestId uint64) (Starter, bool)
 }
 
 // DefaultManager - struct for default implementation
@@ -81,6 +82,9 @@ func (m *DefaultManager) Find(caps session.Caps, requestId uint64) (Starter, boo
 		if m.Client == nil {
 			return nil, false
 		}
+		if isPlaywrightBrowser(service) {
+			return nil, false
+		}
 		log.Printf("[%d] [USING_DOCKER] [%s] [%s]", requestId, browserName, version)
 		return &Docker{
 			ServiceBase: serviceBase,
@@ -93,6 +97,25 @@ func (m *DefaultManager) Find(caps session.Caps, requestId uint64) (Starter, boo
 		return &Driver{ServiceBase: serviceBase, Environment: *m.Environment, Caps: caps}, true
 	}
 	return nil, false
+}
+
+// FindPlaywright locates a Playwright browser by public URL name and version.
+func (m *DefaultManager) FindPlaywright(browserName, version string, caps session.Caps, requestId uint64) (Starter, bool) {
+	log.Printf("[%d] [LOCATING_PLAYWRIGHT] [%s] [%s]", requestId, browserName, version)
+	service, resolvedVersion, ok := m.Config.FindPlaywright(browserName, version)
+	if !ok {
+		return nil, false
+	}
+	if m.Client == nil {
+		return nil, false
+	}
+	log.Printf("[%d] [USING_PLAYWRIGHT_DOCKER] [%s] [%s]", requestId, browserName, resolvedVersion)
+	return &PlaywrightDocker{
+		ServiceBase: ServiceBase{RequestId: requestId, Service: service},
+		Environment: *m.Environment,
+		Caps:        caps,
+		Client:      m.Client,
+		LogConfig:   m.Config.ContainerLogs}, true
 }
 
 func wait(u string, t time.Duration) error {

@@ -73,6 +73,10 @@ func (m *HTTPTest) Find(caps session.Caps, requestId uint64) (service.Starter, b
 	return m, true
 }
 
+func (m *HTTPTest) FindPlaywright(browserName, version string, caps session.Caps, requestId uint64) (service.Starter, bool) {
+	return m, true
+}
+
 type StartupError struct{}
 
 func (m *StartupError) StartWithCancel() (*service.StartedService, error) {
@@ -85,9 +89,17 @@ func (m *StartupError) Find(caps session.Caps, requestId uint64) (service.Starte
 	return m, true
 }
 
+func (m *StartupError) FindPlaywright(browserName, version string, caps session.Caps, requestId uint64) (service.Starter, bool) {
+	return m, true
+}
+
 type BrowserNotFound struct{}
 
 func (m *BrowserNotFound) Find(caps session.Caps, requestId uint64) (service.Starter, bool) {
+	return nil, false
+}
+
+func (m *BrowserNotFound) FindPlaywright(browserName, version string, caps session.Caps, requestId uint64) (service.Starter, bool) {
 	return nil, false
 }
 

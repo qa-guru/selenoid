@@ -180,15 +180,10 @@ func (d *Docker) StartWithCancel() (*StartedService, error) {
 		}
 	}
 
-	stat, err := cl.ContainerInspect(ctx, browserContainerId)
+	stat, err := waitContainerInspect(ctx, cl, browserContainerId, selenium, d.StartupTimeout)
 	if err != nil {
 		removeContainer(ctx, cl, requestId, browserContainerId)
-		return nil, fmt.Errorf("inspect container %s: %s", browserContainerId, err)
-	}
-	_, ok := stat.NetworkSettings.Ports[selenium]
-	if !ok {
-		removeContainer(ctx, cl, requestId, browserContainerId)
-		return nil, fmt.Errorf("no bindings available for %v", selenium)
+		return nil, err
 	}
 	servicePort := d.Service.Port
 	pc := map[string]nat.Port{
@@ -199,6 +194,10 @@ func (d *Docker) StartWithCancel() (*StartedService, error) {
 		ports.Clipboard:  clipboard,
 	}
 	hostPort := getHostPort(d.Environment, servicePort, d.Caps, stat, pc)
+	if hostPort.Selenium == "" {
+		removeContainer(ctx, cl, requestId, browserContainerId)
+		return nil, fmt.Errorf("no bindings available for port %s", servicePort)
+	}
 	u := &url.URL{Scheme: "http", Host: hostPort.Selenium, Path: d.Service.Path}
 
 	if d.Video {
@@ -436,35 +435,55 @@ func getLabels(service *config.Browser, caps session.Caps) map[string]string {
 	return labels
 }
 
-func getHostPort(env Environment, servicePort string, caps session.Caps, stat types.ContainerJSON, pc map[string]nat.Port) session.HostPort {
-	fn := func(containerPort string, port nat.Port) string {
+func waitContainerInspect(ctx context.Context, cl *client.Client, containerID string, serverPort nat.Port, timeout time.Duration) (types.ContainerJSON, error) {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		stat, err := cl.ContainerInspect(ctx, containerID)
+		if err != nil {
+			return stat, fmt.Errorf("inspect container %s: %s", containerID, err)
+		}
+		bindings := stat.NetworkSettings.Ports[serverPort]
+		if len(bindings) > 0 && bindings[0].HostPort != "" {
+			return stat, nil
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return types.ContainerJSON{}, fmt.Errorf("no bindings available for port %s", serverPort.Port())
+}
+
+func hostPortAddress(env Environment, stat types.ContainerJSON, port nat.Port) string {
+	bindings := stat.NetworkSettings.Ports[port]
+	if len(bindings) == 0 || bindings[0].HostPort == "" {
 		return ""
 	}
-	if env.IP == "" {
-		if env.InDocker {
-			containerIP := getContainerIP(env.Network, stat)
-			fn = func(containerPort string, port nat.Port) string {
-				return net.JoinHostPort(containerIP, containerPort)
-			}
-		} else {
-			fn = func(containerPort string, port nat.Port) string {
-				return net.JoinHostPort("127.0.0.1", stat.NetworkSettings.Ports[port][0].HostPort)
-			}
+	if env.IP != "" {
+		return net.JoinHostPort(env.IP, bindings[0].HostPort)
+	}
+	if env.InDocker {
+		containerIP := getContainerIP(env.Network, stat)
+		return net.JoinHostPort(containerIP, port.Port())
+	}
+	return net.JoinHostPort("127.0.0.1", bindings[0].HostPort)
+}
+
+func getHostPort(env Environment, servicePort string, caps session.Caps, stat types.ContainerJSON, pc map[string]nat.Port) session.HostPort {
+	lookup := func(key string) string {
+		port, ok := pc[key]
+		if !ok || port == "" {
+			return ""
 		}
-	} else {
-		fn = func(containerPort string, port nat.Port) string {
-			return net.JoinHostPort(env.IP, stat.NetworkSettings.Ports[port][0].HostPort)
-		}
+		return hostPortAddress(env, stat, port)
 	}
 	hp := session.HostPort{
-		Selenium:   fn(servicePort, pc[servicePort]),
-		Fileserver: fn(ports.Fileserver, pc[ports.Fileserver]),
-		Clipboard:  fn(ports.Clipboard, pc[ports.Clipboard]),
-		Devtools:   fn(ports.Devtools, pc[ports.Devtools]),
+		Selenium:   lookup(servicePort),
+		Fileserver: lookup(ports.Fileserver),
+		Clipboard:  lookup(ports.Clipboard),
+		Devtools:   lookup(ports.Devtools),
+		Playwright: lookup(servicePort),
 	}
 
 	if caps.VNC {
-		hp.VNC = fn(ports.VNC, pc[ports.VNC])
+		hp.VNC = lookup(ports.VNC)
 	}
 
 	return hp
@@ -477,6 +496,9 @@ func getContainerPorts(stat types.ContainerJSON) map[string]string {
 
 	if len(ns.Ports) > 0 {
 		for port, portBindings := range ns.Ports {
+			if len(portBindings) == 0 || portBindings[0].HostPort == "" {
+				continue
+			}
 			exposedPorts[port.Port()] = portBindings[0].HostPort
 		}
 	}

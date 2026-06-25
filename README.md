@@ -58,6 +58,16 @@ Maintained by a growing community:
 * StackOverflow [tag](https://stackoverflow.com/questions/tagged/selenoid)
 * YouTube [channel](https://www.youtube.com/channel/UC9HvE3FNfTvftzpvXi9c69g)
 
+## Native Playwright Support
+
+This fork adds first-class Playwright support via WebSocket endpoint (Moon-compatible URL scheme):
+
+```
+ws://localhost:4444/playwright/chromium/1.52.0
+```
+
+See [docs/playwright.md](docs/playwright.md) and [examples/playwright](examples/playwright) for setup and smoke test.
+
 ## Complete Guide & Build Instructions
 
 Complete reference guide (including building instructions) can be found at: http://aerokube.com/selenoid/latest/
