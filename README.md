@@ -63,7 +63,7 @@ Maintained by a growing community:
 This fork adds first-class Playwright support via WebSocket endpoint (Moon-compatible URL scheme):
 
 ```
-ws://localhost:4444/playwright/chromium/1.61.1
+ws://localhost:4444/playwright/playwright-chromium/1.61.1
 ```
 
 See [docs/playwright.md](docs/playwright.md) and [examples/playwright](examples/playwright) for setup and smoke test.

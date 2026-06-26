@@ -13,19 +13,19 @@ import (
 )
 
 func TestParsePlaywrightRequest(t *testing.T) {
-	u, err := url.Parse("ws://localhost:4444/playwright/chromium/1.61.1?name=smoke&enableVideo=true")
+	u, err := url.Parse("ws://localhost:4444/playwright/playwright-chromium/1.61.1?name=smoke&enableVideo=true")
 	assert.NoError(t, err)
 
 	browser, version, caps, err := parsePlaywrightRequest(u)
 	assert.NoError(t, err)
-	assert.Equal(t, "chromium", browser)
+	assert.Equal(t, "playwright-chromium", browser)
 	assert.Equal(t, "1.61.1", version)
 	assert.Equal(t, "smoke", caps.TestName)
 	assert.True(t, caps.Video)
 }
 
 func TestParsePlaywrightRequestLabels(t *testing.T) {
-	u, err := url.Parse("ws://localhost:4444/playwright/chromium/1.61.1?name=Manual+session&labels.manual=true")
+	u, err := url.Parse("ws://localhost:4444/playwright/playwright-chromium/1.61.1?name=Manual+session&labels.manual=true")
 	assert.NoError(t, err)
 
 	_, _, caps, err := parsePlaywrightRequest(u)
@@ -53,7 +53,7 @@ func TestPlaywrightSessionDeletedViaHub(t *testing.T) {
 
 	sessions.Put(sessionId, &session.Session{
 		Caps: session.Caps{
-			Name:   "chromium",
+			Name:   "playwright-chromium",
 			Labels: map[string]string{"manual": "true"},
 		},
 		URL: wsURL,
@@ -76,11 +76,11 @@ func TestPlaywrightSessionDeletedViaHub(t *testing.T) {
 }
 
 func TestParsePlaywrightRequestDefaultVersion(t *testing.T) {
-	u, err := url.Parse("ws://localhost:4444/playwright/chromium")
+	u, err := url.Parse("ws://localhost:4444/playwright/playwright-chromium")
 	assert.NoError(t, err)
 
 	browser, version, _, err := parsePlaywrightRequest(u)
 	assert.NoError(t, err)
-	assert.Equal(t, "chromium", browser)
+	assert.Equal(t, "playwright-chromium", browser)
 	assert.Equal(t, "", version)
 }

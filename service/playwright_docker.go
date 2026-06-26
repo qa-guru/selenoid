@@ -75,17 +75,14 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 		hostConfig.DNS = d.Caps.DNSServers
 	}
 
-	pwVersion := d.Service.PlaywrightVersion
-	if pwVersion == "" {
-		pwVersion = "latest"
-	}
 	port := d.Service.Port
-	runServerCmd := buildPlaywrightStartupScript(pwVersion, port, d.Caps.Name, d.Caps)
+	env := append(getEnv(d.ServiceBase, d.Caps), playwrightContainerEnv(port, d.Caps)...)
+
+	log.Printf("[%d] [PLAYWRIGHT_NATIVE_ENTRYPOINT] [%s]", requestId, image)
 
 	cfg := &ctr.Config{
 		Image:        image,
-		Cmd:          []string{"/bin/sh", "-c", runServerCmd},
-		Env:          getEnv(d.ServiceBase, d.Caps),
+		Env:          env,
 		ExposedPorts: portConfig.ExposedPorts,
 		Labels:       getLabels(d.Service, d.Caps),
 	}
@@ -178,43 +175,11 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 	}, nil
 }
 
-func buildPlaywrightStartupScript(pwVersion, port, browserName string, caps session.Caps) string {
-	runServer := fmt.Sprintf("exec node /home/pwuser/node_modules/playwright/cli.js run-server --port %s --host 0.0.0.0", port)
-	if !caps.VNC && !caps.Video {
-		return runServer
-	}
-
-	resolution := caps.ScreenResolution
-	if resolution == "" {
-		resolution = "1920x1080x24"
-	}
-
-	vncStart := ""
-	if caps.VNC {
-		vncStart = fmt.Sprintf("x11vnc -display :99 -forever -shared -rfbport %s -passwd selenoid >/dev/null 2>&1 &\n", ports.VNC)
-	}
-
-	headedLauncher := ""
-	if caps.VNC && !caps.Headless && caps.TestName == "Manual session" {
-		pwBrowser := playwrightBrowserName(browserName)
-		headedLauncher = fmt.Sprintf("PW_BROWSER=%s node /home/pwuser/launch-headed-browser.js >>/tmp/headed-launch.log 2>&1 &\n", pwBrowser)
-	}
-
-	return fmt.Sprintf(`set -e
-Xvfb :99 -screen 0 %s -ac +extension RANDR -noreset -listen tcp >/dev/null 2>&1 &
-export DISPLAY=:99
-for i in $(seq 1 50); do xdpyinfo -display :99 >/dev/null 2>&1 && break; sleep 0.1; done
-%s%s%s`, resolution, vncStart, headedLauncher, runServer)
-}
-
-func playwrightBrowserName(browserName string) string {
-	switch strings.ToLower(browserName) {
-	case "webkit":
-		return "webkit"
-	case "firefox-playwright":
-		return "firefox"
-	default:
-		return "chromium"
+func playwrightContainerEnv(port string, caps session.Caps) []string {
+	return []string{
+		fmt.Sprintf("PW_PORT=%s", port),
+		fmt.Sprintf("PW_HEADLESS=%v", caps.Headless),
+		fmt.Sprintf("MANUAL_SESSION=%v", caps.VNC && !caps.Headless && caps.TestName == "Manual session"),
 	}
 }
 

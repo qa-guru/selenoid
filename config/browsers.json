@@ -47,11 +47,11 @@
     }
   },
 
-  "chromium": {
+  "playwright-chromium": {
     "default": "1.61.1",
     "versions": {
       "1.61.1": {
-        "image": "qaguru/playwright:v1.61.1-noble",
+        "image": "qaguru/playwright-chromium:1.61.1",
         "port": "3000",
         "path": "/",
         "protocol": "playwright",
@@ -61,7 +61,7 @@
         "shmSize": 2147483648
       },
       "1.61.0": {
-        "image": "qaguru/playwright:v1.61.0-noble",
+        "image": "qaguru/playwright-chromium:1.61.0",
         "port": "3000",
         "path": "/",
         "protocol": "playwright",
@@ -71,7 +71,7 @@
         "shmSize": 2147483648
       },
       "1.60.0": {
-        "image": "qaguru/playwright:v1.60.0-noble",
+        "image": "qaguru/playwright-chromium:1.60.0",
         "port": "3000",
         "path": "/",
         "protocol": "playwright",
@@ -83,79 +83,105 @@
     }
   },
 
-  "firefox-playwright": {
+  "playwright-firefox": {
     "default": "1.61.1",
     "versions": {
       "1.61.1": {
-        "image": "qaguru/playwright:v1.61.1-noble",
+        "image": "qaguru/playwright-firefox:1.61.1",
         "port": "3000",
         "path": "/",
         "protocol": "playwright",
         "playwrightVersion": "1.61.1",
         "user": "pwuser",
         "workDir": "/home/pwuser",
-        "env": ["PW_BROWSER=firefox"],
         "shmSize": 2147483648
       },
       "1.61.0": {
-        "image": "qaguru/playwright:v1.61.0-noble",
+        "image": "qaguru/playwright-firefox:1.61.0",
         "port": "3000",
         "path": "/",
         "protocol": "playwright",
         "playwrightVersion": "1.61.0",
         "user": "pwuser",
         "workDir": "/home/pwuser",
-        "env": ["PW_BROWSER=firefox"],
         "shmSize": 2147483648
       },
       "1.60.0": {
-        "image": "qaguru/playwright:v1.60.0-noble",
+        "image": "qaguru/playwright-firefox:1.60.0",
         "port": "3000",
         "path": "/",
         "protocol": "playwright",
         "playwrightVersion": "1.60.0",
         "user": "pwuser",
         "workDir": "/home/pwuser",
-        "env": ["PW_BROWSER=firefox"],
         "shmSize": 2147483648
       }
     }
   },
 
-  "webkit": {
+  "playwright-webkit": {
     "default": "1.61.1",
     "versions": {
       "1.61.1": {
-        "image": "qaguru/playwright:v1.61.1-noble",
+        "image": "qaguru/playwright-webkit:1.61.1",
         "port": "3000",
         "path": "/",
         "protocol": "playwright",
         "playwrightVersion": "1.61.1",
         "user": "pwuser",
         "workDir": "/home/pwuser",
-        "env": ["PW_BROWSER=webkit"],
         "shmSize": 2147483648
       },
       "1.61.0": {
-        "image": "qaguru/playwright:v1.61.0-noble",
+        "image": "qaguru/playwright-webkit:1.61.0",
         "port": "3000",
         "path": "/",
         "protocol": "playwright",
         "playwrightVersion": "1.61.0",
         "user": "pwuser",
         "workDir": "/home/pwuser",
-        "env": ["PW_BROWSER=webkit"],
         "shmSize": 2147483648
       },
       "1.60.0": {
-        "image": "qaguru/playwright:v1.60.0-noble",
+        "image": "qaguru/playwright-webkit:1.60.0",
         "port": "3000",
         "path": "/",
         "protocol": "playwright",
         "playwrightVersion": "1.60.0",
         "user": "pwuser",
         "workDir": "/home/pwuser",
-        "env": ["PW_BROWSER=webkit"],
+        "shmSize": 2147483648
+      }
+    }
+  },
+
+  "playwright-chrome": {
+    "default": "1.61.1",
+    "versions": {
+      "1.61.1": {
+        "image": "qaguru/playwright-chrome:1.61.1",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.61.1",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "shmSize": 2147483648
+      }
+    }
+  },
+
+  "playwright-msedge": {
+    "default": "1.61.1",
+    "versions": {
+      "1.61.1": {
+        "image": "qaguru/playwright-msedge:1.61.1",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.61.1",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
         "shmSize": 2147483648
       }
     }

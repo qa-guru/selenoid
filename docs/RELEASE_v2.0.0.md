@@ -13,9 +13,9 @@
 | | |
 |---|---|
 | **WebDriver** | Chrome 146–148, Firefox 148–150 через [twilio/selenoid](https://hub.docker.com/r/twilio/selenoid) |
-| **Playwright** | chromium, firefox-playwright, webkit 1.60–1.61 через [qaguru/playwright](https://hub.docker.com/r/qaguru/playwright) |
+| **Playwright** | playwright-chromium, playwright-firefox, playwright-webkit 1.60–1.61 через `qaguru/playwright-chromium`, `playwright-firefox`, `playwright-webkit` |
 | **Протокол PW** | WebSocket `ws://host:4444/playwright/{browser}/{version}` |
-| **Видео / VNC** | Совместимо с `selenoid/video-recorder`, VNC в образе qaguru/playwright |
+| **Видео / VNC** | Совместимо с `selenoid/video-recorder`, VNC в образах qaguru/playwright-* |
 | **Docker Hub** | `qaguru/selenoid:v2.0.0`, `qaguru/selenoid:latest-release` |
 | **Бинарники** | `selenoid_linux_amd64`, `selenoid_darwin_arm64`, … |
 
@@ -26,9 +26,9 @@
 ### Native Playwright
 
 - WebSocket-эндпоинт в стиле Moon: `/playwright/<browser>/<version>`
-- Поддерживаемые браузеры в hub: `chromium`, `firefox-playwright`, `webkit`
+- Поддерживаемые браузеры в hub: `playwright-chromium`, `playwright-firefox`, `playwright-webkit`
 - Поле `"protocol": "playwright"` в `browsers.json`
-- Запуск browser-node через Docker с образом `qaguru/playwright`
+- Запуск browser-node через Docker с образами `qaguru/playwright-chromium`, `playwright-firefox`, …
 - Query-параметры: `enableVideo`, `enableVNC`, `headless`, `name`, `videoName`, `screenResolution`, …
 - Примеры клиентов: `@playwright/test`, `playwright` library — см. [playwright.md](playwright.md)
 
@@ -39,7 +39,7 @@
 | Стек | Браузеры | Образы |
 |------|----------|--------|
 | WebDriver | `chrome`, `firefox` | `twilio/selenoid:chrome_stable_*`, `firefox_stable_*` |
-| Playwright | `chromium`, `firefox-playwright`, `webkit` | `qaguru/playwright:v*-noble` |
+| Playwright | `playwright-chromium`, `playwright-firefox`, `playwright-webkit` | `qaguru/playwright-*:<version>` |
 
 Таблица совместимости: [browser-versions.md](browser-versions.md).
 
@@ -88,7 +88,7 @@ cm selenoid start -v v2.0.0
 3. Подтянуть образы:
    ```bash
    docker pull twilio/selenoid:chrome_stable_148 twilio/selenoid:firefox_stable_150
-   docker pull qaguru/playwright:v1.61.1-noble
+   docker pull qaguru/playwright-chromium:1.61.1
    docker pull selenoid/video-recorder:latest-release
    ```
 4. Для Playwright за nginx — проксировать WebSocket `/playwright/` (см. `cm-src/deploy/nginx-playwright-snippet.conf` в монорепо qa-guru).

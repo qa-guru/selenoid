@@ -13,7 +13,7 @@
 | Изменение | Описание |
 |-----------|----------|
 | **Playwright VNC (manual)** | Headed-браузер стартует сразу в фоне, без `sleep 2` и без привязки к `run-server` |
-| **Образ `qaguru/playwright`** | `launch-headed-browser.js` использует `browser.launch({ headless: false })` вместо нерабочего `connect()` к `run-server` |
+| **Playwright-образы** | per-browser: `qaguru/playwright-chromium`, `playwright-firefox`, …; `launch-headed-browser.js` в `/opt/playwright/` |
 
 ---
 
@@ -22,7 +22,7 @@
 ```bash
 curl -sL https://github.com/qa-guru/selenoid/releases/download/v2.0.3/selenoid_linux_amd64 -o selenoid
 chmod +x selenoid
-docker pull qaguru/playwright:v1.61.1-noble
+docker pull qaguru/playwright-chromium:1.61.1
 DOCKER_API_VERSION=1.45 ./selenoid -conf /etc/selenoid/browsers.json -limit 10
 ```
 

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/aerokube/selenoid/config"
@@ -9,42 +8,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBuildPlaywrightStartupScriptHeadless(t *testing.T) {
-	script := buildPlaywrightStartupScript("1.61.1", "3000", "chromium", session.Caps{})
-	assert.Equal(t, "exec node /home/pwuser/node_modules/playwright/cli.js run-server --port 3000 --host 0.0.0.0", script)
-}
+func TestPlaywrightContainerEnv(t *testing.T) {
+	env := playwrightContainerEnv("3000", session.Caps{Headless: true})
+	assert.Contains(t, env, "PW_PORT=3000")
+	assert.Contains(t, env, "PW_HEADLESS=true")
+	assert.Contains(t, env, "MANUAL_SESSION=false")
 
-func TestBuildPlaywrightStartupScriptWithVNC(t *testing.T) {
-	script := buildPlaywrightStartupScript("1.61.1", "3000", "chromium", session.Caps{
-		VNC:              true,
-		ScreenResolution: "1920x1080x24",
+	manual := playwrightContainerEnv("3000", session.Caps{
+		VNC:      true,
+		Headless: false,
+		TestName: "Manual session",
 	})
-	assert.True(t, strings.Contains(script, "Xvfb :99"))
-	assert.True(t, strings.Contains(script, "-listen tcp"))
-	assert.True(t, strings.Contains(script, "x11vnc"))
-	assert.True(t, strings.Contains(script, "DISPLAY=:99"))
-	assert.True(t, strings.Contains(script, "run-server"))
-	assert.False(t, strings.Contains(script, "launch-headed-browser.js"))
-}
-
-func TestBuildPlaywrightStartupScriptManualHeadedVNC(t *testing.T) {
-	script := buildPlaywrightStartupScript("1.61.1", "3000", "chromium", session.Caps{
-		VNC:              true,
-		Headless:         false,
-		TestName:         "Manual session",
-		ScreenResolution: "1920x1080x24",
-	})
-	assert.True(t, strings.Contains(script, "launch-headed-browser.js"))
-	assert.True(t, strings.Contains(script, "PW_BROWSER=chromium"))
-}
-
-func TestBuildPlaywrightStartupScriptWithVideoOnly(t *testing.T) {
-	script := buildPlaywrightStartupScript("1.61.1", "3000", "chromium", session.Caps{
-		Video:            true,
-		ScreenResolution: "1280x720x24",
-	})
-	assert.True(t, strings.Contains(script, "Xvfb :99"))
-	assert.False(t, strings.Contains(script, "x11vnc"))
+	assert.Contains(t, manual, "MANUAL_SESSION=true")
 }
 
 func TestGetPlaywrightPortConfigWithVNC(t *testing.T) {
@@ -57,5 +32,5 @@ func TestGetPlaywrightPortConfigWithVNC(t *testing.T) {
 }
 
 func configBrowser(port string) *config.Browser {
-	return &config.Browser{Port: port, Image: "qaguru/playwright:v1.61.1-noble"}
+	return &config.Browser{Port: port, Image: "qaguru/playwright-chromium:1.61.1"}
 }
