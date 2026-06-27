@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/aerokube/selenoid/config"
 	"github.com/aerokube/selenoid/info"
 
 	"github.com/aerokube/selenoid/event"
@@ -210,7 +211,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 	i := 1
 	for ; ; i++ {
 		r.URL.Host, r.URL.Path = u.Host, path.Join(u.Path, r.URL.Path)
-		newBody := removeSelenoidOptions(body)
+		newBody := normalizeWebDriverBrowserNames(removeSelenoidOptions(body))
 		req, _ := http.NewRequest(http.MethodPost, r.URL.String(), bytes.NewReader(newBody))
 		contentType := r.Header.Get("Content-Type")
 		if len(contentType) > 0 {
@@ -406,6 +407,41 @@ func removeSelenoidOptions(input []byte) []byte {
 		}
 	}
 	ret, _ := json.Marshal(body)
+	return ret
+}
+
+func normalizeWebDriverBrowserNames(input []byte) []byte {
+	body := make(map[string]interface{})
+	if err := json.Unmarshal(input, &body); err != nil {
+		return input
+	}
+	if raw, ok := body["desiredCapabilities"]; ok {
+		if dc, ok := raw.(map[string]interface{}); ok {
+			config.NormalizeWebDriverBrowserNameInCaps(dc)
+		}
+	}
+	if raw, ok := body["capabilities"]; ok {
+		if c, ok := raw.(map[string]interface{}); ok {
+			if raw, ok := c["alwaysMatch"]; ok {
+				if am, ok := raw.(map[string]interface{}); ok {
+					config.NormalizeWebDriverBrowserNameInCaps(am)
+				}
+			}
+			if raw, ok := c["firstMatch"]; ok {
+				if fm, ok := raw.([]interface{}); ok {
+					for _, raw := range fm {
+						if c, ok := raw.(map[string]interface{}); ok {
+							config.NormalizeWebDriverBrowserNameInCaps(c)
+						}
+					}
+				}
+			}
+		}
+	}
+	ret, err := json.Marshal(body)
+	if err != nil {
+		return input
+	}
 	return ret
 }
 

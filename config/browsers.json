@@ -53,7 +53,7 @@
     }
   },
 
-  "MicrosoftEdge": {
+  "msedge": {
     "default": "145.0",
     "versions": {
       "145.0": {

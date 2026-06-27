@@ -207,6 +207,19 @@ func TestConfigFindImage(t *testing.T) {
 	assert.Equal(t, b.Path, "/")
 }
 
+func TestConfigFindMicrosoftEdgeAlias(t *testing.T) {
+	confFile := configfile(`{"msedge":{"default":"145.0","versions":{"145.0":{"image":"edge","port":"4444","path":"/"}}}}`)
+	defer os.Remove(confFile)
+	conf := config.NewConfig()
+	err := conf.Load(confFile, testLogConf)
+	assert.NoError(t, err)
+
+	b, v, ok := conf.Find("MicrosoftEdge", "145.0")
+	assert.True(t, ok)
+	assert.Equal(t, v, "145.0")
+	assert.Equal(t, b.Image, "edge")
+}
+
 func TestConfigConcurrentLoad(t *testing.T) {
 	confFile := configfile(`{"firefox":{"default":""}}`)
 	defer os.Remove(confFile)

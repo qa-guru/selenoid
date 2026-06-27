@@ -159,8 +159,43 @@ func (config *Config) findIfPlaywright(name, version string) (*Browser, string, 
 	return nil, version, false
 }
 
+// Browser aliases map legacy Selenium browserName values to browsers.json keys.
+var browserAliases = map[string]string{
+	"MicrosoftEdge": "msedge",
+}
+
+func resolveBrowserName(name string) string {
+	if resolved, ok := browserAliases[name]; ok {
+		return resolved
+	}
+	return name
+}
+
+// CanonicalWebDriverBrowserName maps browsers.json keys to W3C browserName values for WebDriver.
+func CanonicalWebDriverBrowserName(name string) string {
+	if name == "msedge" {
+		return "MicrosoftEdge"
+	}
+	return name
+}
+
+func NormalizeWebDriverBrowserNameInCaps(c map[string]interface{}) {
+	raw, ok := c["browserName"]
+	if !ok {
+		return
+	}
+	name, ok := raw.(string)
+	if !ok {
+		return
+	}
+	if canonical := CanonicalWebDriverBrowserName(name); canonical != name {
+		c["browserName"] = canonical
+	}
+}
+
 // Find - find concrete browser
 func (config *Config) Find(name string, version string) (*Browser, string, bool) {
+	name = resolveBrowserName(name)
 	config.lock.RLock()
 	defer config.lock.RUnlock()
 	browser, ok := config.Browsers[name]

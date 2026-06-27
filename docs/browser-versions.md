@@ -6,7 +6,7 @@
 
 | Стек | Браузеры в `browsers.json` | Протокол | Что означает поле `version` |
 |------|----------------------------|----------|------------------------------|
-| **WebDriver** | `chrome`, `firefox`, `MicrosoftEdge` | Selenium (`/wd/hub`) | Мажорная версия браузера (`148.0` → Chrome 148.x) |
+| **WebDriver** | `chrome`, `firefox`, `msedge` | Selenium (`/wd/hub`) | Мажорная версия браузера (`148.0` → Chrome 148.x) |
 | **Playwright** | `playwright-chromium`, `playwright-firefox`, `playwright-webkit`, `playwright-chrome`, `playwright-msedge` | WebSocket (`/playwright/...`) | Версия npm-пакета `@playwright/test` (`1.61.1`) |
 
 Playwright-образы — per-browser на Docker Hub: `qaguru/playwright-chromium`, `playwright-firefox`, `playwright-webkit`, `playwright-chrome`, `playwright-msedge` ([исходники](https://github.com/qa-guru/playwright-image)).
@@ -19,7 +19,7 @@ Playwright-образы — per-browser на Docker Hub: `qaguru/playwright-chro
 |-----------|---------|------------------|--------------|----------|
 | `chrome` | `148.0` | 148.0, 147.0, 146.0, 128.0 | `twilio/selenoid:chrome_stable_<N>`, `selenoid/vnc_chrome:128.0` | WebDriver |
 | `firefox` | `150.0` | 150.0, 149.0, 148.0 | `twilio/selenoid:firefox_stable_<N>` | WebDriver |
-| `MicrosoftEdge` | `145.0` | 145.0, 144.0, 143.0 | `twilio/selenoid:edge_stable_<N>` | WebDriver |
+| `msedge` | `145.0` | 145.0, 144.0, 143.0 | `twilio/selenoid:edge_stable_<N>` | WebDriver |
 | `playwright-chromium` | `1.61.1` | 1.61.1, 1.61.0, 1.60.0, 1.46.0 | `qaguru/playwright-chromium:<версия>` | Playwright |
 | `playwright-firefox` | `1.61.1` | 1.61.1, 1.61.0, 1.60.0 | `qaguru/playwright-firefox:<версия>` | Playwright |
 | `playwright-webkit` | `1.61.1` | 1.61.1, 1.61.0, 1.60.0 | `qaguru/playwright-webkit:<версия>` | Playwright |
@@ -54,7 +54,7 @@ Playwright-образы — per-browser на Docker Hub: `qaguru/playwright-chro
 
 | Версия в hub | Docker-тег | Edge в контейнере | `path` | Endpoint |
 |--------------|------------|-------------------|--------|----------|
-| **145.0** *(default)* | `edge_stable_145` | Edge 145.x | `/` | `POST /wd/hub/session`, `browserName: MicrosoftEdge` |
+| **145.0** *(default)* | `edge_stable_145` | Edge 145.x | `/` | `POST /wd/hub/session`, `browserName: msedge` (алиас `MicrosoftEdge`) |
 | 144.0 | `edge_stable_144` | Edge 144.x | `/` | то же, `version: 144.0` |
 | 143.0 | `edge_stable_143` | Edge 143.x | `/` | то же, `version: 143.0` |
 
@@ -141,7 +141,7 @@ Playwright-образы — per-browser на Docker Hub: `qaguru/playwright-chro
 |--------|---------------|---------------------|
 | Selenium-тесты Chrome | `chrome` | `148.0` |
 | Selenium-тесты Firefox | `firefox` | `150.0` |
-| Selenium-тесты Edge | `MicrosoftEdge` | `145.0` |
+| Selenium-тесты Edge | `msedge` | `145.0` |
 | `@playwright/test` в CI | `playwright-chromium` | `1.61.1` |
 | Playwright + Firefox | `playwright-firefox` | `1.61.1` |
 | Playwright + Safari-движок | `playwright-webkit` | `1.61.1` |
