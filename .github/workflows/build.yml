@@ -39,8 +39,3 @@ jobs:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
         run: ci/docker-push.sh latest
-
-      - name: Latest docs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ci/docs.sh latest ${{ secrets.GITHUB_TOKEN }}

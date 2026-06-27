@@ -72,9 +72,3 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           DOCKER_IMAGE: qaguru/selenoid
         run: ci/docker-push.sh latest-release
-
-      - name: Release docs
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ci/docs.sh $RELEASE_VERSION ${{ secrets.GITHUB_TOKEN }}
