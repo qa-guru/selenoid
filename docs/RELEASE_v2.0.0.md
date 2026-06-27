@@ -91,7 +91,7 @@ cm selenoid start -v v2.0.0
    docker pull qaguru/playwright-chromium:1.61.1
    docker pull selenoid/video-recorder:latest-release
    ```
-4. Для Playwright за nginx — проксировать WebSocket `/playwright/` (см. `cm-src/deploy/nginx-playwright-snippet.conf` в монорепо qa-guru).
+4. Для Playwright за nginx — проксировать WebSocket `/playwright/` (см. [qa-guru/cm deploy/nginx-playwright-snippet.conf](https://github.com/qa-guru/cm/blob/main/deploy/nginx-playwright-snippet.conf)).
 
 **Обратная совместимость:** существующие Selenium-тесты на `/wd/hub` работают без изменений.
 
@@ -111,4 +111,3 @@ cm selenoid start -v v2.0.0
 |-------------|------|
 | [qa-guru/selenoid-ui](https://github.com/qa-guru/selenoid-ui) v2.0.0 | UI с Playwright в Capabilities |
 | [qa-guru/playwright-image](https://github.com/qa-guru/playwright-image) | Docker-образ browser node |
-| [qa-guru/selenoid_selenium_playwright](https://github.com/qa-guru/selenoid_selenium_playwright) | Примеры тестов (Java, Python, JS, TS) |

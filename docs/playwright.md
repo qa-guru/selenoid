@@ -1,6 +1,6 @@
-# Native Playwright support
+# Native Playwright
 
-Selenoid fork adds first-class Playwright support via WebSocket endpoint (Moon-compatible URL scheme).
+Форк Selenoid добавляет нативную поддержку Playwright через WebSocket endpoint (схема URL совместима с Moon).
 
 ## Endpoint
 
@@ -8,7 +8,7 @@ Selenoid fork adds first-class Playwright support via WebSocket endpoint (Moon-c
 ws://<selenoid-host>:4444/playwright/<browser>/<version>?<options>
 ```
 
-Examples:
+Примеры:
 
 ```
 ws://localhost:4444/playwright/playwright-chromium/1.61.1
@@ -16,26 +16,9 @@ ws://localhost:4444/playwright/playwright-chromium/1.61.1?name=smoke&enableVideo
 wss://selenoid.example.com/playwright/playwright-webkit/1.61.1
 ```
 
-## Basic auth behind nginx
+Production hub (`selenoid.autotests.cloud`): [qa-guru/cm deploy/README.md](https://github.com/qa-guru/cm/blob/main/deploy/README.md).
 
-На публичном hub (`selenoid.autotests.cloud`) basic auth в nginx включён для **`/wd/hub`** и **`/playwright/`** — см. [`cm/deploy/nginx-selenoid.conf`](https://github.com/qa-guru/cm/blob/main/deploy/nginx-selenoid.conf).
-
-```bash
-# логин/пароль в URL (user1:1234)
-export PW_TEST_CONNECT_WS_ENDPOINT=wss://user1:1234@selenoid.autotests.cloud/playwright/playwright-chromium/1.61.1
-
-# или заголовок Authorization (base64 от user1:1234)
-export PW_TEST_CONNECT_WS_ENDPOINT=wss://selenoid.autotests.cloud/playwright/playwright-chromium/1.61.1
-export PW_TEST_CONNECT_HEADERS='{"Authorization":"Basic dXNlcjE6MTIzNA=="}'
-```
-
-WebDriver:
-
-```bash
-export SELENOID_URL=http://user1:1234@selenoid.autotests.cloud/wd/hub
-```
-
-## Client setup
+## Настройка клиента
 
 ### @playwright/test
 
@@ -44,7 +27,7 @@ export PW_TEST_CONNECT_WS_ENDPOINT=ws://localhost:4444/playwright/playwright-chr
 npx playwright test
 ```
 
-Or in `playwright.config.ts`:
+Или в `playwright.config.ts`:
 
 ```typescript
 use: {
@@ -64,7 +47,7 @@ const browser = await chromium.connect('ws://localhost:4444/playwright/playwrigh
 
 ## browsers.json
 
-Playwright browsers use `"protocol": "playwright"` and per-browser images:
+Playwright-браузеры используют `"protocol": "playwright"` и отдельные образы на каждый браузер:
 
 ```json
 "playwright-chromium": {
@@ -84,40 +67,40 @@ Playwright browsers use `"protocol": "playwright"` and per-browser images:
 }
 ```
 
-Images: `qaguru/playwright-chromium`, `playwright-firefox`, `playwright-webkit`, `playwright-chrome`, `playwright-msedge`.
+Образы: `qaguru/playwright-chromium`, `playwright-firefox`, `playwright-webkit`, `playwright-chrome`, `playwright-msedge`.
 
-**Important:** Playwright client version must match `playwrightVersion` (major.minor.patch).
+**Важно:** версия Playwright-клиента должна совпадать с `playwrightVersion` (major.minor.patch).
 
-See [browser-versions.md](browser-versions.md) for the full compatibility matrix (Playwright ↔ Chromium/Firefox/WebKit engines, WebDriver images, Docker tags).
+Полная матрица совместимости (Playwright ↔ движки Chromium/Firefox/WebKit, WebDriver-образы, Docker-теги) — в [browser-versions.md](browser-versions.md).
 
-## Query parameters
+## Query-параметры
 
-| Parameter | Description |
-|-----------|-------------|
-| `name` | Session name (label) |
-| `enableVNC` | Enable live browser screen via VNC (requires `qaguru/playwright-*` image) |
-| `headless` | Run browser headed (`false`) for VNC; default `true`. Manual UI sessions pass `headless=false` automatically |
-| `enableVideo` | Enable H.264 session recording (requires `selenoid/video-recorder` image) |
-| `videoName` | Custom video file name (e.g. `smoke.mp4`); default is `<session-id>.mp4` |
-| `enableLog` | Save container logs |
-| `screenResolution` | e.g. `1920x1080x24` |
-| `sessionTimeout` | e.g. `5m` |
-| `timeZone` | Container timezone |
-| `env.KEY` | Extra container env vars |
+| Параметр | Описание |
+|----------|----------|
+| `name` | Имя сессии (метка) |
+| `enableVNC` | Живой экран браузера через VNC (нужен образ `qaguru/playwright-*`) |
+| `headless` | Запуск с UI (`false`) для VNC; по умолчанию `true`. Ручные сессии через UI передают `headless=false` автоматически |
+| `enableVideo` | Запись сессии в H.264 (нужен образ `selenoid/video-recorder`) |
+| `videoName` | Имя видеофайла (например `smoke.mp4`); по умолчанию `<session-id>.mp4` |
+| `enableLog` | Сохранять логи контейнера |
+| `screenResolution` | Например `1920x1080x24` |
+| `sessionTimeout` | Например `5m` |
+| `timeZone` | Часовой пояс контейнера |
+| `env.KEY` | Дополнительные переменные окружения контейнера |
 
-## Build
+## Сборка
 
 ```bash
 go build -o selenoid .
 ```
 
-Or:
+Или:
 
 ```bash
 ./scripts/build-selenoid.sh
 ```
 
-## Run locally
+## Локальный запуск
 
 ```bash
 docker pull qaguru/playwright-chromium:1.61.1
@@ -126,7 +109,7 @@ docker pull selenoid/video-recorder:latest-release
 ./selenoid -conf config/browsers.json -limit 5
 ```
 
-## Playwright browser image
+## Образ Playwright-браузера
 
 Исходники и сборка образов — отдельный репозиторий [qa-guru/playwright-image](https://github.com/qa-guru/playwright-image) (`qaguru/playwright-*` на Docker Hub).
 
@@ -136,17 +119,16 @@ cd playwright-image
 ./scripts/build.sh chromium 1.61.1
 ```
 
-## Publish to Docker Hub
+## Публикация в Docker Hub
 
 См. [playwright-image](https://github.com/qa-guru/playwright-image): `docker login` и `./scripts/push.sh all 1.61.1`.
 
 ## Toolchain
 
-Hub requires **Docker Engine 26.1.x** (API **1.45**) and **Go 1.23.x**. Start locally:
+Hub требует **Docker Engine 26.1.x** (API **1.45**) и **Go 1.23.x**. Локальный старт:
 
 ```bash
 ./scripts/start-selenoid.sh
 ```
 
-See [RELEASE_v2.0.2.md](RELEASE_v2.0.2.md) and [docker-settings.adoc](docker-settings.adoc).
-
+См. также [RELEASE_v2.0.9.md](RELEASE_v2.0.9.md) и [docker-settings.adoc](docker-settings.adoc).

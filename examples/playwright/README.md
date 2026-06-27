@@ -1,8 +1,8 @@
-# Playwright example
+# Пример Playwright
 
-Smoke test for native Playwright support in Selenoid.
+Smoke-тест нативной поддержки Playwright в Selenoid.
 
-## Prerequisites
+## Предварительные условия
 
 ```bash
 go build -o selenoid .
@@ -10,7 +10,7 @@ docker pull qaguru/playwright-chromium:1.61.1
 ./selenoid -conf config/browsers.json -limit 5
 ```
 
-## Run
+## Запуск
 
 ```bash
 npm install
@@ -18,4 +18,4 @@ cp .env.example .env
 npm test
 ```
 
-See [docs/playwright.md](../../docs/playwright.md) for endpoint details.
+Подробности endpoint — в [docs/playwright.md](../../docs/playwright.md).
