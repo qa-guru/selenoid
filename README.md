@@ -56,8 +56,8 @@ WebDriver-образы — [twilio/selenoid](https://hub.docker.com/r/twilio/sel
 WebSocket endpoint (схема URL совместима с Moon):
 
 ```
-ws://localhost:4444/playwright/playwright-chromium/1.61.1
-ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVideo=true
+ws://localhost:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true
+ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true
 ```
 
 Документация и smoke-тест:
@@ -155,9 +155,9 @@ docker pull selenoid/video-recorder:latest-release
 http://127.0.0.1:4444/wd/hub
 
 # Playwright
-ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1
-ws://127.0.0.1:4444/playwright/playwright-firefox/1.61.1
-ws://127.0.0.1:4444/playwright/playwright-webkit/1.61.1
+ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true
+ws://127.0.0.1:4444/playwright/playwright-firefox/1.61.1?enableVNC=true&enableVideo=true
+ws://127.0.0.1:4444/playwright/playwright-webkit/1.61.1?enableVNC=true&enableVideo=true
 ```
 
 Записи с `enableVideo=true` сохраняются в каталог `video/` (или `http://127.0.0.1:4444/video/`).

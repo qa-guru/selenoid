@@ -11,9 +11,9 @@ ws://<selenoid-host>:4444/playwright/<browser>/<version>?<options>
 Примеры:
 
 ```
-ws://localhost:4444/playwright/playwright-chromium/1.61.1
-ws://localhost:4444/playwright/playwright-chromium/1.61.1?name=smoke&enableVideo=true
-wss://selenoid.example.com/playwright/playwright-webkit/1.61.1
+ws://localhost:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true
+ws://localhost:4444/playwright/playwright-chromium/1.61.1?name=smoke&enableVNC=true&enableVideo=true
+wss://selenoid.example.com/playwright/playwright-webkit/1.61.1?enableVNC=true&enableVideo=true
 ```
 
 За reverse proxy проксируйте `/playwright/` через UI на hub (WebSocket upgrade).
@@ -23,7 +23,7 @@ wss://selenoid.example.com/playwright/playwright-webkit/1.61.1
 ### @playwright/test
 
 ```bash
-export PW_TEST_CONNECT_WS_ENDPOINT=ws://localhost:4444/playwright/playwright-chromium/1.61.1
+export PW_TEST_CONNECT_WS_ENDPOINT=ws://localhost:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true
 npx playwright test
 ```
 
@@ -42,7 +42,7 @@ use: {
 ```typescript
 import { chromium } from 'playwright';
 
-const browser = await chromium.connect('ws://localhost:4444/playwright/playwright-chromium/1.61.1');
+const browser = await chromium.connect('ws://localhost:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true');
 ```
 
 ## browsers.json

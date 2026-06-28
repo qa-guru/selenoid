@@ -74,25 +74,25 @@ Playwright-образы — per-browser на Docker Hub: `qaguru/playwright-chro
 
 | Playwright в hub | `playwrightVersion` | Chromium в контейнере | npm-клиент | WebSocket endpoint |
 |------------------|---------------------|------------------------|------------|-------------------|
-| **1.61.1** *(default)* | `1.61.1` | **149.0.7827.55** (rev 1228) | `@playwright/test@1.61.1` | `ws://host:4444/playwright/playwright-chromium/1.61.1` |
-| 1.61.0 | `1.61.0` | **149.0.7827.55** (rev 1228) | `@playwright/test@1.61.0` | `ws://host:4444/playwright/playwright-chromium/1.61.0` |
-| 1.60.0 | `1.60.0` | **148.0.7778.96** (rev 1223) | `@playwright/test@1.60.0` | `ws://host:4444/playwright/playwright-chromium/1.60.0` |
+| **1.61.1** *(default)* | `1.61.1` | **149.0.7827.55** (rev 1228) | `@playwright/test@1.61.1` | `ws://host:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true` |
+| 1.61.0 | `1.61.0` | **149.0.7827.55** (rev 1228) | `@playwright/test@1.61.0` | `ws://host:4444/playwright/playwright-chromium/1.61.0?enableVNC=true&enableVideo=true` |
+| 1.60.0 | `1.60.0` | **148.0.7778.96** (rev 1223) | `@playwright/test@1.60.0` | `ws://host:4444/playwright/playwright-chromium/1.60.0?enableVNC=true&enableVideo=true` |
 
 ### Firefox Playwright (`playwright-firefox`)
 
 | Playwright в hub | `playwrightVersion` | Firefox в контейнере | npm-клиент | WebSocket endpoint |
 |------------------|---------------------|----------------------|------------|-------------------|
-| **1.61.1** *(default)* | `1.61.1` | **151.0** (rev 1532) | `@playwright/test@1.61.1` | `ws://host:4444/playwright/playwright-firefox/1.61.1` |
-| 1.61.0 | `1.61.0` | **151.0** (rev 1532) | `@playwright/test@1.61.0` | `ws://host:4444/playwright/playwright-firefox/1.61.0` |
-| 1.60.0 | `1.60.0` | **150.0.2** (rev 1522) | `@playwright/test@1.60.0` | `ws://host:4444/playwright/playwright-firefox/1.60.0` |
+| **1.61.1** *(default)* | `1.61.1` | **151.0** (rev 1532) | `@playwright/test@1.61.1` | `ws://host:4444/playwright/playwright-firefox/1.61.1?enableVNC=true&enableVideo=true` |
+| 1.61.0 | `1.61.0` | **151.0** (rev 1532) | `@playwright/test@1.61.0` | `ws://host:4444/playwright/playwright-firefox/1.61.0?enableVNC=true&enableVideo=true` |
+| 1.60.0 | `1.60.0` | **150.0.2** (rev 1522) | `@playwright/test@1.60.0` | `ws://host:4444/playwright/playwright-firefox/1.60.0?enableVNC=true&enableVideo=true` |
 
 ### WebKit Playwright (`playwright-webkit`)
 
 | Playwright в hub | `playwrightVersion` | WebKit в контейнере | npm-клиент | WebSocket endpoint |
 |------------------|---------------------|---------------------|------------|-------------------|
-| **1.61.1** *(default)* | `1.61.1` | **26.5** (rev 2311) | `@playwright/test@1.61.1` | `ws://host:4444/playwright/playwright-webkit/1.61.1` |
-| 1.61.0 | `1.61.0` | **26.5** (rev 2311) | `@playwright/test@1.61.0` | `ws://host:4444/playwright/playwright-webkit/1.61.0` |
-| 1.60.0 | `1.60.0` | **26.4** (rev 2287) | `@playwright/test@1.60.0` | `ws://host:4444/playwright/playwright-webkit/1.60.0` |
+| **1.61.1** *(default)* | `1.61.1` | **26.5** (rev 2311) | `@playwright/test@1.61.1` | `ws://host:4444/playwright/playwright-webkit/1.61.1?enableVNC=true&enableVideo=true` |
+| 1.61.0 | `1.61.0` | **26.5** (rev 2311) | `@playwright/test@1.61.0` | `ws://host:4444/playwright/playwright-webkit/1.61.0?enableVNC=true&enableVideo=true` |
+| 1.60.0 | `1.60.0` | **26.4** (rev 2287) | `@playwright/test@1.60.0` | `ws://host:4444/playwright/playwright-webkit/1.60.0?enableVNC=true&enableVideo=true` |
 
 ---
 
