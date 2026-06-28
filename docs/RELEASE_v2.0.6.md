@@ -28,9 +28,3 @@ for img in playwright-chromium playwright-firefox playwright-webkit playwright-c
 done
 DOCKER_API_VERSION=1.45 ./selenoid -conf /etc/selenoid/browsers.json -limit 10
 ```
-
-На **selenoid.autotests.cloud**:
-
-```bash
-SELENOID_VERSION=v2.0.6 ./deploy/deploy.sh
-```

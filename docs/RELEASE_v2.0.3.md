@@ -25,9 +25,3 @@ chmod +x selenoid
 docker pull qaguru/playwright-chromium:1.61.1
 DOCKER_API_VERSION=1.45 ./selenoid -conf /etc/selenoid/browsers.json -limit 10
 ```
-
-На **selenoid.autotests.cloud**:
-
-```bash
-SELENOID_VERSION=v2.0.3 ./deploy/deploy.sh
-```

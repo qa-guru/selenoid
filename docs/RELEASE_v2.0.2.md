@@ -24,9 +24,3 @@ curl -sL https://github.com/qa-guru/selenoid/releases/download/v2.0.2/selenoid_l
 chmod +x selenoid
 DOCKER_API_VERSION=1.45 ./selenoid -conf /etc/selenoid/browsers.json -limit 10
 ```
-
-На **selenoid.autotests.cloud**:
-
-```bash
-SELENOID_VERSION=v2.0.2 ./deploy/deploy.sh
-```

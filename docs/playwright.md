@@ -16,7 +16,7 @@ ws://localhost:4444/playwright/playwright-chromium/1.61.1?name=smoke&enableVideo
 wss://selenoid.example.com/playwright/playwright-webkit/1.61.1
 ```
 
-Production hub (`selenoid.autotests.cloud`): [qa-guru/cm deploy/README.md](https://github.com/qa-guru/cm/blob/main/deploy/README.md).
+За reverse proxy проксируйте `/playwright/` через UI на hub (WebSocket upgrade).
 
 ## Настройка клиента
 
@@ -131,4 +131,4 @@ Hub требует **Docker Engine 26.1.x** (API **1.45**) и **Go 1.23.x**. Л�
 ./scripts/start-selenoid.sh
 ```
 
-См. также [RELEASE_v2.0.9.md](RELEASE_v2.0.9.md) и [docker-settings.adoc](docker-settings.adoc).
+См. также [RELEASE_v2.1.0.md](RELEASE_v2.1.0.md) и [docker-settings.adoc](docker-settings.adoc).

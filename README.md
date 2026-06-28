@@ -107,9 +107,7 @@ DOCKER_API_VERSION=1.45 ./selenoid -conf config/browsers.json -limit 5
 
 Smoke-тест Playwright: [examples/playwright](examples/playwright) (`npm install && npm test`).
 
-Production-стек **v2.0.9** (cm + hub + UI): [qa-guru/cm deploy/RELEASE_v2.0.9.md](https://github.com/qa-guru/cm/blob/main/deploy/RELEASE_v2.0.9.md). Endpoints — [qa-guru/cm deploy/README.md](https://github.com/qa-guru/cm/blob/main/deploy/README.md).
-
-Подробности релизов hub: [docs/RELEASE_v2.0.9.md](docs/RELEASE_v2.0.9.md).
+Подробности релизов hub: [docs/RELEASE_v2.1.0.md](docs/RELEASE_v2.1.0.md).
 
 ## browsers.json
 

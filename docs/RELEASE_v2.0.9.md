@@ -13,7 +13,7 @@
 | Изменение | Описание |
 |-----------|----------|
 | **README** | Обзор экосистемы qa-guru, таблица `browsers.json`, toolchain (Go 1.23, Docker API 1.45) |
-| **docs/playwright.md** | Русская документация; ссылка на production endpoints в cm; убран устаревший раздел basic auth |
+| **docs/playwright.md** | Русская документация; убран устаревший раздел basic auth |
 | **examples/playwright** | README на русском |
 | **RELEASE_v2.0.0** | Ссылки на отдельные репозитории вместо монорепо |
 
@@ -26,11 +26,3 @@ curl -sL https://github.com/qa-guru/selenoid/releases/download/v2.0.9/selenoid_l
 chmod +x selenoid
 DOCKER_API_VERSION=1.45 ./selenoid -conf /etc/selenoid/browsers.json -limit 20
 ```
-
-На **selenoid.autotests.cloud**:
-
-```bash
-SELENOID_VERSION=v2.0.9 ./deploy/deploy.sh
-```
-
-Стек v2.0.9: [cm RELEASE_v2.0.9](https://github.com/qa-guru/cm/blob/main/deploy/RELEASE_v2.0.9.md).
