@@ -19,8 +19,8 @@
 Selenoid — лёгкий Selenium hub на Go, который поднимает браузеры в Docker-контейнерах. В этом форке добавлен **native Playwright**: клиент подключается по WebSocket, hub стартует Playwright-образ и проксирует соединение.
 
 ```
-Тест (Selenium)   ──►  /wd/hub         ──►  twilio/selenoid (Chrome/Firefox/Edge)
-Тест (Playwright) ──►  /playwright/... ──►  qaguru/playwright-* (см. playwright-image)
+Тест (Selenium)   ──►  /wd/hub         ──►  qaguru/webdriver-chrome (Chrome)
+Тест (Playwright) ──►  /playwright/... ──►  qaguru/playwright-* (browser-image)
 ```
 
 ## Экосистема
@@ -37,10 +37,12 @@ Selenoid — лёгкий Selenium hub на Go, который поднимае�
 └──────────────┘    └────────┬────────┘    └──────────────────────┘
                              │
                              ▼
-                    twilio/selenoid (Chrome/Firefox/Edge)
+                    qaguru/webdriver-chrome (Selenium Chrome)
 ```
 
-WebDriver-образы — [twilio/selenoid](https://hub.docker.com/r/twilio/selenoid). Playwright-образы — [`qaguru/playwright-*`](https://hub.docker.com/u/qaguru). Hub — [`qaguru/selenoid`](https://hub.docker.com/r/qaguru/selenoid).
+WebDriver Chrome — [`qaguru/webdriver-chrome`](https://hub.docker.com/r/qaguru/webdriver-chrome) (`browser-image/webdriver/`). Playwright-образы — [`qaguru/playwright-*`](https://hub.docker.com/u/qaguru). Hub — [`qaguru/selenoid`](https://hub.docker.com/r/qaguru/selenoid).
+
+**Twilio** (`twilio/selenoid`) — legacy cold WebDriver-образы, **не Playwright**. Текущий стек: Microsoft MCR + qaguru wrapper для Playwright; Chrome for Testing + qaguru wrapper для WebDriver. Таблица: [docs/browser-versions.md](docs/browser-versions.md).
 
 ## Связанные репозитории
 
@@ -64,7 +66,8 @@ ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableV
 
 - [docs/playwright.md](docs/playwright.md)
 - [examples/playwright](examples/playwright)
-- [docs/browser-versions.md](docs/browser-versions.md) — таблица совместимости версий
+- [docs/browser-versions.md](docs/browser-versions.md) — политика стека, правила совместимости
+- [docs/driver-versions-catalog.md](docs/driver-versions-catalog.md) — полный каталог версий (official / aerokube / Twilio / qaguru)
 
 ## Требования к окружению
 
@@ -91,8 +94,8 @@ go version   # go1.23.x
 
 ```bash
 ./scripts/build-selenoid.sh
-docker pull twilio/selenoid:chrome_stable_148 twilio/selenoid:firefox_stable_150 selenoid/video-recorder:latest-release
-docker pull qaguru/playwright-chromium:1.61.1   # или сборка в playwright-image
+docker pull qaguru/webdriver-chrome:148 qaguru/webdriver-chrome:148-min selenoid/video-recorder:latest-release
+docker pull qaguru/playwright-chromium:1.60.0   # или сборка в browser-image
 ./scripts/start-selenoid.sh
 ```
 
@@ -115,34 +118,24 @@ Smoke-тест Playwright: [examples/playwright](examples/playwright) (`npm inst
 
 | Браузер в hub | Default | Версии | Docker-образ | Протокол |
 |---------------|---------|--------|--------------|----------|
-| `chrome` | `148.0` | 148.0, 147.0, 146.0, 128.0 | `twilio/selenoid:chrome_stable_<N>`, `selenoid/vnc_chrome:128.0` | WebDriver, `path: /` |
-| `firefox` | `150.0` | 150.0, 149.0, 148.0 | `twilio/selenoid:firefox_stable_<N>` | WebDriver, `path: /wd/hub` |
-| `msedge` | `145.0` | 145.0, 144.0, 143.0 | `twilio/selenoid:edge_stable_<N>` | WebDriver, `path: /` |
-| `playwright-chromium` | `1.61.1` | 1.61.1, 1.61.0, 1.60.0, 1.46.0 | `qaguru/playwright-chromium:<версия>` | Playwright |
-| `playwright-firefox` | `1.61.1` | 1.61.1, 1.61.0, 1.60.0 | `qaguru/playwright-firefox:<версия>` | Playwright |
-| `playwright-webkit` | `1.61.1` | 1.61.1, 1.61.0, 1.60.0 | `qaguru/playwright-webkit:<версия>` | Playwright |
-| `playwright-chrome` | `1.61.1` | 1.61.1, 1.61.0, 1.60.0 | `qaguru/playwright-chrome:<версия>` | Playwright |
-| `playwright-msedge` | `1.61.1` | 1.61.1, 1.61.0, 1.60.0 | `qaguru/playwright-msedge:<версия>` | Playwright |
+| `chrome` | `148.0` | 148.0, 148.0-min | `qaguru/webdriver-chrome:148`, `qaguru/webdriver-chrome:148-min` | WebDriver, `path: /` |
+| `playwright-chromium` | `1.60.0` | 1.60.0, 1.60.0-min | `qaguru/playwright-chromium:<версия>` | Playwright |
+| `playwright-firefox` | `1.60.0` | 1.60.0 | `qaguru/playwright-firefox:<версия>` | Playwright |
+| `playwright-webkit` | `1.60.0` | 1.60.0 | `qaguru/playwright-webkit:<версия>` | Playwright |
+| `playwright-chrome` | `1.60.0` | 1.60.0 | `qaguru/playwright-chrome:<версия>` | Playwright |
+| `playwright-msedge` | `1.60.0` | 1.60.0 | `qaguru/playwright-msedge:<версия>` | Playwright |
 
 Playwright-образы: порт `3000`, `protocol: "playwright"`, `shmSize: 2GB`. Версия npm-клиента `@playwright/test` должна совпадать с `playwrightVersion` в конфиге.
 
 ### Подготовка образов
 
 ```bash
-# WebDriver (Twilio)
-docker pull twilio/selenoid:chrome_stable_148 \
-            twilio/selenoid:chrome_stable_147 \
-            twilio/selenoid:chrome_stable_146 \
-            twilio/selenoid:firefox_stable_150 \
-            twilio/selenoid:firefox_stable_149 \
-            twilio/selenoid:firefox_stable_148 \
-            twilio/selenoid:edge_stable_145 \
-            twilio/selenoid:edge_stable_144 \
-            twilio/selenoid:edge_stable_143
+# WebDriver Chrome (qaguru)
+docker pull qaguru/webdriver-chrome:148 qaguru/webdriver-chrome:148-min
 
-# Playwright — pull или сборка в qa-guru/playwright-image
-docker pull qaguru/playwright-chromium:1.61.1
-# ./scripts/build.sh all 1.61.1   (в репозитории playwright-image)
+# Playwright — pull или сборка в browser-image
+docker pull qaguru/playwright-chromium:1.60.0
+# ./playwright/scripts/build.sh all 1.60.0   (в репозитории browser-image)
 
 # Видеозапись сессий
 docker pull selenoid/video-recorder:latest-release
@@ -155,9 +148,9 @@ docker pull selenoid/video-recorder:latest-release
 http://127.0.0.1:4444/wd/hub
 
 # Playwright
-ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true
-ws://127.0.0.1:4444/playwright/playwright-firefox/1.61.1?enableVNC=true&enableVideo=true
-ws://127.0.0.1:4444/playwright/playwright-webkit/1.61.1?enableVNC=true&enableVideo=true
+ws://127.0.0.1:4444/playwright/playwright-chromium/1.60.0?enableVNC=true&enableVideo=true
+ws://127.0.0.1:4444/playwright/playwright-firefox/1.60.0?enableVNC=true&enableVideo=true
+ws://127.0.0.1:4444/playwright/playwright-webkit/1.60.0?enableVNC=true&enableVideo=true
 ```
 
 Записи с `enableVideo=true` сохраняются в каталог `video/` (или `http://127.0.0.1:4444/video/`).

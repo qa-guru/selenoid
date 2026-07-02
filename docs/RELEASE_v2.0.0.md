@@ -12,7 +12,7 @@
 
 | | |
 |---|---|
-| **WebDriver** | Chrome 146–148, Firefox 148–150 через [twilio/selenoid](https://hub.docker.com/r/twilio/selenoid) |
+| **WebDriver** | Chrome 146–148 через `qaguru/webdriver-chrome` (ранее — legacy `twilio/selenoid` cold-образы) |
 | **Playwright** | playwright-chromium, playwright-firefox, playwright-webkit 1.60–1.61 через `qaguru/playwright-chromium`, `playwright-firefox`, `playwright-webkit` |
 | **Протокол PW** | WebSocket `ws://host:4444/playwright/{browser}/{version}` |
 | **Видео / VNC** | Совместимо с `selenoid/video-recorder`, VNC в образах qaguru/playwright-* |
@@ -38,7 +38,7 @@
 
 | Стек | Браузеры | Образы |
 |------|----------|--------|
-| WebDriver | `chrome`, `firefox` | `twilio/selenoid:chrome_stable_*`, `firefox_stable_*` |
+| WebDriver | `chrome` | `qaguru/webdriver-chrome:<major>` |
 | Playwright | `playwright-chromium`, `playwright-firefox`, `playwright-webkit` | `qaguru/playwright-*:<version>` |
 
 Таблица совместимости: [browser-versions.md](browser-versions.md).
@@ -84,10 +84,10 @@ cm selenoid start -v v2.0.0
 ## Миграция с aerokube/selenoid
 
 1. Заменить образ hub на `qaguru/selenoid:v2.0.0` или бинарник из Release.
-2. Обновить `browsers.json` — добавить секции Playwright и сменить WebDriver-образы на `twilio/selenoid` (см. наш конфиг).
+2. Обновить `browsers.json` — добавить секции Playwright и сменить WebDriver-образы на `qaguru/webdriver-chrome` (см. [`config/browsers.json`](../config/browsers.json)).
 3. Подтянуть образы:
    ```bash
-   docker pull twilio/selenoid:chrome_stable_148 twilio/selenoid:firefox_stable_150
+   docker pull qaguru/webdriver-chrome:148 qaguru/webdriver-chrome:148-min
    docker pull qaguru/playwright-chromium:1.61.1
    docker pull selenoid/video-recorder:latest-release
    ```
