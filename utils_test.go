@@ -201,7 +201,8 @@ func Selenium(nsp ...func(map[string]interface{})) http.Handler {
 }
 
 func TestProcessExtensionCapabilities(t *testing.T) {
-	capsJson := `{
+	t.Run("Process extension capabilities", func(t *testing.T) {
+		capsJson := `{
 		"version": "57.0",
 		"browserName": "firefox",
 		"appium:deviceName": "android",
@@ -213,86 +214,91 @@ func TestProcessExtensionCapabilities(t *testing.T) {
 			"labels": {"key": "value"}
 		}
 	}`
-	var caps session.Caps
-	err := json.Unmarshal([]byte(capsJson), &caps)
-	assert.NoError(t, err)
-	assert.Equal(t, caps.Name, "firefox")
-	assert.Equal(t, caps.Version, "57.0")
-	assert.Equal(t, caps.TestName, "")
+		var caps session.Caps
+		err := json.Unmarshal([]byte(capsJson), &caps)
+		assert.NoError(t, err)
+		assert.Equal(t, caps.Name, "firefox")
+		assert.Equal(t, caps.Version, "57.0")
+		assert.Equal(t, caps.TestName, "")
 
-	caps.ProcessExtensionCapabilities()
-	assert.Equal(t, caps.Name, "firefox")
-	assert.Equal(t, caps.Version, "57.0")
-	assert.Equal(t, caps.DeviceName, "android")
-	assert.Equal(t, caps.TestName, "ExampleTestName")
-	assert.True(t, caps.VNC)
-	assert.Equal(t, caps.VideoFrameRate, uint16(24))
-	assert.Equal(t, caps.Env, []string{"LANG=de_DE.UTF-8"})
-	assert.Equal(t, caps.Labels, map[string]string{"key": "value"})
+		caps.ProcessExtensionCapabilities()
+		assert.Equal(t, caps.Name, "firefox")
+		assert.Equal(t, caps.Version, "57.0")
+		assert.Equal(t, caps.DeviceName, "android")
+		assert.Equal(t, caps.TestName, "ExampleTestName")
+		assert.True(t, caps.VNC)
+		assert.Equal(t, caps.VideoFrameRate, uint16(24))
+		assert.Equal(t, caps.Env, []string{"LANG=de_DE.UTF-8"})
+		assert.Equal(t, caps.Labels, map[string]string{"key": "value"})
+	})
 }
 
 func TestSumUsedTotalGreaterThanPending(t *testing.T) {
-	queue := protect.New(2, false)
+	t.Run("Sum used total greater than pending", func(t *testing.T) {
+		queue := protect.New(2, false)
 
-	hf := func(_ http.ResponseWriter, _ *http.Request) {
-		time.Sleep(50 * time.Millisecond)
-	}
-	queuedHandlerFunc := queue.Try(queue.Check(queue.Protect(hf)))
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", queuedHandlerFunc)
+		hf := func(_ http.ResponseWriter, _ *http.Request) {
+			time.Sleep(50 * time.Millisecond)
+		}
+		queuedHandlerFunc := queue.Try(queue.Check(queue.Protect(hf)))
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", queuedHandlerFunc)
 
-	srv := httptest.NewServer(mux)
-	defer srv.Close()
-	u := srv.URL + "/"
+		srv := httptest.NewServer(mux)
+		defer srv.Close()
+		u := srv.URL + "/"
 
-	_, err := http.Get(u)
-	assert.NoError(t, err)
-	assert.Equal(t, queue.Pending(), 1)
-	queue.Create()
-	assert.Equal(t, queue.Pending(), 0)
-	assert.Equal(t, queue.Used(), 1)
+		_, err := http.Get(u)
+		assert.NoError(t, err)
+		assert.Equal(t, queue.Pending(), 1)
+		queue.Create()
+		assert.Equal(t, queue.Pending(), 0)
+		assert.Equal(t, queue.Used(), 1)
 
-	_, err = http.Get(u)
-	assert.NoError(t, err)
-	assert.Equal(t, queue.Pending(), 1)
-	queue.Create()
-	assert.Equal(t, queue.Pending(), 0)
-	assert.Equal(t, queue.Used(), 2)
+		_, err = http.Get(u)
+		assert.NoError(t, err)
+		assert.Equal(t, queue.Pending(), 1)
+		queue.Create()
+		assert.Equal(t, queue.Pending(), 0)
+		assert.Equal(t, queue.Used(), 2)
 
-	req, _ := http.NewRequest(http.MethodGet, u, nil)
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-	req = req.WithContext(ctx)
+		req, _ := http.NewRequest(http.MethodGet, u, nil)
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+		defer cancel()
+		req = req.WithContext(ctx)
 
-	_, err = http.DefaultClient.Do(req)
-	assert.Error(t, err)
-	assert.Equal(t, queue.Pending(), 0)
-	assert.Equal(t, queue.Used(), 2)
+		_, err = http.DefaultClient.Do(req)
+		assert.Error(t, err)
+		assert.Equal(t, queue.Pending(), 0)
+		assert.Equal(t, queue.Used(), 2)
+	})
 }
 
 func TestBrowserName(t *testing.T) {
-	var caps session.Caps
+	t.Run("Browser name", func(t *testing.T) {
+		var caps session.Caps
 
-	var capsJson = `{
+		var capsJson = `{
 		"appium:deviceName": "iPhone 7"
 	}`
-	err := json.Unmarshal([]byte(capsJson), &caps)
-	assert.NoError(t, err)
-	assert.Equal(t, caps.BrowserName(), "iPhone 7")
+		err := json.Unmarshal([]byte(capsJson), &caps)
+		assert.NoError(t, err)
+		assert.Equal(t, caps.BrowserName(), "iPhone 7")
 
-	capsJson = `{
+		capsJson = `{
 		"deviceName": "android 11"
 	}`
-	err = json.Unmarshal([]byte(capsJson), &caps)
-	assert.NoError(t, err)
-	assert.Equal(t, caps.BrowserName(), "android 11")
+		err = json.Unmarshal([]byte(capsJson), &caps)
+		assert.NoError(t, err)
+		assert.Equal(t, caps.BrowserName(), "android 11")
 
-	capsJson = `{
+		capsJson = `{
 		"deviceName": "android 11",
 		"appium:deviceName": "iPhone 7",
 		"browserName": "firefox"
 	}`
-	err = json.Unmarshal([]byte(capsJson), &caps)
-	assert.NoError(t, err)
-	assert.Equal(t, caps.BrowserName(), "firefox")
+		err = json.Unmarshal([]byte(capsJson), &caps)
+		assert.NoError(t, err)
+		assert.Equal(t, caps.BrowserName(), "firefox")
+	})
 }

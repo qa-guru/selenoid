@@ -236,27 +236,33 @@ func testEnvironment() *service.Environment {
 }
 
 func TestFindOutsideOfDocker(t *testing.T) {
-	env := testEnvironment()
-	env.InDocker = false
-	testDocker(t, env, testConfig(env))
+	t.Run("Find outside of docker", func(t *testing.T) {
+		env := testEnvironment()
+		env.InDocker = false
+		testDocker(t, env, testConfig(env))
+	})
 }
 
 func TestFindInsideOfDocker(t *testing.T) {
-	env := testEnvironment()
-	env.InDocker = true
-	cfg := testConfig(env)
-	logConfig := make(map[string]string)
-	cfg.ContainerLogs = &container.LogConfig{
-		Type:   "rsyslog",
-		Config: logConfig,
-	}
-	testDocker(t, env, cfg)
+	t.Run("Find inside of docker", func(t *testing.T) {
+		env := testEnvironment()
+		env.InDocker = true
+		cfg := testConfig(env)
+		logConfig := make(map[string]string)
+		cfg.ContainerLogs = &container.LogConfig{
+			Type:   "rsyslog",
+			Config: logConfig,
+		}
+		testDocker(t, env, cfg)
+	})
 }
 
 func TestFindDockerIPSpecified(t *testing.T) {
-	env := testEnvironment()
-	env.IP = "127.0.0.1"
-	testDocker(t, env, testConfig(env))
+	t.Run("Find docker ip specified", func(t *testing.T) {
+		env := testEnvironment()
+		env.IP = "127.0.0.1"
+		testDocker(t, env, testConfig(env))
+	})
 }
 
 func testDocker(t *testing.T, env *service.Environment, cfg *config.Config) {
@@ -327,44 +333,50 @@ func failingMux(numDeleteRequests *int) http.Handler {
 }
 
 func TestDeleteContainerOnStartupError(t *testing.T) {
-	numDeleteRequests := 0
-	updateMux(failingMux(&numDeleteRequests))
-	defer updateMux(testMux())
-	env := testEnvironment()
-	starter := createDockerStarter(t, env, testConfig(env))
-	_, err := starter.StartWithCancel()
-	assert.Error(t, err)
-	assert.Equal(t, numDeleteRequests, 1)
+	t.Run("Delete container on startup error", func(t *testing.T) {
+		numDeleteRequests := 0
+		updateMux(failingMux(&numDeleteRequests))
+		defer updateMux(testMux())
+		env := testEnvironment()
+		starter := createDockerStarter(t, env, testConfig(env))
+		_, err := starter.StartWithCancel()
+		assert.Error(t, err)
+		assert.Equal(t, numDeleteRequests, 1)
+	})
 }
 
 func TestFindDriver(t *testing.T) {
-	env := testEnvironment()
-	manager := service.DefaultManager{Environment: env, Config: testConfig(env)}
-	caps := session.Caps{
-		Name:             "internet explorer", //Using default version
-		ScreenResolution: "1024x768",
-		VNC:              true,
-	}
-	starter, success := manager.Find(caps, 42)
-	assert.True(t, success)
-	assert.NotNil(t, starter)
+	t.Run("Find driver", func(t *testing.T) {
+		env := testEnvironment()
+		manager := service.DefaultManager{Environment: env, Config: testConfig(env)}
+		caps := session.Caps{
+			Name:             "internet explorer", //Using default version
+			ScreenResolution: "1024x768",
+			VNC:              true,
+		}
+		starter, success := manager.Find(caps, 42)
+		assert.True(t, success)
+		assert.NotNil(t, starter)
+	})
 }
 
 func TestGetVNC(t *testing.T) {
+	t.Run("Get vnc", func(t *testing.T) {
 
-	srv := httptest.NewServer(handler())
-	defer srv.Close()
+		srv := httptest.NewServer(handler())
+		defer srv.Close()
 
-	testTcpServer := testTCPServer("test-data")
-	sessions.Put("test-session", &session.Session{
-		HostPort: session.HostPort{
-			VNC: testTcpServer.Addr().String(),
-		},
+		testTcpServer := testTCPServer("test-data")
+		sessions.Put("test-session", &session.Session{
+			HostPort: session.HostPort{
+				VNC: testTcpServer.Addr().String(),
+			},
+		})
+		defer sessions.Remove("test-session")
+
+		u := fmt.Sprintf("ws://%s/vnc/test-session", hostPort(srv.URL))
+		assert.Equal(t, readDataFromWebSocket(t, u), "test-data")
 	})
-	defer sessions.Remove("test-session")
-
-	u := fmt.Sprintf("ws://%s/vnc/test-session", hostPort(srv.URL))
-	assert.Equal(t, readDataFromWebSocket(t, u), "test-data")
 }
 
 func testTCPServer(data string) net.Listener {
@@ -395,18 +407,20 @@ func readDataFromWebSocket(t *testing.T, wsURL string) string {
 }
 
 func TestGetLogs(t *testing.T) {
+	t.Run("Get logs", func(t *testing.T) {
 
-	srv := httptest.NewServer(handler())
-	defer srv.Close()
+		srv := httptest.NewServer(handler())
+		defer srv.Close()
 
-	sessions.Put("test-session", &session.Session{
-		Container: &session.Container{
-			ID:        "e90e34656806",
-			IPAddress: "127.0.0.1",
-		},
+		sessions.Put("test-session", &session.Session{
+			Container: &session.Container{
+				ID:        "e90e34656806",
+				IPAddress: "127.0.0.1",
+			},
+		})
+		defer sessions.Remove("test-session")
+
+		u := fmt.Sprintf("ws://%s/logs/test-session", hostPort(srv.URL))
+		assert.Equal(t, readDataFromWebSocket(t, u), "test-data")
 	})
-	defer sessions.Remove("test-session")
-
-	u := fmt.Sprintf("ws://%s/logs/test-session", hostPort(srv.URL))
-	assert.Equal(t, readDataFromWebSocket(t, u), "test-data")
 }

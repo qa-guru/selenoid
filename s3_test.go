@@ -54,87 +54,93 @@ var testSession = &session.Session{
 }
 
 func TestS3Uploader(t *testing.T) {
-	uploader := &upload.S3Uploader{
-		Endpoint:          "http://s3-mock.example.com",
-		Region:            "us-west-1",
-		AccessKey:         "some-access-key",
-		SecretKey:         "some-secret-key",
-		BucketName:        "test-bucket",
-		KeyPattern:        "$fileName",
-		ReducedRedundancy: true,
-	}
-	uploader.Init()
-	f, _ := os.CreateTemp("", "some-file")
-	input := event.CreatedFile{
-		Event: event.Event{
-			RequestId: 4342,
-			SessionId: "some-session-id",
-			Session:   testSession,
-		},
-		Name: f.Name(),
-		Type: "log",
-	}
-	uploaded, err := uploader.Upload(input)
-	assert.NoError(t, err)
-	assert.True(t, uploaded)
+	t.Run("S 3 uploader", func(t *testing.T) {
+		uploader := &upload.S3Uploader{
+			Endpoint:          "http://s3-mock.example.com",
+			Region:            "us-west-1",
+			AccessKey:         "some-access-key",
+			SecretKey:         "some-secret-key",
+			BucketName:        "test-bucket",
+			KeyPattern:        "$fileName",
+			ReducedRedundancy: true,
+		}
+		uploader.Init()
+		f, _ := os.CreateTemp("", "some-file")
+		input := event.CreatedFile{
+			Event: event.Event{
+				RequestId: 4342,
+				SessionId: "some-session-id",
+				Session:   testSession,
+			},
+			Name: f.Name(),
+			Type: "log",
+		}
+		uploaded, err := uploader.Upload(input)
+		assert.NoError(t, err)
+		assert.True(t, uploaded)
+	})
 }
 
 func TestGetKey(t *testing.T) {
-	const testPattern = "$quota/$sessionId_$browserName_$browserVersion_$platformName/$fileType$fileExtension"
-	input := event.CreatedFile{
-		Event: event.Event{
-			SessionId: "some-Session-id",
-			Session:   testSession,
-			RequestId: 12345,
-		},
+	t.Run("Get key", func(t *testing.T) {
+		const testPattern = "$quota/$sessionId_$browserName_$browserVersion_$platformName/$fileType$fileExtension"
+		input := event.CreatedFile{
+			Event: event.Event{
+				SessionId: "some-Session-id",
+				Session:   testSession,
+				RequestId: 12345,
+			},
 
-		Name: "/path/to/Some-File.txt",
-		Type: "log",
-	}
+			Name: "/path/to/Some-File.txt",
+			Type: "log",
+		}
 
-	key := upload.GetS3Key(testPattern, input)
-	assert.Equal(t, key, "some-user/some-Session-id_internet-explorer_11_windows/log.txt")
+		key := upload.GetS3Key(testPattern, input)
+		assert.Equal(t, key, "some-user/some-Session-id_internet-explorer_11_windows/log.txt")
 
-	input.Session.Caps.Name = ""
-	input.Session.Caps.DeviceName = "internet explorer"
-	key = upload.GetS3Key(testPattern, input)
-	assert.Equal(t, key, "some-user/some-Session-id_internet-explorer_11_windows/log.txt")
+		input.Session.Caps.Name = ""
+		input.Session.Caps.DeviceName = "internet explorer"
+		key = upload.GetS3Key(testPattern, input)
+		assert.Equal(t, key, "some-user/some-Session-id_internet-explorer_11_windows/log.txt")
 
-	input.Session.Caps.S3KeyPattern = "$quota/$fileType$fileExtension"
-	key = upload.GetS3Key(testPattern, input)
-	assert.Equal(t, key, "some-user/log.txt")
+		input.Session.Caps.S3KeyPattern = "$quota/$fileType$fileExtension"
+		key = upload.GetS3Key(testPattern, input)
+		assert.Equal(t, key, "some-user/log.txt")
 
-	input.Session.Caps.S3KeyPattern = "$fileName"
-	key = upload.GetS3Key(testPattern, input)
-	assert.Equal(t, key, "Some-File.txt")
+		input.Session.Caps.S3KeyPattern = "$fileName"
+		key = upload.GetS3Key(testPattern, input)
+		assert.Equal(t, key, "Some-File.txt")
+	})
 }
 
 func TestFileMatches(t *testing.T) {
-	matches, err := upload.FileMatches("", "", "any-file-name")
-	assert.NoError(t, err)
-	assert.True(t, matches)
+	t.Run("File matches", func(t *testing.T) {
+		matches, err := upload.FileMatches("", "", "any-file-name")
+		assert.NoError(t, err)
+		assert.True(t, matches)
 
-	matches, err = upload.FileMatches("[", "", "/path/to/file.mp4")
-	assert.Error(t, err)
-	assert.False(t, matches)
+		matches, err = upload.FileMatches("[", "", "/path/to/file.mp4")
+		assert.Error(t, err)
+		assert.False(t, matches)
 
-	matches, err = upload.FileMatches("", "[", "/path/to/file.mp4")
-	assert.Error(t, err)
-	assert.False(t, matches)
+		matches, err = upload.FileMatches("", "[", "/path/to/file.mp4")
+		assert.Error(t, err)
+		assert.False(t, matches)
 
-	matches, err = upload.FileMatches("*.mp4", "", "/path/to/file.mp4")
-	assert.NoError(t, err)
-	assert.True(t, matches)
+		matches, err = upload.FileMatches("*.mp4", "", "/path/to/file.mp4")
+		assert.NoError(t, err)
+		assert.True(t, matches)
 
-	matches, err = upload.FileMatches("*.mp4", "", "/path/to/file.log")
-	assert.NoError(t, err)
-	assert.False(t, matches)
+		matches, err = upload.FileMatches("*.mp4", "", "/path/to/file.log")
+		assert.NoError(t, err)
+		assert.False(t, matches)
 
-	matches, err = upload.FileMatches("*.mp4", "", "/path/to/file.log")
-	assert.NoError(t, err)
-	assert.False(t, matches)
+		matches, err = upload.FileMatches("*.mp4", "", "/path/to/file.log")
+		assert.NoError(t, err)
+		assert.False(t, matches)
 
-	matches, err = upload.FileMatches("", "*.log", "/path/to/file.log")
-	assert.NoError(t, err)
-	assert.False(t, matches)
+		matches, err = upload.FileMatches("", "*.log", "/path/to/file.log")
+		assert.NoError(t, err)
+		assert.False(t, matches)
+	})
 }
