@@ -9,26 +9,30 @@ import (
 )
 
 func TestPlaywrightContainerEnv(t *testing.T) {
-	env := playwrightContainerEnv("3000", session.Caps{Headless: true})
-	assert.Contains(t, env, "PW_PORT=3000")
-	assert.Contains(t, env, "PW_HEADLESS=true")
-	assert.Contains(t, env, "MANUAL_SESSION=false")
+	t.Run("Playwright container env", func(t *testing.T) {
+		env := playwrightContainerEnv("3000", session.Caps{Headless: true})
+		assert.Contains(t, env, "PW_PORT=3000")
+		assert.Contains(t, env, "PW_HEADLESS=true")
+		assert.Contains(t, env, "MANUAL_SESSION=false")
 
-	manual := playwrightContainerEnv("3000", session.Caps{
-		VNC:      true,
-		Headless: false,
-		TestName: "Manual session",
+		manual := playwrightContainerEnv("3000", session.Caps{
+			VNC:      true,
+			Headless: false,
+			TestName: "Manual session",
+		})
+		assert.Contains(t, manual, "MANUAL_SESSION=true")
 	})
-	assert.Contains(t, manual, "MANUAL_SESSION=true")
 }
 
 func TestGetPlaywrightPortConfigWithVNC(t *testing.T) {
-	browser := configBrowser("3000")
-	cfg, err := getPlaywrightPortConfig(browser, session.Caps{VNC: true}, Environment{})
-	assert.NoError(t, err)
-	assert.NotEmpty(t, cfg.VNCPort)
-	_, ok := cfg.ExposedPorts[cfg.VNCPort]
-	assert.True(t, ok)
+	t.Run("Get playwright port config with vnc", func(t *testing.T) {
+		browser := configBrowser("3000")
+		cfg, err := getPlaywrightPortConfig(browser, session.Caps{VNC: true}, Environment{})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, cfg.VNCPort)
+		_, ok := cfg.ExposedPorts[cfg.VNCPort]
+		assert.True(t, ok)
+	})
 }
 
 func configBrowser(port string) *config.Browser {
