@@ -72,3 +72,16 @@ jobs:
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
           DOCKER_IMAGE: qaguru/selenoid
         run: ci/docker-push.sh latest-release
+
+      - name: Trigger selenoid-tests smoke
+        if: success()
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}
+          repository: qa-guru/selenoid-tests
+          event-type: deploy-smoke
+          client-payload: >-
+            {"source_repo":"${{ github.repository }}",
+             "source_ref":"${{ github.ref }}",
+             "source_version":"${{ env.RELEASE_VERSION }}",
+             "test_tags":"api,smoke"}
