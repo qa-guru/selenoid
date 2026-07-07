@@ -104,24 +104,26 @@ go build -o selenoid .
 
 ```bash
 docker pull qaguru/playwright-chromium:1.61.1
-# или сборка из https://github.com/qa-guru/playwright-image
+# или сборка из https://github.com/qa-guru/browser-image
 docker pull selenoid/video-recorder:latest-release
-./selenoid -conf config/browsers.json -limit 5
+DOCKER_API_VERSION=1.45 ./selenoid -conf config/browsers.json -limit 5
 ```
+
+Конфиг синхронизируется из `dev/browsers.json` (`../dev/scripts/sync-cm-browsers.sh`).
 
 ## Образ Playwright-браузера
 
-Исходники и сборка образов — отдельный репозиторий [qa-guru/playwright-image](https://github.com/qa-guru/playwright-image) (`qaguru/playwright-*` на Docker Hub).
+Исходники и сборка образов — [qa-guru/browser-image](https://github.com/qa-guru/browser-image) (`playwright/`, `qaguru/playwright-*` на Docker Hub).
 
 ```bash
-git clone https://github.com/qa-guru/playwright-image.git
-cd playwright-image
+git clone https://github.com/qa-guru/browser-image.git
+cd browser-image/playwright
 ./scripts/build.sh chromium 1.61.1
 ```
 
 ## Публикация в Docker Hub
 
-См. [playwright-image](https://github.com/qa-guru/playwright-image): `docker login` и `./scripts/push.sh all 1.61.1`.
+См. [browser-image/playwright](https://github.com/qa-guru/browser-image): `docker login` и `./scripts/push.sh all 1.61.1`.
 
 ## Toolchain
 

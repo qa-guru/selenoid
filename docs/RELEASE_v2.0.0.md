@@ -110,4 +110,4 @@ cm selenoid start -v v2.0.0
 | Репозиторий | Роль |
 |-------------|------|
 | [qa-guru/selenoid-ui](https://github.com/qa-guru/selenoid-ui) v2.0.0 | UI с Playwright в Capabilities |
-| [qa-guru/playwright-image](https://github.com/qa-guru/playwright-image) | Docker-образ browser node |
+| [qa-guru/browser-image](https://github.com/qa-guru/browser-image) | Docker-образ browser node |

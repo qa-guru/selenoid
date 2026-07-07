@@ -32,7 +32,7 @@ Selenoid — лёгкий Selenium hub на Go, который поднимае�
                            │ скачивает бинарники + browsers.json
                            ▼
 ┌──────────────┐    ┌─────────────────┐    ┌──────────────────────┐
-│ selenoid-ui  │◄──►│ selenoid (hub)  │───►│ playwright-image     │
+│ selenoid-ui  │◄──►│ selenoid (hub)  │───►│ browser-image          │
 │              │    │                 │    │ (browser containers) │
 └──────────────┘    └────────┬────────┘    └──────────────────────┘
                              │
@@ -51,7 +51,7 @@ WebDriver Chrome — [`qaguru/webdriver-chrome`](https://hub.docker.com/r/qaguru
 | **selenoid** (этот) | Hub — центральный компонент |
 | [selenoid-ui](https://github.com/qa-guru/selenoid-ui) | UI для отладки; проксирует hub |
 | [cm](https://github.com/qa-guru/cm) | Установщик: скачивает hub, UI, `browsers.json` |
-| [playwright-image](https://github.com/qa-guru/playwright-image) | Docker-образы browser nodes для Playwright |
+| [browser-image](https://github.com/qa-guru/browser-image) | Docker-образы browser nodes (Playwright + WebDriver) |
 
 ## Native Playwright
 
@@ -95,7 +95,7 @@ go version   # go1.23.x
 ```bash
 ./scripts/build-selenoid.sh
 docker pull qaguru/webdriver-chrome:148 qaguru/webdriver-chrome:148-min selenoid/video-recorder:latest-release
-docker pull qaguru/playwright-chromium:1.60.0   # или сборка в browser-image
+docker pull qaguru/playwright-chromium:1.61.1   # или сборка в browser-image
 ./scripts/start-selenoid.sh
 ```
 
@@ -106,7 +106,7 @@ go build -o selenoid .
 DOCKER_API_VERSION=1.45 ./selenoid -conf config/browsers.json -limit 5
 ```
 
-Конфигурация браузеров: [`config/browsers.json`](config/browsers.json).
+Конфигурация браузеров: канон — [`../dev/browsers.json`](../dev/browsers.json); в репо hub — [`config/browsers.json`](config/browsers.json) (синхронизация: `../dev/scripts/sync-cm-browsers.sh`).
 
 Smoke-тест Playwright: [examples/playwright](examples/playwright) (`npm install && npm test`).
 
@@ -119,11 +119,11 @@ Smoke-тест Playwright: [examples/playwright](examples/playwright) (`npm inst
 | Браузер в hub | Default | Версии | Docker-образ | Протокол |
 |---------------|---------|--------|--------------|----------|
 | `chrome` | `148.0` | 148.0, 148.0-min | `qaguru/webdriver-chrome:148`, `qaguru/webdriver-chrome:148-min` | WebDriver, `path: /` |
-| `playwright-chromium` | `1.60.0` | 1.60.0, 1.60.0-min | `qaguru/playwright-chromium:<версия>` | Playwright |
-| `playwright-firefox` | `1.60.0` | 1.60.0 | `qaguru/playwright-firefox:<версия>` | Playwright |
-| `playwright-webkit` | `1.60.0` | 1.60.0 | `qaguru/playwright-webkit:<версия>` | Playwright |
-| `playwright-chrome` | `1.60.0` | 1.60.0 | `qaguru/playwright-chrome:<версия>` | Playwright |
-| `playwright-msedge` | `1.60.0` | 1.60.0 | `qaguru/playwright-msedge:<версия>` | Playwright |
+| `playwright-chromium` | `1.61.1` | 1.61.1, 1.61.1-min | `qaguru/playwright-chromium:<версия>` | Playwright |
+| `playwright-firefox` | `1.61.1` | 1.61.1 | `qaguru/playwright-firefox:<версия>` | Playwright |
+| `playwright-webkit` | `1.61.1` | 1.61.1 | `qaguru/playwright-webkit:<версия>` | Playwright |
+| `playwright-chrome` | `1.61.1` | 1.61.1 | `qaguru/playwright-chrome:<версия>` | Playwright |
+| `playwright-msedge` | `1.61.1` | 1.61.1 | `qaguru/playwright-msedge:<версия>` | Playwright |
 
 Playwright-образы: порт `3000`, `protocol: "playwright"`, `shmSize: 2GB`. Версия npm-клиента `@playwright/test` должна совпадать с `playwrightVersion` в конфиге.
 
@@ -134,8 +134,8 @@ Playwright-образы: порт `3000`, `protocol: "playwright"`, `shmSize: 2G
 docker pull qaguru/webdriver-chrome:148 qaguru/webdriver-chrome:148-min
 
 # Playwright — pull или сборка в browser-image
-docker pull qaguru/playwright-chromium:1.60.0
-# ./playwright/scripts/build.sh all 1.60.0   (в репозитории browser-image)
+docker pull qaguru/playwright-chromium:1.61.1
+# ./playwright/scripts/build.sh all 1.61.1   (в репозитории browser-image)
 
 # Видеозапись сессий
 docker pull selenoid/video-recorder:latest-release
@@ -148,9 +148,9 @@ docker pull selenoid/video-recorder:latest-release
 http://127.0.0.1:4444/wd/hub
 
 # Playwright
-ws://127.0.0.1:4444/playwright/playwright-chromium/1.60.0?enableVNC=true&enableVideo=true
-ws://127.0.0.1:4444/playwright/playwright-firefox/1.60.0?enableVNC=true&enableVideo=true
-ws://127.0.0.1:4444/playwright/playwright-webkit/1.60.0?enableVNC=true&enableVideo=true
+ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true
+ws://127.0.0.1:4444/playwright/playwright-firefox/1.61.1?enableVNC=true&enableVideo=true
+ws://127.0.0.1:4444/playwright/playwright-webkit/1.61.1?enableVNC=true&enableVideo=true
 ```
 
 Записи с `enableVideo=true` сохраняются в каталог `video/` (или `http://127.0.0.1:4444/video/`).
@@ -163,78 +163,6 @@ ws://127.0.0.1:4444/playwright/playwright-webkit/1.60.0?enableVNC=true&enableVid
 | `PLAYWRIGHT_WS_ENDPOINT` | WebSocket URL hub |
 | `PW_TEST_CONNECT_WS_ENDPOINT` | Alias (официальный env Playwright) |
 
-----------------------------------
-## Оригинальная документация (Aerokube)
+## Upstream (Aerokube)
 
-# Selenoid
-
-[![Build Status](https://github.com/aerokube/selenoid/workflows/build/badge.svg)](https://github.com/aerokube/selenoid/actions?query=workflow%3Abuild)
-[![Coverage](https://codecov.io/github/aerokube/selenoid/coverage.svg)](https://codecov.io/gh/aerokube/selenoid)
-[![Go Report Card](https://goreportcard.com/badge/github.com/aerokube/selenoid)](https://goreportcard.com/report/github.com/aerokube/selenoid)
-[![Release](https://img.shields.io/github/release/aerokube/selenoid.svg)](https://github.com/aerokube/selenoid/releases/latest)
-[![Docker Pulls](https://img.shields.io/docker/pulls/aerokube/selenoid.svg)](https://hub.docker.com/r/aerokube/selenoid)
-[![StackOverflow Tag](https://img.shields.io/badge/stackoverflow-selenoid-orange.svg?style=flat)](https://stackoverflow.com/questions/tagged/selenoid)
-
-**UNMAINTAINED**. Consider https://aerokube.com/moon/latest as alternative.
-
-Selenoid is a powerful implementation of [Selenium](http://github.com/SeleniumHQ/selenium) hub using [Docker](https://docker.com/) containers to launch browsers.
-![Selenoid Animation](docs/img/selenoid-animation.gif)
-
-## Features
-
-### One-command Installation
-Start browser automation in minutes by downloading [Configuration Manager](https://github.com/aerokube/cm/releases) binary and running just **one command**:
-```
-$ ./cm selenoid start --vnc --tmpfs 128
-```
-**That's it!** You can now use Selenoid instead of Selenium server. Specify the following Selenium URL in tests:
-```
-http://localhost:4444/wd/hub
-```
-
-### Ready to use Browser Images
-No need to manually install browsers or dive into WebDriver documentation. Available images:
-![Browsers List](docs/img/browsers-list.gif)
-
-New images are added right after official releases. You can create your custom images with browsers. 
-
-### Live Browser Screen and Logs
-New **[rich user interface]((https://github.com/aerokube/selenoid-ui))** showing browser screen and Selenium session logs:
-![Selenoid UI](docs/img/selenoid-ui.png)
-
-### Video Recording
-* Any browser session can be saved to [H.264](https://en.wikipedia.org/wiki/H.264/MPEG-4_AVC) video ([example](https://www.youtube.com/watch?v=maB298oO5cI))
-* An API to list, download and delete recorded video files
-
-### Convenient Logging
-
-* Any browser session logs are automatically saved to files - one per session
-* An API to list, download and delete saved log files
-
-### Lightweight and Lightning Fast
-Suitable for personal usage and in big clusters:
-* Consumes **10 times** less memory than Java-based Selenium server under the same load
-* **Small 6 Mb binary** with no external dependencies (no need to install Java)
-* **Browser consumption API** working out of the box
-* Ability to send browser logs to **centralized log storage** (e.g. to the [ELK-stack](https://logz.io/learn/complete-guide-elk-stack/))
-* Fully **isolated** and **reproducible** environment
-
-### Detailed Documentation and Free Support
-Maintained by a growing community:
-* Detailed [documentation](http://aerokube.com/selenoid/latest/)
-* Telegram [support channel](https://t.me/aerokube)
-* Support by [email](mailto:support@aerokube.com)
-* StackOverflow [tag](https://stackoverflow.com/questions/tagged/selenoid)
-* YouTube [channel](https://www.youtube.com/channel/UC9HvE3FNfTvftzpvXi9c69g)
-
-## Complete Guide & Build Instructions
-
-Complete reference guide (including building instructions) can be found at: http://aerokube.com/selenoid/latest/
-
-## Selenoid in Kubernetes
-
-Selenoid was initially created to be deployed on hardware servers or virtual machines and is not suitable for Kubernetes. Detailed motivation is described [here](https://aerokube.com/selenoid/latest/#_selenoid_in_kubernetes). If you still need running Selenium tests in Kubernetes, then take a look at [Moon](https://github.com/aerokube/moon/) - our dedicated solution for Kubernetes. 
-
-## Known Users
-
-[![JetBrains](docs/img/logo/jetbrains.png)](http://jetbrains.com/) [![Yandex](docs/img/logo/yandex.png)](https://yandex.com/company/) [![Sberbank Technology](docs/img/logo/sbertech.png)](http://sber-tech.com/) [![ThoughtWorks](docs/img/logo/thoughtworks.png)](https://thoughtworks.com/) [![VK.com](docs/img/logo/vk.png)](https://vk.com/) [![SuperJob](docs/img/logo/superjob.png)](http://superjob.ru/) [![PropellerAds](docs/img/logo/propellerads.png)](http://propellerads.com/) [![AlfaBank](docs/img/logo/alfabank.png)](https://alfabank.com/) [![3CX](docs/img/logo/3cx.png)](https://www.3cx.com/) [![IQ Option](docs/img/logo/iq_option.png)](https://iqoption.com/) [![Mail.Ru Group](docs/img/logo/mail_ru.png)](https://corp.mail.ru/en/) [![Newegg.Com](docs/img/logo/newegg.png)](https://newegg.com/) [![Badoo](docs/img/logo/badoo.png)](https://badoo.com/team/) [![BCS](docs/img/logo/bcs.png)](https://bcs.ru/) [![Quality Lab](docs/img/logo/quality-lab.png)](https://quality-lab.ru) [![AT Consulting](docs/img/logo/at-consulting.png)](https://www.at-consulting.ru/) [![Royal Caribbean International](docs/img/logo/royal-caribbean.png)](https://www.royalcaribbean.com/) [![Sixt](docs/img/logo/sixt.png)](https://sixt.com/) [![Testjar](docs/img/logo/testjar.png)](http://www.testjar.com/) [![Flipdish](docs/img/logo/flipdish.png)](https://www.flipdish.com/) [![RiAdvice](docs/img/logo/riadvice.png)](https://riadvice.tn/)
+Форк [aerokube/selenoid](https://github.com/aerokube/selenoid) (upstream **UNMAINTAINED**). Оригинальная документация: [aerokube.com/selenoid/latest](http://aerokube.com/selenoid/latest/) и AsciiDoc в [`docs/*.adoc`](docs/) (upstream-only, не дублируют qa-guru quick start).

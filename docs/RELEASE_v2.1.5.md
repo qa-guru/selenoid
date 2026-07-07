@@ -12,9 +12,9 @@
 
 | Изменение | Описание |
 |-----------|----------|
-| **browsers.json** | Активный стек: `qaguru/webdriver-chrome:148` (+ `148-min`), Playwright `1.60.0` (+ `-min`); legacy `twilio/*`, Firefox/Edge WebDriver убраны из дефолтного конфига |
+| **browsers.json** | Активный стек: `qaguru/webdriver-chrome:148` (+ `148-min`), Playwright **1.61.1** (+ `-min`); legacy `twilio/*`, Firefox/Edge WebDriver убраны из дефолтного конфига |
 | **Документация** | [browser-versions.md](browser-versions.md) — политика трёх слоёв (hub / PW nodes / WD nodes); новый [driver-versions-catalog.md](driver-versions-catalog.md) |
-| **Min-образы** | `playwright-chromium:1.60.0-min`, `webdriver-chrome:148-min` в каталоге |
+| **Min-образы** | `playwright-chromium:1.61.1-min`, `webdriver-chrome:148-min` в каталоге |
 | **Тесты** | Go unit: readable display names через `t.Run` для Allure/TestOps |
 
 ---

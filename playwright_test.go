@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/aerokube/selenoid/session"
+	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -90,5 +93,83 @@ func TestParsePlaywrightRequestDefaultVersion(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "playwright-chromium", browser)
 		assert.Equal(t, "", version)
+	})
+}
+
+func TestPlaywrightConnectRejectsNonWebSocket(t *testing.T) {
+	t.Run("Playwright connect rejects non websocket", func(t *testing.T) {
+		rsp, err := http.Get(With(srv.URL).Path("/playwright/playwright-chromium/1.61.1"))
+		assert.NoError(t, err)
+		defer rsp.Body.Close()
+		assert.Equal(t, http.StatusBadRequest, rsp.StatusCode)
+	})
+}
+
+func TestPlaywrightConnectBrowserNotFound(t *testing.T) {
+	t.Run("Playwright connect browser not found", func(t *testing.T) {
+		manager = &BrowserNotFound{}
+		wsURL := strings.Replace(srv.URL, "http://", "ws://", 1) + "/playwright/playwright-chromium/1.61.1"
+		conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		if conn != nil {
+			_ = conn.Close()
+		}
+		assert.Error(t, err)
+	})
+}
+
+func TestPlaywrightConnectProxiesWebSocket(t *testing.T) {
+	t.Run("Playwright connect proxies websocket", func(t *testing.T) {
+		manager = &HTTPTest{Handler: Selenium()}
+		wsURL := strings.Replace(srv.URL, "http://", "ws://", 1) + "/playwright/playwright-chromium/1.61.1?name=smoke"
+		conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		assert.NoError(t, err)
+		defer conn.Close()
+
+		msg := []byte(`{"id":1}`)
+		err = conn.WriteMessage(websocket.TextMessage, msg)
+		assert.NoError(t, err)
+
+		_, reply, err := conn.ReadMessage()
+		assert.NoError(t, err)
+		assert.JSONEq(t, string(msg), string(reply))
+	})
+}
+
+func TestProxyPlaywright(t *testing.T) {
+	t.Run("Proxy playwright to backend", func(t *testing.T) {
+		upgrader := websocket.Upgrader{CheckOrigin: func(_ *http.Request) bool { return true }}
+		backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			c, err := upgrader.Upgrade(w, r, nil)
+			if err != nil {
+				return
+			}
+			defer c.Close()
+			mt, msg, err := c.ReadMessage()
+			if err != nil {
+				return
+			}
+			_ = c.WriteMessage(mt, msg)
+		}))
+		defer backend.Close()
+
+		backendHost := strings.TrimPrefix(backend.URL, "http://")
+		backendURL, err := url.Parse("ws://" + backendHost + "/")
+		assert.NoError(t, err)
+
+		proxySrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			proxyPlaywright(w, r, backendURL)
+		}))
+		defer proxySrv.Close()
+
+		wsURL := strings.Replace(proxySrv.URL, "http://", "ws://", 1) + "/"
+		conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		assert.NoError(t, err)
+		defer conn.Close()
+
+		msg := []byte("ping")
+		assert.NoError(t, conn.WriteMessage(websocket.TextMessage, msg))
+		_, reply, err := conn.ReadMessage()
+		assert.NoError(t, err)
+		assert.Equal(t, msg, reply)
 	})
 }
