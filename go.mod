@@ -2,6 +2,8 @@ module github.com/aerokube/selenoid
 
 go 1.26
 
+toolchain go1.26.0
+
 require (
 	github.com/aerokube/ggr v0.0.0-20240420103110-fc913c480489
 	github.com/aws/aws-sdk-go v1.53.5

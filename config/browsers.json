@@ -1,26 +1,57 @@
 {
   "chrome": {
-    "default": "148.0",
+    "default": "149.0",
     "versions": {
+      "149.0": {
+        "image": "qaguru/webdriver-chrome:149",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      },
+      "149.0-min": {
+        "image": "qaguru/webdriver-chrome:149-min",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      },
       "148.0": {
         "image": "qaguru/webdriver-chrome:148",
         "port": "4444",
         "path": "/",
         "shmSize": 2147483648,
-        "tmpfs": { "/tmp": "size=512m" },
-        "hosts": ["host.docker.internal:host-gateway"]
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
       },
       "148.0-min": {
         "image": "qaguru/webdriver-chrome:148-min",
         "port": "4444",
         "path": "/",
         "shmSize": 2147483648,
-        "tmpfs": { "/tmp": "size=512m" },
-        "hosts": ["host.docker.internal:host-gateway"]
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
       }
     }
   },
-
   "playwright-chromium": {
     "default": "1.61.1",
     "versions": {
@@ -33,7 +64,9 @@
         "user": "pwuser",
         "workDir": "/home/pwuser",
         "shmSize": 2147483648,
-        "hosts": ["host.docker.internal:host-gateway"]
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
       },
       "1.61.1-min": {
         "image": "qaguru/playwright-chromium:1.61.1-min",
@@ -44,11 +77,12 @@
         "user": "pwuser",
         "workDir": "/home/pwuser",
         "shmSize": 2147483648,
-        "hosts": ["host.docker.internal:host-gateway"]
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
       }
     }
   },
-
   "playwright-firefox": {
     "default": "1.61.1",
     "versions": {
@@ -64,7 +98,6 @@
       }
     }
   },
-
   "playwright-webkit": {
     "default": "1.61.1",
     "versions": {
@@ -80,7 +113,6 @@
       }
     }
   },
-
   "playwright-chrome": {
     "default": "1.61.1",
     "versions": {
@@ -96,7 +128,6 @@
       }
     }
   },
-
   "playwright-msedge": {
     "default": "1.61.1",
     "versions": {
