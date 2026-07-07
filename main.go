@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/aerokube/selenoid/info"
-	"github.com/docker/docker/api"
 	"log"
 	"net"
 	"net/http"
@@ -26,7 +25,7 @@ import (
 	"github.com/aerokube/selenoid/service"
 	"github.com/aerokube/selenoid/session"
 	"github.com/aerokube/selenoid/upload"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 	"github.com/pkg/errors"
 	"golang.org/x/net/websocket"
 )
@@ -210,13 +209,13 @@ func createCompatibleDockerClient(onVersionSpecified, onVersionDetermined, onUsi
 	if dockerApiVersionEnv != "" {
 		onVersionSpecified(dockerApiVersionEnv)
 	} else {
-		maxMajorVersion, maxMinorVersion := parseVersion(api.DefaultVersion)
+		maxMajorVersion, maxMinorVersion := parseVersion(client.MaxAPIVersion)
 		minMajorVersion, minMinorVersion := parseVersion("1.24")
 		for majorVersion := maxMajorVersion; majorVersion >= minMajorVersion; majorVersion-- {
 			for minorVersion := maxMinorVersion; minorVersion >= minMinorVersion; minorVersion-- {
 				apiVersion := fmt.Sprintf("%d.%d", majorVersion, minorVersion)
 				_ = os.Setenv(dockerApiVersion, apiVersion)
-				docker, err := client.NewClientWithOpts(client.FromEnv)
+				docker, err := client.New(client.FromEnv)
 				if err != nil {
 					return nil, err
 				}
@@ -227,9 +226,9 @@ func createCompatibleDockerClient(onVersionSpecified, onVersionDetermined, onUsi
 				_ = docker.Close()
 			}
 		}
-		onUsingDefaultVersion(api.DefaultVersion)
+		onUsingDefaultVersion(client.MaxAPIVersion)
 	}
-	return client.NewClientWithOpts(client.FromEnv)
+	return client.New(client.FromEnv)
 }
 
 func parseVersion(ver string) (int, int) {
@@ -248,7 +247,7 @@ func parseVersion(ver string) (int, int) {
 
 func isDockerAPIVersionCorrect(docker *client.Client) bool {
 	ctx := context.Background()
-	apiInfo, err := docker.ServerVersion(ctx)
+	apiInfo, err := docker.ServerVersion(ctx, client.ServerVersionOptions{})
 	if err != nil {
 		return false
 	}

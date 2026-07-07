@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/aerokube/selenoid/session"
-	ctr "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
+	ctr "github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

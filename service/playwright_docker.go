@@ -13,9 +13,9 @@ import (
 	"github.com/aerokube/selenoid/config"
 	"github.com/aerokube/selenoid/info"
 	"github.com/aerokube/selenoid/session"
-	ctr "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/client"
+	ctr "github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/client"
 	"github.com/docker/go-connections/nat"
 )
 
@@ -55,10 +55,23 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 	ctx := context.Background()
 	log.Printf("[%d] [CREATING_PLAYWRIGHT_CONTAINER] [%s]", requestId, image)
 
+	portBindings, err := networkPortMap(portConfig.PortBindings)
+	if err != nil {
+		return nil, fmt.Errorf("convert port bindings: %v", err)
+	}
+	exposedPorts, err := networkPortSet(portConfig.ExposedPorts)
+	if err != nil {
+		return nil, fmt.Errorf("convert exposed ports: %v", err)
+	}
+	dnsServers, err := networkDNSAddrs(d.Caps.DNSServers)
+	if err != nil {
+		return nil, fmt.Errorf("convert DNS servers: %v", err)
+	}
+
 	hostConfig := ctr.HostConfig{
 		Binds:        d.Service.Volumes,
 		AutoRemove:   true,
-		PortBindings: portConfig.PortBindings,
+		PortBindings: portBindings,
 		LogConfig:    getLogConfig(*d.LogConfig, d.Caps),
 		NetworkMode:  ctr.NetworkMode(d.Network),
 		Tmpfs:        d.Service.Tmpfs,
@@ -71,8 +84,8 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 		ExtraHosts: getExtraHosts(d.Service, d.Caps),
 	}
 	hostConfig.PublishAllPorts = d.Service.PublishAllPorts
-	if len(d.Caps.DNSServers) > 0 {
-		hostConfig.DNS = d.Caps.DNSServers
+	if len(dnsServers) > 0 {
+		hostConfig.DNS = dnsServers
 	}
 
 	port := d.Service.Port
@@ -83,7 +96,7 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 	cfg := &ctr.Config{
 		Image:        image,
 		Env:          env,
-		ExposedPorts: portConfig.ExposedPorts,
+		ExposedPorts: exposedPorts,
 		Labels:       getLabels(d.Service, d.Caps),
 	}
 	if user := d.Service.User; user != "" {
@@ -100,7 +113,11 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 		cfg.Hostname = hn
 	}
 
-	container, err := d.Client.ContainerCreate(ctx, cfg, &hostConfig, &network.NetworkingConfig{}, nil, "")
+	container, err := d.Client.ContainerCreate(ctx, client.ContainerCreateOptions{
+		Config:           cfg,
+		HostConfig:       &hostConfig,
+		NetworkingConfig: &network.NetworkingConfig{},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("create playwright container: %v", err)
 	}
@@ -109,7 +126,7 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 	browserContainerId := container.ID
 	videoContainerId := ""
 	log.Printf("[%d] [STARTING_PLAYWRIGHT_CONTAINER] [%s] [%s]", requestId, image, browserContainerId)
-	if err = d.Client.ContainerStart(ctx, browserContainerId, ctr.StartOptions{}); err != nil {
+	if _, err = d.Client.ContainerStart(ctx, browserContainerId, client.ContainerStartOptions{}); err != nil {
 		removeContainer(ctx, d.Client, requestId, browserContainerId)
 		return nil, fmt.Errorf("start playwright container: %v", err)
 	}

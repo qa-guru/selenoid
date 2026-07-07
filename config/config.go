@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/aerokube/selenoid/session"
-	"github.com/docker/docker/api/types/container"
+	ctr "github.com/moby/moby/api/types/container"
 )
 
 // Session - session id and vnc flag
@@ -80,12 +80,12 @@ type Config struct {
 	lock           sync.RWMutex
 	LastReloadTime time.Time
 	Browsers       map[string]Versions
-	ContainerLogs  *container.LogConfig
+	ContainerLogs  *ctr.LogConfig
 }
 
 // NewConfig creates new config
 func NewConfig() *Config {
-	return &Config{Browsers: make(map[string]Versions), ContainerLogs: new(container.LogConfig), LastReloadTime: time.Now()}
+	return &Config{Browsers: make(map[string]Versions), ContainerLogs: new(ctr.LogConfig), LastReloadTime: time.Now()}
 }
 
 func loadJSON(filename string, v interface{}) error {
@@ -108,7 +108,7 @@ func (config *Config) Load(browsers, containerLogs string) error {
 		return fmt.Errorf("browsers config: %v", err)
 	}
 	log.Printf("[-] [INIT] [Loaded configuration from %s]", browsers)
-	cl := &container.LogConfig{}
+	cl := &ctr.LogConfig{}
 	if containerLogs != "" {
 		err = loadJSON(containerLogs, cl)
 		if err != nil {
