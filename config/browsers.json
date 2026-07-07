@@ -52,6 +52,112 @@
       }
     }
   },
+  "firefox": {
+    "default": "151.0",
+    "versions": {
+      "151.0": {
+        "image": "qaguru/webdriver-firefox:151",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      },
+      "151.0-min": {
+        "image": "qaguru/webdriver-firefox:151-min",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      },
+      "150.0": {
+        "image": "qaguru/webdriver-firefox:150",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      },
+      "150.0-min": {
+        "image": "qaguru/webdriver-firefox:150-min",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      }
+    }
+  },
+  "msedge": {
+    "default": "145.0",
+    "versions": {
+      "145.0": {
+        "image": "qaguru/webdriver-msedge:145",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      },
+      "145.0-min": {
+        "image": "qaguru/webdriver-msedge:145-min",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      },
+      "144.0": {
+        "image": "qaguru/webdriver-msedge:144",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      },
+      "144.0-min": {
+        "image": "qaguru/webdriver-msedge:144-min",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      }
+    }
+  },
   "playwright-chromium": {
     "default": "1.61.1",
     "versions": {
