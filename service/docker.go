@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/aerokube/selenoid/info"
-	"github.com/docker/docker/api/types"
 	"log"
 	"net"
 	"net/url"
@@ -16,11 +15,10 @@ import (
 
 	"github.com/aerokube/selenoid/config"
 	"github.com/aerokube/selenoid/session"
-	ctr "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/strslice"
-	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/stdcopy"
+	ctr "github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/api/pkg/stdcopy"
+	"github.com/moby/moby/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 )
@@ -113,10 +111,22 @@ func (d *Docker) StartWithCancel() (*StartedService, error) {
 	image := d.Service.Image
 	ctx := context.Background()
 	log.Printf("[%d] [CREATING_CONTAINER] [%s]", requestId, image)
+	portBindings, err := networkPortMap(portConfig.PortBindings)
+	if err != nil {
+		return nil, fmt.Errorf("convert port bindings: %v", err)
+	}
+	exposedPorts, err := networkPortSet(portConfig.ExposedPorts)
+	if err != nil {
+		return nil, fmt.Errorf("convert exposed ports: %v", err)
+	}
+	dnsServers, err := networkDNSAddrs(d.Caps.DNSServers)
+	if err != nil {
+		return nil, fmt.Errorf("convert DNS servers: %v", err)
+	}
 	hostConfig := ctr.HostConfig{
 		Binds:        d.Service.Volumes,
 		AutoRemove:   true,
-		PortBindings: portConfig.PortBindings,
+		PortBindings: portBindings,
 		LogConfig:    getLogConfig(*d.LogConfig, d.Caps),
 		NetworkMode:  ctr.NetworkMode(d.Network),
 		Tmpfs:        d.Service.Tmpfs,
@@ -129,11 +139,11 @@ func (d *Docker) StartWithCancel() (*StartedService, error) {
 		ExtraHosts: getExtraHosts(d.Service, d.Caps),
 	}
 	hostConfig.PublishAllPorts = d.Service.PublishAllPorts
-	if len(d.Caps.DNSServers) > 0 {
-		hostConfig.DNS = d.Caps.DNSServers
+	if len(dnsServers) > 0 {
+		hostConfig.DNS = dnsServers
 	}
 	if !d.Privileged {
-		hostConfig.CapAdd = strslice.StrSlice{sysAdmin}
+		hostConfig.CapAdd = []string{sysAdmin}
 	}
 	if len(d.ApplicationContainers) > 0 {
 		hostConfig.Links = d.ApplicationContainers
@@ -146,17 +156,18 @@ func (d *Docker) StartWithCancel() (*StartedService, error) {
 	cfg := &ctr.Config{
 		Image:        image.(string),
 		Env:          env,
-		ExposedPorts: portConfig.ExposedPorts,
+		ExposedPorts: exposedPorts,
 		Labels:       getLabels(d.Service, d.Caps),
 	}
 	hn := getContainerHostname(d.Caps)
 	if hn != "" {
 		cfg.Hostname = hn
 	}
-	container, err := cl.ContainerCreate(ctx,
-		cfg,
-		&hostConfig,
-		&network.NetworkingConfig{}, nil, "")
+	container, err := cl.ContainerCreate(ctx, client.ContainerCreateOptions{
+		Config:           cfg,
+		HostConfig:       &hostConfig,
+		NetworkingConfig: &network.NetworkingConfig{},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("create container: %v", err)
 	}
@@ -164,7 +175,7 @@ func (d *Docker) StartWithCancel() (*StartedService, error) {
 	browserContainerId := container.ID
 	videoContainerId := ""
 	log.Printf("[%d] [STARTING_CONTAINER] [%s] [%s]", requestId, image, browserContainerId)
-	err = cl.ContainerStart(ctx, browserContainerId, ctr.StartOptions{})
+	_, err = cl.ContainerStart(ctx, browserContainerId, client.ContainerStartOptions{})
 	if err != nil {
 		removeContainer(ctx, cl, requestId, browserContainerId)
 		return nil, fmt.Errorf("start container: %v", err)
@@ -173,20 +184,26 @@ func (d *Docker) StartWithCancel() (*StartedService, error) {
 
 	if len(d.AdditionalNetworks) > 0 {
 		for _, networkName := range d.AdditionalNetworks {
-			err = cl.NetworkConnect(ctx, networkName, browserContainerId, nil)
+			_, err = cl.NetworkConnect(ctx, networkName, client.NetworkConnectOptions{Container: browserContainerId})
 			if err != nil {
 				return nil, fmt.Errorf("failed to connect container %s to network %s: %v", browserContainerId, networkName, err)
 			}
 		}
 	}
 
-	stat, err := cl.ContainerInspect(ctx, browserContainerId)
+	inspect, err := cl.ContainerInspect(ctx, browserContainerId, client.ContainerInspectOptions{})
 	if err != nil {
 		removeContainer(ctx, cl, requestId, browserContainerId)
 		return nil, fmt.Errorf("inspect container %s: %s", browserContainerId, err)
 	}
+	stat := inspect.Container
 	if d.Environment.InDocker {
-		if _, ok := stat.NetworkSettings.Ports[selenium]; !ok {
+		seleniumPort, portErr := networkPort(selenium)
+		if portErr != nil {
+			removeContainer(ctx, cl, requestId, browserContainerId)
+			return nil, fmt.Errorf("convert selenium port: %v", portErr)
+		}
+		if _, ok := stat.NetworkSettings.Ports[seleniumPort]; !ok {
 			removeContainer(ctx, cl, requestId, browserContainerId)
 			return nil, fmt.Errorf("no bindings available for %v", selenium)
 		}
@@ -256,7 +273,7 @@ func (d *Docker) StartWithCancel() (*StartedService, error) {
 			}
 			defer removeContainer(ctx, cl, requestId, browserContainerId)
 			if d.LogOutputDir != "" && (d.SaveAllLogs || d.Log) {
-				r, err := d.Client.ContainerLogs(ctx, browserContainerId, ctr.LogsOptions{
+				r, err := d.Client.ContainerLogs(ctx, browserContainerId, client.ContainerLogsOptions{
 					Timestamps: true,
 					ShowStdout: true,
 					ShowStderr: true,
@@ -447,24 +464,33 @@ func getLabels(service *config.Browser, caps session.Caps) map[string]string {
 	return labels
 }
 
-func waitContainerInspect(ctx context.Context, cl *client.Client, containerID string, serverPort nat.Port, timeout time.Duration) (types.ContainerJSON, error) {
+func waitContainerInspect(ctx context.Context, cl *client.Client, containerID string, serverPort nat.Port, timeout time.Duration) (ctr.InspectResponse, error) {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		stat, err := cl.ContainerInspect(ctx, containerID)
+		inspect, err := cl.ContainerInspect(ctx, containerID, client.ContainerInspectOptions{})
 		if err != nil {
-			return stat, fmt.Errorf("inspect container %s: %s", containerID, err)
+			return ctr.InspectResponse{}, fmt.Errorf("inspect container %s: %s", containerID, err)
 		}
-		bindings := stat.NetworkSettings.Ports[serverPort]
+		stat := inspect.Container
+		networkPortKey, portErr := networkPort(serverPort)
+		if portErr != nil {
+			return ctr.InspectResponse{}, fmt.Errorf("convert port %q: %v", serverPort, portErr)
+		}
+		bindings := stat.NetworkSettings.Ports[networkPortKey]
 		if len(bindings) > 0 && bindings[0].HostPort != "" {
 			return stat, nil
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
-	return types.ContainerJSON{}, fmt.Errorf("no bindings available for port %s", serverPort.Port())
+	return ctr.InspectResponse{}, fmt.Errorf("no bindings available for port %s", serverPort.Port())
 }
 
-func hostPortAddress(env Environment, stat types.ContainerJSON, port nat.Port) string {
-	bindings := stat.NetworkSettings.Ports[port]
+func hostPortAddress(env Environment, stat ctr.InspectResponse, port nat.Port) string {
+	networkPortKey, err := networkPort(port)
+	if err != nil {
+		return ""
+	}
+	bindings := stat.NetworkSettings.Ports[networkPortKey]
 	if len(bindings) == 0 || bindings[0].HostPort == "" {
 		return ""
 	}
@@ -478,7 +504,7 @@ func hostPortAddress(env Environment, stat types.ContainerJSON, port nat.Port) s
 	return net.JoinHostPort("127.0.0.1", bindings[0].HostPort)
 }
 
-func getHostPort(env Environment, servicePort string, caps session.Caps, stat types.ContainerJSON, pc map[string]nat.Port) session.HostPort {
+func getHostPort(env Environment, servicePort string, caps session.Caps, stat ctr.InspectResponse, pc map[string]nat.Port) session.HostPort {
 	lookup := func(key string) string {
 		port, ok := pc[key]
 		if !ok || port == "" {
@@ -501,7 +527,7 @@ func getHostPort(env Environment, servicePort string, caps session.Caps, stat ty
 	return hp
 }
 
-func getContainerPorts(stat types.ContainerJSON) map[string]string {
+func getContainerPorts(stat ctr.InspectResponse) map[string]string {
 	ns := stat.NetworkSettings
 
 	var exposedPorts = make(map[string]string)
@@ -511,25 +537,23 @@ func getContainerPorts(stat types.ContainerJSON) map[string]string {
 			if len(portBindings) == 0 || portBindings[0].HostPort == "" {
 				continue
 			}
-			exposedPorts[port.Port()] = portBindings[0].HostPort
+			exposedPorts[port.String()] = portBindings[0].HostPort
 		}
 	}
 	return exposedPorts
 }
 
-func getContainerIP(networkName string, stat types.ContainerJSON) string {
+func getContainerIP(networkName string, stat ctr.InspectResponse) string {
 	ns := stat.NetworkSettings
-	if ns.IPAddress != "" {
-		return stat.NetworkSettings.IPAddress
-	}
 	if len(ns.Networks) > 0 {
 		var possibleAddresses []string
 		for name, nt := range ns.Networks {
-			if nt.IPAddress != "" {
+			ip := endpointIP(nt)
+			if ip != "" {
 				if name == networkName {
-					return nt.IPAddress
+					return ip
 				}
-				possibleAddresses = append(possibleAddresses, nt.IPAddress)
+				possibleAddresses = append(possibleAddresses, ip)
 			}
 		}
 		if len(possibleAddresses) > 0 {
@@ -539,7 +563,7 @@ func getContainerIP(networkName string, stat types.ContainerJSON) string {
 	return ""
 }
 
-func startVideoContainer(ctx context.Context, cl *client.Client, requestId uint64, browserContainer types.ContainerJSON, environ Environment, service ServiceBase, caps session.Caps) (string, error) {
+func startVideoContainer(ctx context.Context, cl *client.Client, requestId uint64, browserContainer ctr.InspectResponse, environ Environment, service ServiceBase, caps session.Caps) (string, error) {
 	videoContainerStartTime := time.Now()
 	videoContainerImage := environ.VideoContainerImage
 	env := getEnv(service, caps)
@@ -565,13 +589,14 @@ func startVideoContainer(ctx context.Context, cl *client.Client, requestId uint6
 	}
 	env = append(env, fmt.Sprintf("BROWSER_CONTAINER_NAME=%s", browserContainerName))
 	log.Printf("[%d] [CREATING_VIDEO_CONTAINER] [%s]", requestId, videoContainerImage)
-	videoContainer, err := cl.ContainerCreate(ctx,
-		&ctr.Config{
+	videoContainer, err := cl.ContainerCreate(ctx, client.ContainerCreateOptions{
+		Config: &ctr.Config{
 			Image: videoContainerImage,
 			Env:   env,
 		},
-		hostConfig,
-		&network.NetworkingConfig{}, nil, "")
+		HostConfig:       hostConfig,
+		NetworkingConfig: &network.NetworkingConfig{},
+	})
 	if err != nil {
 		removeContainer(ctx, cl, requestId, browserContainer.ID)
 		return "", fmt.Errorf("create video container: %v", err)
@@ -579,7 +604,7 @@ func startVideoContainer(ctx context.Context, cl *client.Client, requestId uint6
 
 	videoContainerId := videoContainer.ID
 	log.Printf("[%d] [STARTING_VIDEO_CONTAINER] [%s] [%s]", requestId, videoContainerImage, videoContainerId)
-	err = cl.ContainerStart(ctx, videoContainerId, ctr.StartOptions{})
+	_, err = cl.ContainerStart(ctx, videoContainerId, client.ContainerStartOptions{})
 	if err != nil {
 		removeContainer(ctx, cl, requestId, browserContainer.ID)
 		removeContainer(ctx, cl, requestId, videoContainerId)
@@ -599,15 +624,20 @@ func getVideoOutputDir(env Environment) string {
 
 func stopVideoContainer(ctx context.Context, cli *client.Client, requestId uint64, containerId string, env Environment) {
 	log.Printf("[%d] [STOPPING_VIDEO_CONTAINER] [%s]", requestId, containerId)
-	err := cli.ContainerKill(ctx, containerId, "TERM")
+	_, err := cli.ContainerKill(ctx, containerId, client.ContainerKillOptions{Signal: "TERM"})
 	if err != nil {
 		log.Printf("[%d] [FAILED_TO_STOP_VIDEO_CONTAINER] [%s] [%v]", requestId, containerId, err)
 		return
 	}
-	notRunning, doesNotExist := cli.ContainerWait(ctx, containerId, ctr.WaitConditionNotRunning)
+	waitResult := cli.ContainerWait(ctx, containerId, client.ContainerWaitOptions{Condition: ctr.WaitConditionNotRunning})
 	select {
-	case <-doesNotExist:
-	case <-notRunning:
+	case err := <-waitResult.Error:
+		if err != nil {
+			log.Printf("[%d] [FAILED_TO_WAIT_VIDEO_CONTAINER] [%s] [%v]", requestId, containerId, err)
+		}
+		removeContainer(ctx, cli, requestId, containerId)
+		return
+	case <-waitResult.Result:
 		removeContainer(ctx, cli, requestId, containerId)
 		return
 	case <-time.After(env.SessionDeleteTimeout):
@@ -619,7 +649,7 @@ func stopVideoContainer(ctx context.Context, cli *client.Client, requestId uint6
 
 func removeContainer(ctx context.Context, cli *client.Client, requestId uint64, id string) {
 	log.Printf("[%d] [REMOVING_CONTAINER] [%s]", requestId, id)
-	err := cli.ContainerRemove(ctx, id, ctr.RemoveOptions{Force: true, RemoveVolumes: true})
+	_, err := cli.ContainerRemove(ctx, id, client.ContainerRemoveOptions{Force: true, RemoveVolumes: true})
 	if err != nil {
 		log.Printf("[%d] [FAILED_TO_REMOVE_CONTAINER] [%s] [%v]", requestId, id, err)
 		return

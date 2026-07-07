@@ -9,7 +9,7 @@ import (
 
 	"github.com/aerokube/selenoid/config"
 	"github.com/aerokube/selenoid/session"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 )
 
 // Environment - all settings that influence browser startup

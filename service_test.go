@@ -16,8 +16,8 @@ import (
 	"github.com/aerokube/selenoid/config"
 	"github.com/aerokube/selenoid/service"
 	"github.com/aerokube/selenoid/session"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
+	ctr "github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/client"
 	assert "github.com/stretchr/testify/require"
 	"golang.org/x/net/websocket"
 )
@@ -41,7 +41,7 @@ func updateMux(mux http.Handler) {
 	mockServer = httptest.NewServer(mux)
 	_ = os.Setenv("DOCKER_HOST", "tcp://"+hostPort(mockServer.URL))
 	_ = os.Setenv("DOCKER_API_VERSION", "1.29")
-	cli, _ = client.NewClientWithOpts(client.FromEnv)
+	cli, _ = client.New(client.FromEnv)
 }
 
 func testMux() http.Handler {
@@ -249,7 +249,7 @@ func TestFindInsideOfDocker(t *testing.T) {
 		env.InDocker = true
 		cfg := testConfig(env)
 		logConfig := make(map[string]string)
-		cfg.ContainerLogs = &container.LogConfig{
+		cfg.ContainerLogs = &ctr.LogConfig{
 			Type:   "rsyslog",
 			Config: logConfig,
 		}
