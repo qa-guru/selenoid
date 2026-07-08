@@ -542,7 +542,7 @@ func TestSessionCreatedStripsMinSuffixForDriver(t *testing.T) {
 				proxiedBrowserVersion = v
 			}
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(`{"value":{"sessionId":"test-session","capabilities":{}}}`))
+			_, _ = w.Write([]byte(`{"sessionId":"test-session-min","value":{}}`))
 		}))
 		manager = &HTTPTest{Handler: root}
 
@@ -552,6 +552,8 @@ func TestSessionCreatedStripsMinSuffixForDriver(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Equal(t, "49.0", proxiedBrowserVersion)
+		sessions.Remove("test-session-min")
+		queue.Release()
 	})
 }
 
