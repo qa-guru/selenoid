@@ -211,7 +211,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 	i := 1
 	for ; ; i++ {
 		r.URL.Host, r.URL.Path = u.Host, path.Join(u.Path, r.URL.Path)
-		newBody := normalizeWebDriverBrowserNames(removeSelenoidOptions(body))
+		newBody := rewriteCatalogBrowserVersionForDriver(normalizeWebDriverBrowserNames(removeSelenoidOptions(body)))
 		req, _ := http.NewRequest(http.MethodPost, r.URL.String(), bytes.NewReader(newBody))
 		contentType := r.Header.Get("Content-Type")
 		if len(contentType) > 0 {
@@ -408,6 +408,84 @@ func removeSelenoidOptions(input []byte) []byte {
 	}
 	ret, _ := json.Marshal(body)
 	return ret
+}
+
+// rewriteCatalogBrowserVersionForDriver strips Selenoid catalog suffixes (e.g. "-min")
+// from W3C browserVersion / JSONWP version before proxying to the browser driver.
+// Catalog keys like "151.0-min" select qaguru/webdriver-*:*-min images, but drivers
+// (especially geckodriver) match browserVersion against the real browser version
+// and reject suffixes that are not part of the browser build.
+func rewriteCatalogBrowserVersionForDriver(input []byte) []byte {
+	body := make(map[string]interface{})
+	if err := json.Unmarshal(input, &body); err != nil {
+		return input
+	}
+	changed := false
+	if raw, ok := body["desiredCapabilities"]; ok {
+		if dc, ok := raw.(map[string]interface{}); ok {
+			if rewriteBrowserVersionFields(dc) {
+				changed = true
+			}
+		}
+	}
+	if raw, ok := body["capabilities"]; ok {
+		if c, ok := raw.(map[string]interface{}); ok {
+			if raw, ok := c["alwaysMatch"]; ok {
+				if am, ok := raw.(map[string]interface{}); ok {
+					if rewriteBrowserVersionFields(am) {
+						changed = true
+					}
+				}
+			}
+			if raw, ok := c["firstMatch"]; ok {
+				if fm, ok := raw.([]interface{}); ok {
+					for _, raw := range fm {
+						if caps, ok := raw.(map[string]interface{}); ok {
+							if rewriteBrowserVersionFields(caps) {
+								changed = true
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if !changed {
+		return input
+	}
+	ret, err := json.Marshal(body)
+	if err != nil {
+		return input
+	}
+	return ret
+}
+
+func rewriteBrowserVersionFields(caps map[string]interface{}) bool {
+	changed := false
+	for _, key := range []string{"browserVersion", "version"} {
+		raw, ok := caps[key]
+		if !ok {
+			continue
+		}
+		v, ok := raw.(string)
+		if !ok || v == "" {
+			continue
+		}
+		rewritten := catalogVersionForDriver(v)
+		if rewritten != v {
+			caps[key] = rewritten
+			changed = true
+		}
+	}
+	return changed
+}
+
+func catalogVersionForDriver(version string) string {
+	const minSuffix = "-min"
+	if strings.HasSuffix(version, minSuffix) {
+		return strings.TrimSuffix(version, minSuffix)
+	}
+	return version
 }
 
 func normalizeWebDriverBrowserNames(input []byte) []byte {

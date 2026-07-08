@@ -502,6 +502,59 @@ func TestSessionCreatedRemoveExtensionCapabilities(t *testing.T) {
 	})
 }
 
+func TestCatalogVersionForDriver(t *testing.T) {
+	assert.Equal(t, "151.0", catalogVersionForDriver("151.0-min"))
+	assert.Equal(t, "149.0", catalogVersionForDriver("149.0-min"))
+	assert.Equal(t, "151.0", catalogVersionForDriver("151.0"))
+	assert.Equal(t, "latest", catalogVersionForDriver("latest"))
+	assert.Equal(t, "", catalogVersionForDriver(""))
+}
+
+func TestRewriteCatalogBrowserVersionForDriver(t *testing.T) {
+	in := []byte(`{"capabilities":{"alwaysMatch":{"browserName":"firefox","browserVersion":"151.0-min"},"firstMatch":[{"browserVersion":"150.0-min"}]},"desiredCapabilities":{"browserName":"firefox","version":"151.0-min"}}`)
+	out := rewriteCatalogBrowserVersionForDriver(in)
+	var body map[string]interface{}
+	assert.NoError(t, json.Unmarshal(out, &body))
+	dc := body["desiredCapabilities"].(map[string]interface{})
+	assert.Equal(t, "151.0", dc["version"])
+	caps := body["capabilities"].(map[string]interface{})
+	am := caps["alwaysMatch"].(map[string]interface{})
+	assert.Equal(t, "151.0", am["browserVersion"])
+	fm := caps["firstMatch"].([]interface{})[0].(map[string]interface{})
+	assert.Equal(t, "150.0", fm["browserVersion"])
+
+	unchanged := []byte(`{"capabilities":{"alwaysMatch":{"browserName":"firefox","browserVersion":"151.0"}}}`)
+	assert.Equal(t, unchanged, rewriteCatalogBrowserVersionForDriver(unchanged))
+}
+
+func TestSessionCreatedStripsMinSuffixForDriver(t *testing.T) {
+	t.Run("browserVersion -min is stripped before driver", func(t *testing.T) {
+		var proxiedBrowserVersion string
+		root := http.NewServeMux()
+		root.Handle("/wd/hub/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			var browser struct {
+				W3CCaps struct {
+					AlwaysMatch map[string]interface{} `json:"alwaysMatch"`
+				} `json:"capabilities"`
+			}
+			assert.NoError(t, json.NewDecoder(r.Body).Decode(&browser))
+			if v, ok := browser.W3CCaps.AlwaysMatch["browserVersion"].(string); ok {
+				proxiedBrowserVersion = v
+			}
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"value":{"sessionId":"test-session","capabilities":{}}}`))
+		}))
+		manager = &HTTPTest{Handler: root}
+
+		// Fixture firefox version in tests is "49.0"; use "49.0-min" as catalog-style suffix.
+		// Config Find uses HasPrefix, so "49.0-min" still resolves to the "49.0" browser entry.
+		resp, err := httpClient.Post(With(srv.URL).Path("/wd/hub/session"), "", bytes.NewReader([]byte(`{"capabilities":{"alwaysMatch":{"browserName":"firefox","browserVersion":"49.0-min","selenoid:options":{"enableVNC":true}}}}`)))
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "49.0", proxiedBrowserVersion)
+	})
+}
+
 func TestProxySession(t *testing.T) {
 	t.Run("Proxy session", func(t *testing.T) {
 		manager = &HTTPTest{Handler: Selenium()}

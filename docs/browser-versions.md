@@ -60,6 +60,8 @@
 
 **Клиент:** любой Selenium WebDriver. Edge в caps — `MicrosoftEdge` (alias → `msedge` в hub).
 
+Каталожный суффикс `-min` (например `browserVersion: 151.0-min`) выбирает min-образ; hub перед прокси в driver переписывает версию в `151.0`, чтобы geckodriver / строгие драйверы не отвергали caps.
+
 ---
 
 ## Playwright: движки внутри каждой версии
