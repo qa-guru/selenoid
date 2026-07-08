@@ -208,6 +208,8 @@ func create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var resp *http.Response
+	maxSessionAttempts := retryCount
+	sessionAttemptTimeout := newSessionAttemptTimeout
 	i := 1
 	for ; ; i++ {
 		r.URL.Host, r.URL.Path = u.Host, path.Join(u.Path, r.URL.Path)
@@ -218,19 +220,18 @@ func create(w http.ResponseWriter, r *http.Request) {
 			req.Header.Set("Content-Type", contentType)
 		}
 		req.Host = host
-		ctx, done := context.WithTimeout(r.Context(), newSessionAttemptTimeout)
-		defer done()
+		ctx, cancelAttempt := context.WithTimeout(r.Context(), sessionAttemptTimeout)
 		log.Printf("[%d] [SESSION_ATTEMPTED] [%s] [%d]", requestId, u.String(), i)
 		rsp, err := httpClient.Do(req.WithContext(ctx))
-		select {
-		case <-ctx.Done():
+		if ctx.Err() != nil {
+			cancelAttempt()
 			if rsp != nil {
 				_ = rsp.Body.Close()
 			}
 			switch ctx.Err() {
 			case context.DeadlineExceeded:
-				log.Printf("[%d] [SESSION_ATTEMPT_TIMED_OUT] [%s]", requestId, newSessionAttemptTimeout)
-				if i < retryCount {
+				log.Printf("[%d] [SESSION_ATTEMPT_TIMED_OUT] [%s]", requestId, sessionAttemptTimeout)
+				if i < maxSessionAttempts {
 					continue
 				}
 				err := fmt.Errorf("New session attempts retry count exceeded")
@@ -242,8 +243,8 @@ func create(w http.ResponseWriter, r *http.Request) {
 			queue.Drop()
 			cancel()
 			return
-		default:
 		}
+		cancelAttempt()
 		if err != nil {
 			if rsp != nil {
 				_ = rsp.Body.Close()

@@ -370,22 +370,23 @@ func TestSessionWithContentTypeCreatedWdHub(t *testing.T) {
 
 func TestSessionFailedAfterTimeout(t *testing.T) {
 	t.Run("Session failed after timeout", func(t *testing.T) {
-		newSessionAttemptTimeout = 10 * time.Millisecond
-		manager = &HTTPTest{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			<-time.After(100 * time.Millisecond)
-		})}
+		withSessionRetrySettings(t, retryCount, 10*time.Millisecond, func() {
+			manager = &HTTPTest{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				<-time.After(100 * time.Millisecond)
+			})}
 
-		resp, err := http.Post(With(srv.URL).Path("/wd/hub/session"), "", bytes.NewReader([]byte("{}")))
-		assert.NoError(t, err)
-		assert.Equal(t, resp.StatusCode, http.StatusInternalServerError)
+			resp, err := http.Post(With(srv.URL).Path("/wd/hub/session"), "", bytes.NewReader([]byte("{}")))
+			assert.NoError(t, err)
+			assert.Equal(t, resp.StatusCode, http.StatusInternalServerError)
 
-		resp, err = http.Get(With(srv.URL).Path("/status"))
-		assert.NoError(t, err)
-		assert.Equal(t, resp.StatusCode, http.StatusOK)
-		var state config.State
-		assert.NoError(t, json.NewDecoder(resp.Body).Decode(&state))
-		assert.Equal(t, state.Used, 0)
-		assert.Equal(t, queue.Used(), 0)
+			resp, err = http.Get(With(srv.URL).Path("/status"))
+			assert.NoError(t, err)
+			assert.Equal(t, resp.StatusCode, http.StatusOK)
+			var state config.State
+			assert.NoError(t, json.NewDecoder(resp.Body).Decode(&state))
+			assert.Equal(t, state.Used, 0)
+			assert.Equal(t, queue.Used(), 0)
+		})
 	})
 }
 
@@ -397,9 +398,14 @@ func TestClientDisconnected(t *testing.T) {
 
 		req, _ := http.NewRequest(http.MethodPost, With(srv.URL).Path("/wd/hub/session"), bytes.NewReader([]byte("{}")))
 		ctx, cancel := context.WithCancel(req.Context())
-		go http.DefaultClient.Do(req.WithContext(ctx))
+		done := make(chan struct{})
+		go func() {
+			_, _ = http.DefaultClient.Do(req.WithContext(ctx))
+			close(done)
+		}()
 		<-time.After(10 * time.Millisecond)
 		cancel()
+		<-done
 
 		resp, err := http.Get(With(srv.URL).Path("/status"))
 		assert.NoError(t, err)
@@ -413,24 +419,37 @@ func TestClientDisconnected(t *testing.T) {
 
 func TestSessionFailedAfterTwoTimeout(t *testing.T) {
 	t.Run("Session failed after two timeout", func(t *testing.T) {
-		retryCount = 2
-		newSessionAttemptTimeout = 10 * time.Millisecond
-		manager = &HTTPTest{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			<-time.After(100 * time.Millisecond)
-		})}
+		withSessionRetrySettings(t, 2, 10*time.Millisecond, func() {
+			manager = &HTTPTest{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				<-time.After(100 * time.Millisecond)
+			})}
 
-		resp, err := http.Post(With(srv.URL).Path("/wd/hub/session"), "", bytes.NewReader([]byte("{}")))
-		assert.NoError(t, err)
-		assert.Equal(t, resp.StatusCode, http.StatusInternalServerError)
+			resp, err := http.Post(With(srv.URL).Path("/wd/hub/session"), "", bytes.NewReader([]byte("{}")))
+			assert.NoError(t, err)
+			assert.Equal(t, resp.StatusCode, http.StatusInternalServerError)
 
-		resp, err = http.Get(With(srv.URL).Path("/status"))
-		assert.NoError(t, err)
-		assert.Equal(t, resp.StatusCode, http.StatusOK)
-		var state config.State
-		assert.NoError(t, json.NewDecoder(resp.Body).Decode(&state))
-		assert.Equal(t, state.Used, 0)
-		assert.Equal(t, queue.Used(), 0)
+			resp, err = http.Get(With(srv.URL).Path("/status"))
+			assert.NoError(t, err)
+			assert.Equal(t, resp.StatusCode, http.StatusOK)
+			var state config.State
+			assert.NoError(t, json.NewDecoder(resp.Body).Decode(&state))
+			assert.Equal(t, state.Used, 0)
+			assert.Equal(t, queue.Used(), 0)
+		})
 	})
+}
+
+func withSessionRetrySettings(t *testing.T, retries int, attemptTimeout time.Duration, fn func()) {
+	t.Helper()
+	prevRetry := retryCount
+	prevTimeout := newSessionAttemptTimeout
+	retryCount = retries
+	newSessionAttemptTimeout = attemptTimeout
+	t.Cleanup(func() {
+		retryCount = prevRetry
+		newSessionAttemptTimeout = prevTimeout
+	})
+	fn()
 }
 
 func TestSessionCreatedRedirect(t *testing.T) {
