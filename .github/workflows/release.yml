@@ -75,7 +75,7 @@ jobs:
 
       - name: Trigger selenoid-tests smoke
         if: success()
-        uses: peter-evans/repository-dispatch@v3
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}
           repository: qa-guru/selenoid-tests
