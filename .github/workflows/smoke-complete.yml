@@ -30,7 +30,7 @@ jobs:
           jq -e . callback/smoke-result.json >/dev/null
 
       - name: Upload smoke result
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: smoke-result-${{ github.event.client_payload.trigger_run_id }}
           path: callback/smoke-result.json

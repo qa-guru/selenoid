@@ -17,18 +17,18 @@ jobs:
   golang:
     runs-on: ubuntu-latest
     outputs:
-      release_version: ${{ steps.release_meta.outputs.version }}
+      release_version: ${{ steps.release_meta.outputs.release_version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Setup Golang
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ~1.23.8
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -36,7 +36,7 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Test
         run: ci/test.sh
@@ -54,10 +54,10 @@ jobs:
           else
             version="${GITHUB_REF#refs/tags/}"
           fi
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "release_version=${version}" >> "$GITHUB_OUTPUT"
           echo "RELEASE_VERSION=${version}" >> "$GITHUB_ENV"
 
-      - uses: AButler/upload-release-assets@v3.0
+      - uses: AButler/upload-release-assets@v4.0
         if: github.event_name == 'release'
         with:
           files: 'dist/*'
@@ -82,6 +82,9 @@ jobs:
     name: Release smoke → selenoid-tests
     needs: golang
     if: success()
+    permissions:
+      actions: read
+      contents: read
     uses: ./.github/workflows/smoke-trigger-callback.yml
     secrets:
       SELENOID_TESTS_DISPATCH_TOKEN: ${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}
