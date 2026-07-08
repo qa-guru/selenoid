@@ -1,0 +1,212 @@
+# SSOT: dispatch deploy-smoke → wait for smoke-complete artifact → job summary.
+# Copy to consumer: .github/workflows/smoke-trigger-callback.yml
+# Call from release/publish via workflow_call.
+
+name: Smoke trigger with callback
+
+on:
+  workflow_call:
+    inputs:
+      test_tags:
+        description: "JUnit tags slice (api, smoke, playwright, ...)"
+        required: true
+        type: string
+      source_version:
+        description: "Deployed version/tag/sha"
+        required: true
+        type: string
+      source_ref:
+        description: "Git ref for selenoid-tests Go checkout"
+        required: false
+        type: string
+        default: ""
+      env_profile:
+        description: "Env profile (-Denv=)"
+        required: false
+        type: string
+        default: selenoid_autotests_cloud_api
+      source_variant:
+        description: "Deploy variant (playwright, webdriver, ...)"
+        required: false
+        type: string
+        default: ""
+      summary_title:
+        description: "Job summary heading"
+        required: false
+        type: string
+        default: Deploy smoke → selenoid-tests
+    secrets:
+      SELENOID_TESTS_DISPATCH_TOKEN:
+        required: true
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  trigger:
+    name: Trigger selenoid-tests with callback
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TESTS_REPO: qa-guru/selenoid-tests
+      TEST_TAGS: ${{ inputs.test_tags }}
+      ENV_PROFILE: ${{ inputs.env_profile }}
+      SUMMARY_TITLE: ${{ inputs.summary_title }}
+
+    steps:
+      - name: Validate configuration
+        run: |
+          if [[ -z "${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}" ]]; then
+            echo "::error::Secret SELENOID_TESTS_DISPATCH_TOKEN is not set (PAT with repo scope on ${TESTS_REPO})."
+            exit 1
+          fi
+
+      - name: Resolve source ref
+        id: meta
+        run: |
+          ref="${{ inputs.source_ref }}"
+          if [[ -z "${ref}" ]]; then
+            ref="${{ github.ref_name }}"
+          fi
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+          echo "version=${{ inputs.source_version }}" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch deploy-smoke to selenoid-tests
+        env:
+          SOURCE_VARIANT: ${{ inputs.source_variant }}
+        run: |
+          set -euo pipefail
+          payload="$(jq -n \
+            --arg source_repo "${{ github.repository }}" \
+            --arg source_version "${{ steps.meta.outputs.version }}" \
+            --arg source_ref "${{ steps.meta.outputs.ref }}" \
+            --arg env_profile "${{ env.ENV_PROFILE }}" \
+            --arg test_tags "${{ env.TEST_TAGS }}" \
+            --arg trigger_run_id "${{ github.run_id }}" \
+            --arg source_variant "${SOURCE_VARIANT}" \
+            '{
+              source_repo: $source_repo,
+              source_version: $source_version,
+              source_ref: $source_ref,
+              env_profile: $env_profile,
+              test_tags: $test_tags,
+              skip_go_unit: true,
+              trigger_run_id: $trigger_run_id
+            } + (if $source_variant != "" then {source_variant: $source_variant} else {} end)')"
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}" \
+            "https://api.github.com/repos/${{ env.TESTS_REPO }}/dispatches" \
+            -d "$(jq -n --argjson client_payload "${payload}" '{event_type: "deploy-smoke", client_payload: $client_payload}')"
+
+      - name: Wait for smoke-complete callback
+        id: wait
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: smoke-result-${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          DEADLINE=$(($(date +%s) + 1200))
+          ARTIFACT_ID=""
+          echo "Waiting for artifact ${ARTIFACT_NAME} (smoke-complete callback)..."
+          while [[ "$(date +%s)" -lt "${DEADLINE}" ]]; do
+            ARTIFACT_ID="$(gh api \
+              "/repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${ARTIFACT_NAME}&per_page=1" \
+              --jq '.artifacts[0].id // empty')"
+            if [[ -n "${ARTIFACT_ID}" ]]; then
+              break
+            fi
+            sleep 15
+          done
+          if [[ -z "${ARTIFACT_ID}" ]]; then
+            echo "::error::Timed out waiting for smoke-complete callback (artifact ${ARTIFACT_NAME})."
+            exit 1
+          fi
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > /tmp/smoke-result.zip
+          unzip -p /tmp/smoke-result.zip smoke-result.json > /tmp/smoke-result.json
+          jq -e . /tmp/smoke-result.json >/dev/null
+
+      - name: Load smoke result
+        id: smoke
+        run: |
+          set -euo pipefail
+          while IFS='=' read -r key value; do
+            case "${key}" in
+              conclusion|report_url|testops_url|run_url|quality_gate|tests_run_id|stats)
+                echo "${key}=${value}" >> "$GITHUB_OUTPUT"
+                ;;
+            esac
+          done < <(jq -r '
+            to_entries[]
+            | select(.key as $k | ["conclusion","report_url","testops_url","run_url","quality_gate","tests_run_id","stats"] | index($k))
+            | "\(.key)=\(.value)"
+          ' /tmp/smoke-result.json)
+          report_built="$(jq -r '.report_built // "false"' /tmp/smoke-result.json)"
+          echo "report_built=${report_built}" >> "$GITHUB_OUTPUT"
+
+      - name: Job summary
+        if: always() && steps.wait.outcome == 'success'
+        env:
+          STATS_JSON: ${{ steps.smoke.outputs.stats }}
+        run: |
+          {
+            echo "## ${SUMMARY_TITLE}"
+            echo ""
+            echo "- Target: [\`${{ env.TESTS_REPO }}\`](https://github.com/${{ env.TESTS_REPO }}) (\`deploy-smoke\`)"
+            echo "- Env profile: \`${{ env.ENV_PROFILE }}\`"
+            echo "- Tags slice: \`${{ env.TEST_TAGS }}\`"
+            echo "- Go unit: skipped (\`skip_go_unit\`)"
+            echo "- Deploy version: \`${{ steps.meta.outputs.version }}\`"
+            echo "- [Trigger run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+            if [[ -n "${{ steps.smoke.outputs.run_url }}" ]]; then
+              echo "- [selenoid-tests run](${{ steps.smoke.outputs.run_url }})"
+            fi
+            if [[ -n "${STATS_JSON}" ]]; then
+              passed="$(echo "${STATS_JSON}" | jq -r '.passed // 0')"
+              failed="$(echo "${STATS_JSON}" | jq -r '.failed // 0')"
+              broken="$(echo "${STATS_JSON}" | jq -r '.broken // 0')"
+              skipped="$(echo "${STATS_JSON}" | jq -r '.skipped // 0')"
+              echo "- Tests: **passed** ${passed}, **failed** ${failed}, **broken** ${broken}, **skipped** ${skipped}"
+            fi
+            if [[ "${{ steps.smoke.outputs.report_built }}" == "true" && -n "${{ steps.smoke.outputs.report_url }}" ]]; then
+              echo "- [Allure 3 report](${{ steps.smoke.outputs.report_url }})"
+              dashboard_url="${{ steps.smoke.outputs.report_url }}"
+              dashboard_url="${dashboard_url/\/awesome\//\/dashboard\/}"
+              echo "- [Allure 3 dashboard](${dashboard_url})"
+            else
+              echo "- Allure 3 report: _не собран (нет результатов или ошибка генерации)_"
+            fi
+            if [[ -n "${{ steps.smoke.outputs.testops_url }}" ]]; then
+              echo "- [Allure TestOps launch](${{ steps.smoke.outputs.testops_url }})"
+            else
+              echo "- Allure TestOps launch: _не загружен (см. selenoid-tests run)_"
+            fi
+            if [[ "${{ steps.smoke.outputs.quality_gate }}" == "passed" ]]; then
+              echo "- Allure 3 quality gate: passed"
+            elif [[ "${{ steps.smoke.outputs.quality_gate }}" == "failed" ]]; then
+              echo "- Allure 3 quality gate: **failed**"
+            fi
+            if [[ "${{ steps.smoke.outputs.conclusion }}" == "success" ]]; then
+              echo "- Smoke: **passed**"
+            else
+              echo "- Smoke: **failed**"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Job summary (callback timeout)
+        if: always() && steps.wait.outcome != 'success'
+        run: |
+          {
+            echo "## ${{ inputs.summary_title }}"
+            echo ""
+            echo "- Target: [\`${{ env.TESTS_REPO }}\`](https://github.com/${{ env.TESTS_REPO }})"
+            echo "- Deploy version: \`${{ steps.meta.outputs.version }}\`"
+            echo "- smoke-complete callback: _не получен (timeout или нет callback token в selenoid-tests)_"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail if prod smoke failed
+        if: always() && steps.smoke.outputs.conclusion != '' && steps.smoke.outputs.conclusion != 'success'
+        run: |
+          echo "::error::selenoid-tests deploy-smoke concluded with: ${{ steps.smoke.outputs.conclusion }}"
+          exit 1

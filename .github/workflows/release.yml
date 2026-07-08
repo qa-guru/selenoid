@@ -16,6 +16,8 @@ permissions:
 jobs:
   golang:
     runs-on: ubuntu-latest
+    outputs:
+      release_version: ${{ steps.release_meta.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,12 +47,15 @@ jobs:
         run: ci/build.sh
 
       - name: Prepare release version
+        id: release_meta
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            echo "RELEASE_VERSION=${{ inputs.version }}" >> "$GITHUB_ENV"
+            version="${{ inputs.version }}"
           else
-            echo "RELEASE_VERSION=${GITHUB_REF#refs/tags/}" >> "$GITHUB_ENV"
+            version="${GITHUB_REF#refs/tags/}"
           fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "RELEASE_VERSION=${version}" >> "$GITHUB_ENV"
 
       - uses: AButler/upload-release-assets@v3.0
         if: github.event_name == 'release'
@@ -73,15 +78,15 @@ jobs:
           DOCKER_IMAGE: qaguru/selenoid
         run: ci/docker-push.sh latest-release
 
-      - name: Trigger selenoid-tests smoke
-        if: success()
-        uses: peter-evans/repository-dispatch@v4
-        with:
-          token: ${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}
-          repository: qa-guru/selenoid-tests
-          event-type: deploy-smoke
-          client-payload: >-
-            {"source_repo":"${{ github.repository }}",
-             "source_ref":"${{ github.ref }}",
-             "source_version":"${{ env.RELEASE_VERSION }}",
-             "test_tags":"api,smoke"}
+  deploy-smoke:
+    name: Release smoke → selenoid-tests
+    needs: golang
+    if: success()
+    uses: ./.github/workflows/smoke-trigger-callback.yml
+    secrets:
+      SELENOID_TESTS_DISPATCH_TOKEN: ${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}
+    with:
+      test_tags: api,smoke
+      source_version: ${{ needs.golang.outputs.release_version }}
+      source_ref: ${{ github.ref }}
+      summary_title: Release smoke → selenoid-tests

@@ -1,0 +1,37 @@
+# SSOT: receive smoke-complete callback from selenoid-tests → artifact for trigger job.
+# Copy to consumer: .github/workflows/smoke-complete.yml
+
+name: Prod smoke callback
+
+on:
+  repository_dispatch:
+    types: [smoke-complete]
+
+permissions:
+  actions: write
+
+jobs:
+  deliver:
+    name: Store smoke result for trigger run
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate payload
+        run: |
+          if [[ -z "${{ github.event.client_payload.trigger_run_id }}" ]]; then
+            echo "::error::smoke-complete payload missing trigger_run_id"
+            exit 1
+          fi
+
+      - name: Write smoke result artifact
+        run: |
+          mkdir -p callback
+          printf '%s\n' '${{ toJson(github.event.client_payload) }}' > callback/smoke-result.json
+          jq -e . callback/smoke-result.json >/dev/null
+
+      - name: Upload smoke result
+        uses: actions/upload-artifact@v6
+        with:
+          name: smoke-result-${{ github.event.client_payload.trigger_run_id }}
+          path: callback/smoke-result.json
+          retention-days: 1
