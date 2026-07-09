@@ -9,23 +9,26 @@ import (
 )
 
 type mockUploader struct {
-	uploaded []string
+	done chan string
 }
 
 func (m *mockUploader) Upload(createdFile event.CreatedFile) (bool, error) {
-	m.uploaded = append(m.uploaded, createdFile.Name)
+	m.done <- createdFile.Name
 	return true, nil
 }
 
 func TestOnFileCreatedInvokesUploader(t *testing.T) {
-	mock := &mockUploader{}
+	mock := &mockUploader{done: make(chan string, 1)}
 	ul := &Upload{uploaders: []Uploader{mock}}
 	ul.OnFileCreated(event.CreatedFile{
 		Event: event.Event{RequestId: 42, SessionId: "sid"},
 		Name:  "test.log",
 		Type:  "text/plain",
 	})
-	assert.Eventually(t, func() bool {
-		return len(mock.uploaded) == 1 && mock.uploaded[0] == "test.log"
-	}, time.Second, 10*time.Millisecond)
+	select {
+	case name := <-mock.done:
+		assert.Equal(t, "test.log", name)
+	case <-time.After(time.Second):
+		t.Fatal("uploader was not invoked within 1s")
+	}
 }
