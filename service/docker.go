@@ -486,6 +486,11 @@ func waitContainerInspect(ctx context.Context, cl *client.Client, containerID st
 }
 
 func hostPortAddress(env Environment, stat ctr.InspectResponse, port nat.Port) string {
+	if env.InDocker {
+		if containerIP := getContainerIP(env.Network, stat); containerIP != "" {
+			return net.JoinHostPort(containerIP, port.Port())
+		}
+	}
 	networkPortKey, err := networkPort(port)
 	if err != nil {
 		return ""
@@ -496,10 +501,6 @@ func hostPortAddress(env Environment, stat ctr.InspectResponse, port nat.Port) s
 	}
 	if env.IP != "" {
 		return net.JoinHostPort(env.IP, bindings[0].HostPort)
-	}
-	if env.InDocker {
-		containerIP := getContainerIP(env.Network, stat)
-		return net.JoinHostPort(containerIP, port.Port())
 	}
 	return net.JoinHostPort("127.0.0.1", bindings[0].HostPort)
 }
