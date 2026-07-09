@@ -582,8 +582,13 @@ func startVideoContainer(ctx context.Context, cl *client.Client, requestId uint6
 		AutoRemove:  true,
 		NetworkMode: ctr.NetworkMode(environ.Network),
 	}
+	// Prefer the browser container IP for X11 (Xvfb listens on TCP). Legacy link alias
+	// "browser" is only a fallback when IP discovery fails.
 	browserContainerName := getContainerIP(environ.Network, browserContainer)
-	if environ.Network == DefaultContainerNetwork {
+	if browserContainerName == "" {
+		browserContainerName = getContainerIP("bridge", browserContainer)
+	}
+	if browserContainerName == "" && environ.Network == DefaultContainerNetwork {
 		const defaultBrowserContainerName = "browser"
 		hostConfig.Links = []string{fmt.Sprintf("%s:%s", browserContainer.ID, defaultBrowserContainerName)}
 		browserContainerName = defaultBrowserContainerName
@@ -627,6 +632,10 @@ func stopVideoContainer(ctx context.Context, cli *client.Client, requestId uint6
 	log.Printf("[%d] [STOPPING_VIDEO_CONTAINER] [%s]", requestId, containerId)
 	_, err := cli.ContainerKill(ctx, containerId, client.ContainerKillOptions{Signal: "TERM"})
 	if err != nil {
+		if strings.Contains(err.Error(), "No such container") {
+			log.Printf("[%d] [VIDEO_CONTAINER_ALREADY_STOPPED] [%s]", requestId, containerId)
+			return
+		}
 		log.Printf("[%d] [FAILED_TO_STOP_VIDEO_CONTAINER] [%s] [%v]", requestId, containerId, err)
 		return
 	}

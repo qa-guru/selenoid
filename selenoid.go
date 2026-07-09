@@ -339,8 +339,9 @@ func create(w http.ResponseWriter, r *http.Request) {
 				e.Session.Caps.VideoName = finalVideoName
 			}
 			newVideoName := filepath.Join(videoOutputDir, finalVideoName)
-			err := os.Rename(oldVideoName, newVideoName)
-			if err != nil {
+			if err := waitForVideoArtifact(oldVideoName, 15*time.Second); err != nil {
+				log.Printf("[%d] [VIDEO_ERROR] [%s]", requestId, fmt.Sprintf("Video artifact not ready at %s: %v", oldVideoName, err))
+			} else if err := os.Rename(oldVideoName, newVideoName); err != nil {
 				log.Printf("[%d] [VIDEO_ERROR] [%s]", requestId, fmt.Sprintf("Failed to rename %s to %s: %v", oldVideoName, newVideoName, err))
 			} else {
 				createdFile := event.CreatedFile{
@@ -565,6 +566,25 @@ func preprocessSessionId(sid string) string {
 		return ggrHost.Sum() + sid
 	}
 	return sid
+}
+
+func waitForVideoArtifact(path string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		fi, err := os.Stat(path)
+		if err == nil && fi.Size() > 0 {
+			return nil
+		}
+		time.Sleep(200 * time.Millisecond)
+	}
+	fi, err := os.Stat(path)
+	if err != nil {
+		return err
+	}
+	if fi.Size() == 0 {
+		return fmt.Errorf("video file is empty")
+	}
+	return nil
 }
 
 const (
