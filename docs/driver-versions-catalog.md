@@ -8,7 +8,7 @@
 |--------------------|---------|--------|-----------|----------|--------|--------|-----|
 | Hub | — | active | aerokube/selenoid v1.11.x | `aerokube/selenoid:latest-release` | — | `qaguru/selenoid:latest-release` | — |
 | UI | — | active | aerokube/selenoid-ui | `aerokube/selenoid-ui` | — | `qaguru/selenoid-ui:latest-release` | — |
-| Video | — | active | — | `selenoid/video-recorder:latest-release` | — | тот же образ | — |
+| Video | — | active | — | `selenoid/video-recorder:latest-release` legacy | — | `qaguru/video-recorder:latest` | — |
 | PW 1.60.0 | Chromium | active | 148.0.7778.96; MCR v1.60.0-noble | — | — | `playwright-chromium:1.60.0` | — |
 | PW 1.60.0 | Firefox | active | 150.0.2 | — | — | `playwright-firefox:1.60.0` | — |
 | PW 1.60.0 | WebKit | active | 26.4 | — | — | `playwright-webkit:1.60.0` | — |
@@ -45,6 +45,6 @@
 
 **Браузер** = столбец в hub: `playwright-chromium` → Chromium, `chrome` → WebDriver Chrome, и т.д. Движки PW — [Microsoft `browsers.json`](https://github.com/microsoft/playwright/blob/main/packages/playwright-core/browsers.json). `chrome:148.0` ≠ `playwright-chromium:1.60.0` (разный протокол).
 
-**docker pull (active):** `qaguru/webdriver-chrome:148` `:148-min` `:149-min` · `qaguru/playwright-chromium:1.60.0` `:1.60.0-min` `:1.61.1` `:1.61.1-min` · `playwright-firefox` / `webkit` / `chrome` / `msedge` `:1.60.0` · `selenoid/video-recorder:latest-release`.
+**docker pull (active):** `qaguru/webdriver-chrome:148` `:148-min` `:149-min` · `qaguru/playwright-chromium:1.60.0` `:1.60.0-min` `:1.61.1` `:1.61.1-min` · `playwright-firefox` / `webkit` / `chrome` / `msedge` `:1.60.0` · `qaguru/video-recorder:latest`.
 
 См. [browser-versions.md](browser-versions.md) · [playwright.md](playwright.md).

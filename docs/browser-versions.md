@@ -116,7 +116,7 @@
 | WebDriver Firefox | `docker pull qaguru/webdriver-firefox:151 qaguru/webdriver-firefox:151-min` |
 | WebDriver Edge | `docker pull qaguru/webdriver-msedge:145 qaguru/webdriver-msedge:145-min` |
 | Playwright 1.61.1 | [browser-image](https://github.com/qa-guru/browser-image) `./playwright/scripts/build.sh all 1.61.1` |
-| Видеозапись | `docker pull selenoid/video-recorder:latest-release` |
+| Видеозапись | `docker pull qaguru/video-recorder:latest` · [browser-image/video-recorder](https://github.com/qa-guru/browser-image/tree/master/video-recorder) |
 
 Базовый слой Playwright: `mcr.microsoft.com/playwright:v<версия>-noble` (Ubuntu Noble).
 
