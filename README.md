@@ -94,7 +94,7 @@ go version   # go1.23.x
 
 ```bash
 ./scripts/build-selenoid.sh
-docker pull qaguru/webdriver-chrome:148 qaguru/webdriver-chrome:148-min selenoid/video-recorder:latest-release
+docker pull qaguru/webdriver-chrome:148 qaguru/webdriver-chrome:148-min qaguru/video-recorder:latest
 docker pull qaguru/playwright-chromium:1.61.1   # или сборка в browser-image
 ./scripts/start-selenoid.sh
 ```
@@ -138,7 +138,7 @@ docker pull qaguru/playwright-chromium:1.61.1
 # ./playwright/scripts/build.sh all 1.61.1   (в репозитории browser-image)
 
 # Видеозапись сессий
-docker pull selenoid/video-recorder:latest-release
+docker pull qaguru/video-recorder:latest
 ```
 
 ### Endpoints (локально)

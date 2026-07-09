@@ -15,7 +15,7 @@
 | **WebDriver** | Chrome 146–148 через `qaguru/webdriver-chrome` (ранее — legacy `twilio/selenoid` cold-образы) |
 | **Playwright** | playwright-chromium, playwright-firefox, playwright-webkit 1.60–1.61 через `qaguru/playwright-chromium`, `playwright-firefox`, `playwright-webkit` |
 | **Протокол PW** | WebSocket `ws://host:4444/playwright/{browser}/{version}` |
-| **Видео / VNC** | Совместимо с `selenoid/video-recorder`, VNC в образах qaguru/playwright-* |
+| **Видео / VNC** | Sidecar `qaguru/video-recorder`, VNC в образах qaguru/playwright-* |
 | **Docker Hub** | `qaguru/selenoid:v2.0.0`, `qaguru/selenoid:latest-release` |
 | **Бинарники** | `selenoid_linux_amd64`, `selenoid_darwin_arm64`, … |
 
@@ -89,7 +89,7 @@ cm selenoid start -v v2.0.0
    ```bash
    docker pull qaguru/webdriver-chrome:148 qaguru/webdriver-chrome:148-min
    docker pull qaguru/playwright-chromium:1.61.1
-   docker pull selenoid/video-recorder:latest-release
+   docker pull qaguru/video-recorder:latest
    ```
 4. Для Playwright за nginx — проксировать WebSocket `/playwright/` через UI на hub.
 

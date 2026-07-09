@@ -15,7 +15,7 @@ To use this feature you should:
 . Pull video recorder image once:
 +
 ```
-$ docker pull selenoid/video-recorder:latest-release
+$ docker pull qaguru/video-recorder:latest
 ```
 
 . When running Selenoid **in Docker container**:

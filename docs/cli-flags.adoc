@@ -50,7 +50,7 @@ The following flags are supported by `selenoid` command:
 -video-output-dir string
     Directory to save recorded video to (default "video")
 -video-recorder-image string
-    Image to use as video recorder (default "selenoid/video-recorder:latest-release")
+    Image to use as video recorder (default "qaguru/video-recorder:latest")
 ----
 
 For example:
