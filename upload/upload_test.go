@@ -17,10 +17,10 @@ func (m *mockUploader) Upload(createdFile event.CreatedFile) (bool, error) {
 	return true, nil
 }
 
-func TestAddUploaderHandlesFileCreated(t *testing.T) {
+func TestOnFileCreatedInvokesUploader(t *testing.T) {
 	mock := &mockUploader{}
-	AddUploader(mock)
-	event.FileCreated(event.CreatedFile{
+	ul := &Upload{uploaders: []Uploader{mock}}
+	ul.OnFileCreated(event.CreatedFile{
 		Event: event.Event{RequestId: 42, SessionId: "sid"},
 		Name:  "test.log",
 		Type:  "text/plain",

@@ -35,7 +35,8 @@ func TestQueueDrop(t *testing.T) {
 }
 
 func TestQueueWaitCanceled(t *testing.T) {
-	q := New(1, true)
+	// Limit 0: limit send blocks, so canceled context wins (no select race with buffered limit).
+	q := New(0, false)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	assert.False(t, q.Wait(ctx))

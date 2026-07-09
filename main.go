@@ -132,7 +132,7 @@ func init() {
 		if err != nil {
 			log.Fatalf("[-] [INIT] [Invalid video output dir %s: %v]", videoOutputDir, err)
 		}
-		err = os.MkdirAll(videoOutputDir, os.FileMode(0644))
+		err = os.MkdirAll(videoOutputDir, 0o755)
 		if err != nil {
 			log.Fatalf("[-] [INIT] [Failed to create video output dir %s: %v]", videoOutputDir, err)
 		}
@@ -143,7 +143,7 @@ func init() {
 		if err != nil {
 			log.Fatalf("[-] [INIT] [Invalid log output dir %s: %v]", logOutputDir, err)
 		}
-		err = os.MkdirAll(logOutputDir, os.FileMode(0644))
+		err = os.MkdirAll(logOutputDir, 0o755)
 		if err != nil {
 			log.Fatalf("[-] [INIT] [Failed to create log output dir %s: %v]", logOutputDir, err)
 		}
