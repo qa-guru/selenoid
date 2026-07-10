@@ -15,8 +15,10 @@
 
 This reference covers version: _{revnumber}_
 
+IMPORTANT: AsciiDoc below is largely **upstream Aerokube** reference. For the qa-guru fork (native Playwright, `qaguru/*` images, Docker API `1.45`) start with the repository https://github.com/qa-guru/selenoid[README] and https://github.com/qa-guru/selenoid/blob/main/docs/browser-versions.md[browser-versions.md]. Docker image: `qaguru/selenoid` (not `aerokube/selenoid`).
+
 Selenoid is a powerful http://golang.org/[Golang] implementation of original http://github.com/SeleniumHQ/selenium[Selenium] hub code.
-It is using Docker to launch browsers. Please refer to https://github.com/aerokube/selenoid[GitHub repository] if you need source code.
+It is using Docker to launch browsers. Please refer to https://github.com/qa-guru/selenoid[qa-guru/selenoid] (fork) or https://github.com/aerokube/selenoid[aerokube/selenoid] (upstream) for source code.
 
 == Getting Started
 include::quick-start-guide.adoc[leveloffset=+1]

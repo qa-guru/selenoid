@@ -654,7 +654,6 @@ func stopVideoContainer(ctx context.Context, cli *client.Client, requestId uint6
 		removeContainer(ctx, cli, requestId, containerId)
 		return
 	}
-	log.Printf("[%d] [STOPPED_VIDEO_CONTAINER] [%s]", requestId, containerId)
 }
 
 func removeContainer(ctx context.Context, cli *client.Client, requestId uint64, id string) {

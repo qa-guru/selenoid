@@ -16,6 +16,8 @@ permissions:
 jobs:
   golang:
     runs-on: ubuntu-latest
+    env:
+      GOTOOLCHAIN: auto
     outputs:
       release_version: ${{ steps.release_meta.outputs.release_version }}
     steps:
@@ -26,7 +28,8 @@ jobs:
       - name: Setup Golang
         uses: actions/setup-go@v6
         with:
-          go-version: ~1.23.8
+          go-version-file: go.mod
+          cache: true
 
       - uses: actions/cache@v6
         with:

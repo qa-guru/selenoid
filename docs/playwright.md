@@ -20,6 +20,8 @@ wss://selenoid.example.com/playwright/playwright-webkit/1.61.1?enableVNC=true&en
 
 ## Настройка клиента
 
+Клиентские переменные (не process hub): `PLAYWRIGHT_WS_ENDPOINT`, `PW_TEST_CONNECT_WS_ENDPOINT`.
+
 ### @playwright/test
 
 ```bash
@@ -127,7 +129,7 @@ cd browser-image/playwright
 
 ## Toolchain
 
-Hub требует **Docker Engine 26.1.x** (API **1.45**) и **Go 1.23.x**. Локальный старт:
+Hub требует **Docker Engine 26.1.x** (API **1.45**), **Go 1.26.x** и Docker SDK **moby** (`github.com/moby/moby/client`). Локальный старт:
 
 ```bash
 ./scripts/start-selenoid.sh

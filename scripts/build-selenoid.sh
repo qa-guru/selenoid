@@ -11,14 +11,14 @@ if command -v go >/dev/null 2>&1; then
 fi
 
 if ! command -v docker >/dev/null 2>&1; then
-  echo "Install Go 1.23+ or Docker to build Selenoid" >&2
+  echo "Install Go 1.26+ or Docker to build Selenoid" >&2
   exit 1
 fi
 
 docker run --rm \
   -v "$ROOT:/src" \
   -w /src \
-  golang:1.23 \
+  golang:1.26 \
   go build -o /src/selenoid .
 
 echo "Built $OUT via Docker"

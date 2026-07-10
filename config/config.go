@@ -148,13 +148,25 @@ func (config *Config) findIfPlaywright(name, version string) (*Browser, string, 
 			return nil, "", false
 		}
 	}
+	if browser, ok := browserVersions.Versions[version]; ok && browser != nil && strings.EqualFold(browser.Protocol, "playwright") {
+		return browser, version, true
+	}
+	var bestVersion string
+	var bestBrowser *Browser
 	for v, browser := range browserVersions.Versions {
 		if browser == nil || !strings.EqualFold(browser.Protocol, "playwright") {
 			continue
 		}
-		if strings.HasPrefix(v, version) {
-			return browser, v, true
+		if !strings.HasPrefix(v, version) {
+			continue
 		}
+		if bestBrowser == nil || len(v) < len(bestVersion) || (len(v) == len(bestVersion) && v < bestVersion) {
+			bestVersion = v
+			bestBrowser = browser
+		}
+	}
+	if bestBrowser != nil {
+		return bestBrowser, bestVersion, true
 	}
 	return nil, version, false
 }
@@ -209,10 +221,24 @@ func (config *Config) Find(name string, version string) (*Browser, string, bool)
 			return nil, "", false
 		}
 	}
+	if b, ok := browser.Versions[version]; ok {
+		return b, version, true
+	}
+	// Prefix match (e.g. "49" → "49.0"). Prefer the shortest key so "148.0"
+	// wins over "148.0-min" when both match request "148.0" / "148".
+	var bestVersion string
+	var bestBrowser *Browser
 	for v, b := range browser.Versions {
-		if strings.HasPrefix(v, version) {
-			return b, v, true
+		if !strings.HasPrefix(v, version) {
+			continue
 		}
+		if bestBrowser == nil || len(v) < len(bestVersion) || (len(v) == len(bestVersion) && v < bestVersion) {
+			bestVersion = v
+			bestBrowser = b
+		}
+	}
+	if bestBrowser != nil {
+		return bestBrowser, bestVersion, true
 	}
 	return nil, version, false
 }

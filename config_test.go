@@ -220,6 +220,28 @@ func TestConfigFindFoundByMatch(t *testing.T) {
 	})
 }
 
+func TestConfigFindPrefersExactOverMinSuffix(t *testing.T) {
+	t.Run("exact version wins over -min sibling under HasPrefix", func(t *testing.T) {
+		confFile := configfile(`{"chrome":{"default":"148.0","versions":{"148.0":{"image":"full"},"148.0-min":{"image":"min"}}}}`)
+		defer os.Remove(confFile)
+		conf := config.NewConfig()
+		err := conf.Load(confFile, testLogConf)
+		assert.NoError(t, err)
+
+		for i := 0; i < 50; i++ {
+			b, v, ok := conf.Find("chrome", "148.0")
+			assert.True(t, ok)
+			assert.Equal(t, "148.0", v)
+			assert.Equal(t, "full", b.Image)
+		}
+
+		b, v, ok := conf.Find("chrome", "148.0-min")
+		assert.True(t, ok)
+		assert.Equal(t, "148.0-min", v)
+		assert.Equal(t, "min", b.Image)
+	})
+}
+
 func TestConfigFindImage(t *testing.T) {
 	t.Run("Config find image", func(t *testing.T) {
 		confFile := configfile(`{"firefox":{"default":"49.0","versions":{"49.0":{"image":"image","port":"5555", "path":"/"}}}}`)

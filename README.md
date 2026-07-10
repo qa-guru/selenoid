@@ -13,6 +13,7 @@
 |---|---|
 | **GitHub** | [qa-guru/selenoid](https://github.com/qa-guru/selenoid) |
 | **Docker Hub** | [`qaguru/selenoid`](https://hub.docker.com/r/qaguru/selenoid) |
+| **Текущий релиз** | **v2.2.0** — [docs/RELEASE_v2.2.0.md](docs/RELEASE_v2.2.0.md) · `qaguru/selenoid:v2.2.0` |
 
 ## Что это
 
@@ -73,9 +74,10 @@ ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableV
 
 | Компонент | Версия | Зачем |
 |-----------|--------|-------|
-| **Go** | **1.23.x** | Сборка hub (файл `.go-version` — `1.23.8`) |
-| **Docker Engine** | **26.1.x** (рекомендуется 26.1.5) | Совпадает с `github.com/docker/docker v26.1.5` в hub |
-| **Docker API** | **1.45** | Нативный протокол клиента Selenoid |
+| **Go** | **1.26.x** | Сборка hub (`.go-version` — `1.26.5`, `go.mod` `toolchain go1.26.5`) |
+| **Docker Engine** | **26.1.x** (рекомендуется 26.1.5) | Совместим с `DOCKER_API_VERSION=1.45` (prod: Debian 10 / Engine 26.1.4) |
+| **Docker API** | **1.45** | Версия API, с которой hub ходит к daemon (`DOCKER_API_VERSION`) |
+| **Docker SDK** | **moby** | `github.com/moby/moby/client` + `github.com/moby/moby/api` (не `github.com/docker/docker`) |
 
 Проверка:
 
@@ -83,18 +85,18 @@ ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableV
 ./scripts/check-toolchain.sh
 docker version | grep -E 'Version:|API'
 # Engine: 26.1.x, API version: 1.45
-go version   # go1.23.x
+go version   # go1.26.x
 ```
 
-На Mac Docker Desktop часто ставит Engine 27.x — hub работает с `DOCKER_API_VERSION=1.45` (скрипт `./scripts/start-selenoid.sh` выставляет автоматически). На Linux-сервере и в CI зафиксируйте Engine 26.1.x (`./scripts/docker-engine-pin-ubuntu.sh`). Engine 28+ и 29+ не рекомендуем — разрыв с Docker SDK в проекте.
+Hub и `cm` фиксируют `DOCKER_API_VERSION=1.45` (скрипт `./scripts/start-selenoid.sh`, образ, CI, prod). На Linux/CI: Engine **26.1.x** (`./scripts/docker-engine-pin-ubuntu.sh`). На Mac Docker Desktop (Engine 27.x) hub работает с тем же пином `1.45`.
 
-Сборка без локального Go использует образ `golang:1.23` (см. `./scripts/build-selenoid.sh`).
+Сборка без локального Go использует образ `golang:1.26` (см. `./scripts/build-selenoid.sh`).
 
 ## Сборка и запуск
 
 ```bash
 ./scripts/build-selenoid.sh
-docker pull qaguru/webdriver-chrome:148 qaguru/webdriver-chrome:148-min qaguru/video-recorder:latest
+docker pull qaguru/webdriver-chrome:149 qaguru/webdriver-chrome:149-min qaguru/video-recorder:latest
 docker pull qaguru/playwright-chromium:1.61.1   # или сборка в browser-image
 ./scripts/start-selenoid.sh
 ```
@@ -106,32 +108,33 @@ go build -o selenoid .
 DOCKER_API_VERSION=1.45 ./selenoid -conf config/browsers.json -limit 5
 ```
 
-Конфигурация браузеров: канон — [`../dev/browsers.json`](../dev/browsers.json); в репо hub — [`config/browsers.json`](config/browsers.json) (синхронизация: `../dev/scripts/sync-cm-browsers.sh`).
+**SSOT:** [`../dev/browsers.json`](../dev/browsers.json) (полный каталог).  
+Sync: [`../dev/scripts/sync-cm-browsers.sh`](../dev/scripts/sync-cm-browsers.sh) → [`config/browsers.json`](config/browsers.json), CM embed, CI fixture, UI.
 
 Smoke-тест Playwright: [examples/playwright](examples/playwright) (`npm install && npm test`).
 
-Подробности релизов hub: [docs/RELEASE_v2.1.0.md](docs/RELEASE_v2.1.0.md).
+Текущий релиз hub: **v2.2.0** — [docs/RELEASE_v2.2.0.md](docs/RELEASE_v2.2.0.md) (browsers catalog + binary cut).  
+Предыдущий: [docs/RELEASE_v2.1.8.md](docs/RELEASE_v2.1.8.md). Docker: `qaguru/selenoid:v2.2.0`.
 
 ## browsers.json
 
-Два стека — **WebDriver** (Selenium) и **Playwright** (WebSocket). В каждой группе три актуальные версии плюс legacy для курсов.
+Два стека — **WebDriver** (Selenium) и **Playwright** (WebSocket). Каталог = **SSOT** [`../dev/browsers.json`](../dev/browsers.json). Полная таблица — [docs/browser-versions.md](docs/browser-versions.md).
 
-| Браузер в hub | Default | Версии | Docker-образ | Протокол |
-|---------------|---------|--------|--------------|----------|
-| `chrome` | `148.0` | 148.0, 148.0-min | `qaguru/webdriver-chrome:148`, `qaguru/webdriver-chrome:148-min` | WebDriver, `path: /` |
+| Браузер в hub | Default | Версии (sample) | Docker-образ | Протокол |
+|---------------|---------|-----------------|--------------|----------|
+| `chrome` | `149.0` | 149/148 (+`-min`) | `qaguru/webdriver-chrome:<tag>` | WebDriver, `path: /` |
+| `firefox` | `151.0` | 151/150 (+`-min`) | `qaguru/webdriver-firefox:<tag>` | WebDriver |
+| `msedge` | `145.0` | 145/144 (+`-min`) | `qaguru/webdriver-msedge:<tag>` | WebDriver |
 | `playwright-chromium` | `1.61.1` | 1.61.1, 1.61.1-min | `qaguru/playwright-chromium:<версия>` | Playwright |
-| `playwright-firefox` | `1.61.1` | 1.61.1 | `qaguru/playwright-firefox:<версия>` | Playwright |
-| `playwright-webkit` | `1.61.1` | 1.61.1 | `qaguru/playwright-webkit:<версия>` | Playwright |
-| `playwright-chrome` | `1.61.1` | 1.61.1 | `qaguru/playwright-chrome:<версия>` | Playwright |
-| `playwright-msedge` | `1.61.1` | 1.61.1 | `qaguru/playwright-msedge:<версия>` | Playwright |
+| `playwright-{firefox,webkit,chrome,msedge}` | `1.61.1` | 1.61.1 | `qaguru/playwright-*:<версия>` | Playwright |
 
 Playwright-образы: порт `3000`, `protocol: "playwright"`, `shmSize: 2GB`. Версия npm-клиента `@playwright/test` должна совпадать с `playwrightVersion` в конфиге.
 
 ### Подготовка образов
 
 ```bash
-# WebDriver Chrome (qaguru)
-docker pull qaguru/webdriver-chrome:148 qaguru/webdriver-chrome:148-min
+# WebDriver Chrome (qaguru) — default 149.0; 148.* optional regression
+docker pull qaguru/webdriver-chrome:149 qaguru/webdriver-chrome:149-min
 
 # Playwright — pull или сборка в browser-image
 docker pull qaguru/playwright-chromium:1.61.1
@@ -141,7 +144,7 @@ docker pull qaguru/playwright-chromium:1.61.1
 docker pull qaguru/video-recorder:latest
 ```
 
-### Endpoints (локально)
+### Endpoints (локально, SSOT)
 
 ```
 # WebDriver
@@ -149,19 +152,21 @@ http://127.0.0.1:4444/wd/hub
 
 # Playwright
 ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true
-ws://127.0.0.1:4444/playwright/playwright-firefox/1.61.1?enableVNC=true&enableVideo=true
-ws://127.0.0.1:4444/playwright/playwright-webkit/1.61.1?enableVNC=true&enableVideo=true
+ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1-min
 ```
 
 Записи с `enableVideo=true` сохраняются в каталог `video/` (или `http://127.0.0.1:4444/video/`).
 
-## Переменные окружения
+## Переменные окружения (process hub)
 
 | Переменная | Описание |
 |------------|----------|
-| `DOCKER_API_VERSION` | API Docker для hub (рекомендуется `1.45`) |
-| `PLAYWRIGHT_WS_ENDPOINT` | WebSocket URL hub |
-| `PW_TEST_CONNECT_WS_ENDPOINT` | Alias (официальный env Playwright) |
+| `DOCKER_API_VERSION` | API Docker для hub (канон `1.45`) |
+| `DOCKER_HOST` | Адрес Docker daemon (стандартный Docker client) |
+| `GGR_HOST` | Хост GGR (если hub за GGR) |
+| `OVERRIDE_VIDEO_OUTPUT_DIR` | Переопределение каталога video |
+
+Клиентские `PLAYWRIGHT_WS_ENDPOINT` / `PW_TEST_CONNECT_WS_ENDPOINT` — не env процесса hub; см. [docs/playwright.md](docs/playwright.md) и [examples/playwright](examples/playwright).
 
 ## Upstream (Aerokube)
 

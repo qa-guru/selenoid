@@ -2,7 +2,8 @@
 
 **Дата:** 8 июля 2026  
 **Предыдущий:** [v2.1.7](RELEASE_v2.1.7.md)  
-**GitHub:** https://github.com/qa-guru/selenoid/releases/tag/v2.1.8
+**GitHub:** https://github.com/qa-guru/selenoid/releases/tag/v2.1.8  
+**Tag:** `v2.1.8` = `ce2298a` (toolchain bump). Локально без tag → `git fetch --tags`. На `main` могут быть post-tag коммиты без нового release.
 
 Патч CI/toolchain: **Go 1.26.5** для чистого blocking `govulncheck` (GO-2026-5856).
 

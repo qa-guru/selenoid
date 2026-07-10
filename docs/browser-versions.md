@@ -1,6 +1,6 @@
 # Таблица совместимости версий браузеров
 
-Актуально для [`config/browsers.json`](../config/browsers.json). Последняя проверка: июль 2026.
+**SSOT:** [`../../dev/browsers.json`](../../dev/browsers.json) → `dev/scripts/sync-cm-browsers.sh` → hub config, CM embed (`cm/selenoid/data/browsers.json`), CI fixture, UI. Сейчас: Chrome default **149.0**, Playwright **1.61.1**, + firefox/msedge и все PW engines. Последняя проверка: июль 2026.
 
 ## Политика стека: три слоя
 
@@ -31,18 +31,18 @@
 
 ---
 
-## Сводная таблица (`browsers.json`)
+## Сводная таблица (расширенный каталог)
 
-| Имя в hub | Default | Версии в конфиге | Docker-образ | Протокол |
-|-----------|---------|------------------|--------------|----------|
-| `chrome` | `149.0` | 149.0, 149.0-min, 148.0, 148.0-min | `qaguru/webdriver-chrome:<major>[-min]` | WebDriver |
-| `firefox` | `151.0` | 151.0, 151.0-min, 150.0, 150.0-min | `qaguru/webdriver-firefox:<major>[-min]` | WebDriver |
-| `msedge` | `145.0` | 145.0, 145.0-min, 144.0, 144.0-min | `qaguru/webdriver-msedge:<major>[-min]` | WebDriver |
-| `playwright-chromium` | `1.61.1` | 1.61.1, 1.61.1-min | `qaguru/playwright-chromium:<версия>` | Playwright |
-| `playwright-firefox` | `1.61.1` | 1.61.1 | `qaguru/playwright-firefox:<версия>` | Playwright |
-| `playwright-webkit` | `1.61.1` | 1.61.1 | `qaguru/playwright-webkit:<версия>` | Playwright |
-| `playwright-chrome` | `1.61.1` | 1.61.1 | `qaguru/playwright-chrome:<версия>` | Playwright |
-| `playwright-msedge` | `1.61.1` | 1.61.1 | `qaguru/playwright-msedge:<версия>` | Playwright |
+| Имя в hub | Default | Версии в конфиге | Docker-образ | Протокол | В SSOT `dev/` |
+|-----------|---------|------------------|--------------|----------|:-------------:|
+| `chrome` | `149.0` | 149.0, 149.0-min, 148.0, 148.0-min | `qaguru/webdriver-chrome:<major>[-min]` | WebDriver | ✓ |
+| `firefox` | `151.0` | 151.0, 151.0-min, 150.0, 150.0-min | `qaguru/webdriver-firefox:<major>[-min]` | WebDriver | ✓ |
+| `msedge` | `145.0` | 145.0, 145.0-min, 144.0, 144.0-min | `qaguru/webdriver-msedge:<major>[-min]` | WebDriver | ✓ |
+| `playwright-chromium` | `1.61.1` | 1.61.1, 1.61.1-min | `qaguru/playwright-chromium:<версия>` | Playwright | ✓ |
+| `playwright-firefox` | `1.61.1` | 1.61.1 | `qaguru/playwright-firefox:<версия>` | Playwright | ✓ |
+| `playwright-webkit` | `1.61.1` | 1.61.1 | `qaguru/playwright-webkit:<версия>` | Playwright | ✓ |
+| `playwright-chrome` | `1.61.1` | 1.61.1 | `qaguru/playwright-chrome:<версия>` | Playwright | ✓ |
+| `playwright-msedge` | `1.61.1` | 1.61.1 | `qaguru/playwright-msedge:<версия>` | Playwright | ✓ |
 
 ---
 

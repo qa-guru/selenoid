@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pin Docker Engine 26.1.x on Ubuntu/Debian (apt).
+# Pin Docker Engine 26.1.5 on Ubuntu/Debian (apt).
 # Run on the server once. Requires root.
 set -euo pipefail
 
@@ -40,4 +40,4 @@ apt-mark hold docker-ce docker-ce-cli 2>/dev/null || true
 
 echo "==> Done"
 docker version | grep -E 'Version:|API'
-echo "Expected: Engine ${TARGET_SERIES}.x, API 1.45"
+echo "Expected: Engine ${TARGET_PATCH}, API 1.45"

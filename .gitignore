@@ -4,6 +4,7 @@ selenoid
 selenoid.exe
 coverage.*
 .DS_Store
+video/
 
 node_modules/
 .env
