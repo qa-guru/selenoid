@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Image tag for manual docker publish (e.g. v2.0.5)'
+        description: 'Release tag for manual publish (e.g. v2.2.0)'
         required: true
-        default: 'v2.0.5'
+        default: 'v2.2.0'
 
 permissions:
   contents: write
@@ -31,13 +31,6 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - uses: actions/cache@v6
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
@@ -46,7 +39,7 @@ jobs:
 
       - name: Build
         env:
-          GIT_REVISION: ${{ github.ref_name }}
+          GIT_REVISION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
         run: ci/build.sh
 
       - name: Prepare release version
@@ -61,9 +54,10 @@ jobs:
           echo "RELEASE_VERSION=${version}" >> "$GITHUB_ENV"
 
       - uses: AButler/upload-release-assets@v4.0
-        if: github.event_name == 'release'
+        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
         with:
           files: 'dist/*'
+          release-tag: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.event.release.tag_name }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Release image
