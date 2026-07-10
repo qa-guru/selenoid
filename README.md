@@ -13,7 +13,7 @@
 |---|---|
 | **GitHub** | [qa-guru/selenoid](https://github.com/qa-guru/selenoid) |
 | **Docker Hub** | [`qaguru/selenoid`](https://hub.docker.com/r/qaguru/selenoid) |
-| **Текущий релиз** | **v2.2.0** — [docs/RELEASE_v2.2.0.md](docs/RELEASE_v2.2.0.md) · `qaguru/selenoid:v2.2.0` |
+| **Текущий релиз** | **v2.2.1** — [docs/RELEASE_v2.2.1.md](docs/RELEASE_v2.2.1.md) · `qaguru/selenoid:v2.2.1` |
 
 ## Что это
 
@@ -45,14 +45,16 @@ WebDriver Chrome — [`qaguru/webdriver-chrome`](https://hub.docker.com/r/qaguru
 
 **Twilio** (`twilio/selenoid`) — legacy cold WebDriver-образы, **не Playwright**. Текущий стек: Microsoft MCR + qaguru wrapper для Playwright; Chrome for Testing + qaguru wrapper для WebDriver. Таблица: [docs/browser-versions.md](docs/browser-versions.md).
 
-## Связанные репозитории
+## Экосистема qa-guru Selenoid
 
-| GitHub | Роль |
-|--------|------|
-| **selenoid** (этот) | Hub — центральный компонент |
-| [selenoid-ui](https://github.com/qa-guru/selenoid-ui) | UI для отладки; проксирует hub |
-| [cm](https://github.com/qa-guru/cm) | Установщик: скачивает hub, UI, `browsers.json` |
-| [browser-image](https://github.com/qa-guru/browser-image) | Docker-образы browser nodes (Playwright + WebDriver) |
+| Ресурс | Ссылка | Роль |
+|--------|--------|------|
+| **selenoid** (этот) | [github.com/qa-guru/selenoid](https://github.com/qa-guru/selenoid) | Hub |
+| selenoid-ui | [github.com/qa-guru/selenoid-ui](https://github.com/qa-guru/selenoid-ui) | Web UI |
+| cm | [github.com/qa-guru/cm](https://github.com/qa-guru/cm) | Установщик |
+| browser-image | [github.com/qa-guru/browser-image](https://github.com/qa-guru/browser-image) | Docker browser nodes |
+| selenoid-tests | [github.com/qa-guru/selenoid-tests](https://github.com/qa-guru/selenoid-tests) | E2e/integration ethalon |
+| Docker Hub | [hub.docker.com/u/qaguru](https://hub.docker.com/u/qaguru) | Образы `qaguru/*` |
 
 ## Native Playwright
 
@@ -113,8 +115,8 @@ Sync: [`../dev/scripts/sync-cm-browsers.sh`](../dev/scripts/sync-cm-browsers.sh)
 
 Smoke-тест Playwright: [examples/playwright](examples/playwright) (`npm install && npm test`).
 
-Текущий релиз hub: **v2.2.0** — [docs/RELEASE_v2.2.0.md](docs/RELEASE_v2.2.0.md) (browsers catalog + binary cut).  
-Предыдущий: [docs/RELEASE_v2.1.8.md](docs/RELEASE_v2.1.8.md). Docker: `qaguru/selenoid:v2.2.0`.
+Текущий релиз hub: **v2.2.1** — [docs/RELEASE_v2.2.1.md](docs/RELEASE_v2.2.1.md) (patch: tag alignment + ecosystem README).  
+Предыдущий: [docs/RELEASE_v2.2.0.md](docs/RELEASE_v2.2.0.md). Docker: `qaguru/selenoid:v2.2.1`.
 
 ## browsers.json
 
