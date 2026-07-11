@@ -7,6 +7,18 @@
 
 [![Selenoid Hub metrics](https://qa-guru.github.io/selenoid-tests/readme/metrics-panel-selenoid.svg)](https://qa-guru.github.io/selenoid-tests/reports/latest/dashboard/)
 
+<a href="https://qa-guru.github.io/selenoid-tests/reports/latest/dashboard/">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://qa-guru.github.io/selenoid-tests/readme/dashboard-preview-dark.png">
+    <img
+      src="https://qa-guru.github.io/selenoid-tests/readme/dashboard-preview.png"
+      alt="Allure 3 dashboard — pyramid, stability, success distribution"
+      width="800"
+    />
+  </picture>
+</a>
+> Dashboard PNG updates after each orchestrator run on `main` (Playwright screenshot of Allure 3 dashboard).
+
 | Link | Description |
 |------|-------------|
 | [Dashboard](https://qa-guru.github.io/selenoid-tests/reports/latest/dashboard/) | Full pyramid — filter epic **selenoid** in awesome |
