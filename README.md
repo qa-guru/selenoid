@@ -1,5 +1,19 @@
 # Selenoid (qa-guru fork)
 
+
+[![Selenoid Hub](https://qa-guru.github.io/selenoid-tests/readme/badge-selenoid.svg)](https://qa-guru.github.io/selenoid-tests/reports/latest/dashboard/)
+
+[![Selenoid Hub stats](https://qa-guru.github.io/selenoid-tests/readme/stats-selenoid.svg)](https://qa-guru.github.io/selenoid-tests/reports/latest/dashboard/)
+
+[![Selenoid Hub metrics](https://qa-guru.github.io/selenoid-tests/readme/metrics-panel-selenoid.svg)](https://qa-guru.github.io/selenoid-tests/reports/latest/dashboard/)
+
+| Link | Description |
+|------|-------------|
+| [Dashboard](https://qa-guru.github.io/selenoid-tests/reports/latest/dashboard/) | Full pyramid — filter epic **selenoid** in awesome |
+| [Awesome](https://qa-guru.github.io/selenoid-tests/reports/latest/awesome/) | Hub test details |
+| [selenoid-tests](https://github.com/qa-guru/selenoid-tests) | Orchestrator + merged Allure |
+
+
 **Основной репозиторий экосистемы.** Форк [aerokube/selenoid](https://github.com/aerokube/selenoid) с нативной поддержкой Playwright.
 
 [![Build Status](https://github.com/qa-guru/selenoid/workflows/build/badge.svg)](https://github.com/qa-guru/selenoid/actions?query=workflow%3Abuild)
