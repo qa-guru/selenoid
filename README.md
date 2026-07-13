@@ -7,12 +7,12 @@
 >
 > | Ветка | Стабильный билд | Docker API | Engine | Go | React | UI |
 > |-------|-----------------|------------|--------|-----|-------|-----|
-> | `selenoid2-1.45-engine26.1-go1.26-react16` | **v2.2.1** — прежний prod ([selenoid.autotests.cloud](https://selenoid.autotests.cloud)) | 1.45 | 26.1.x | 1.26.5 | 16 | CRA (react-scripts 3.x) |
-> | `selenoid2-1.55-engine29.6-go1.26-react18` | **v2.3.0** — актуальный, до нового UI (Selenoid 3) | 1.55 | 29.6+ | 1.26.5 | 18 | Vite 6 |
+> | [`selenoid2-1.45-engine26.1-go1.26-react16`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.45-engine26.1-go1.26-react16) | **v2.2.1** — прежний prod ([selenoid.autotests.cloud](https://selenoid.autotests.cloud)) | 1.45 | 26.1.x | 1.26.5 | 16 | CRA (react-scripts 3.x) |
+> | [`selenoid2-1.55-engine29.6-go1.26-react18`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.55-engine29.6-go1.26-react18) | **v2.3.0** — актуальный, до нового UI (Selenoid 3) | 1.55 | 29.6+ | 1.26.5 | 18 | Vite 6 |
 >
 > **Зачем две ветки:** каждая держит воспроизводимый набор версий (Docker API / Engine / Go / React). `main` — активная разработка. Точные версии — в `STACK-PIN.md`.
 >
-> _Вы на ветке `selenoid2-1.45-engine26.1-go1.26-react16`._
+> _Вы на ветке [`selenoid2-1.45-engine26.1-go1.26-react16`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.45-engine26.1-go1.26-react16)._
 <!-- stack-branches-note:end -->
 
 
