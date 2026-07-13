@@ -1,4 +1,4 @@
-# Stack pin: selenoid2-1.45-engine26.1-go1.23
+# Stack pin: selenoid2-1.45-engine26.1-go1.26-react16
 
 **Репозиторий:** Hub / engine (qa-guru/selenoid)
 
@@ -7,14 +7,15 @@
 | Линия | Selenoid 2 (maintenance) |
 | Stack semver | v2.2.1 |
 | Docker API | 1.45 |
-| Docker Engine | 26.1.x |
+| Docker Engine | 26.1.x (рекоменд. 26.1.5) |
 | Go | 1.26.5 |
-| Go (примечание) | На теге v2.2.1; суффикс ветки `go1.23` — метка Docker API 1.45 era |
-| UI | CRA / React 16 (v1 UI) |
+| Go (примечание) | Факт на теге v2.2.1 (`go.mod` + `toolchain go1.26.5`) |
+| React | 16 |
+| UI | CRA (react-scripts 3.x) |
 | Prod reference | selenoid.autotests.cloud (v2.2.x) |
 | До | Selenoid 3 UI — не трогать |
-| Git anchor | tag `v2.2.1` |
+| Git anchor | тег `v2.2.1` |
 | Docker image | `qaguru/selenoid:v2.2.1` |
-| Playwright | native WebSocket (v2.x) |
+| React (stack pin) | 16 — paired [selenoid-ui](https://github.com/qa-guru/selenoid-ui) |
 
 См. также: [`projects/selenoid-home/README.md`](https://github.com/qa-guru/zero-design-system/blob/master/projects/selenoid-home/README.md) (monorepo SSOT).
