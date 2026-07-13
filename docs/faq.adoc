@@ -80,8 +80,8 @@ You have to run Selenoid binary \ container with `DOCKER_API_VERSION` variable s
 
 Then run Selenoid like the following:
 
-    $ DOCKER_API_VERSION=1.45 ./selenoid <rest-of-args> # As a binary
-    $ docker run -e DOCKER_API_VERSION=1.45 <rest-of-args> qaguru/selenoid:some-version # As Docker container
+    $ DOCKER_API_VERSION=1.55 ./selenoid <rest-of-args> # As a binary
+    $ docker run -e DOCKER_API_VERSION=1.55 <rest-of-args> qaguru/selenoid:some-version # As Docker container
 
 **Video feature not working**
 

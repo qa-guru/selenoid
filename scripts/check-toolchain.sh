@@ -2,8 +2,8 @@
 set -euo pipefail
 
 EXPECTED_GO_MIN="1.26"
-EXPECTED_DOCKER_API="1.45"
-EXPECTED_DOCKER_ENGINE_PREFIX="26.1"
+EXPECTED_DOCKER_API="1.55"
+EXPECTED_DOCKER_ENGINE_PREFIX="29"
 
 fail=0
 
@@ -26,7 +26,7 @@ else
   fail=1
 fi
 
-echo "==> Docker Engine (recommended 26.1.5 / series ${EXPECTED_DOCKER_ENGINE_PREFIX}.x, API ${EXPECTED_DOCKER_API})"
+echo "==> Docker Engine (recommended 29.x / series ${EXPECTED_DOCKER_ENGINE_PREFIX}.x, API ${EXPECTED_DOCKER_API})"
 if command -v docker >/dev/null 2>&1; then
   docker version
   engine_v="$(docker version --format '{{.Server.Version}}' 2>/dev/null || true)"
@@ -43,7 +43,7 @@ else
 fi
 
 echo "==> Hub env"
-echo "    DOCKER_API_VERSION=${DOCKER_API_VERSION:-<unset, start-selenoid.sh sets 1.45>}"
+echo "    DOCKER_API_VERSION=${DOCKER_API_VERSION:-<unset, start-selenoid.sh sets 1.55>}"
 
 if [[ "$fail" -ne 0 ]]; then
   exit 1

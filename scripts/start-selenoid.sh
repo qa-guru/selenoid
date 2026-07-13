@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-export DOCKER_API_VERSION="${DOCKER_API_VERSION:-1.45}"
+export DOCKER_API_VERSION="${DOCKER_API_VERSION:-1.55}"
 
 SELENOID_BIN="${SELENOID_BIN:-$ROOT/selenoid}"
 CONF="${SELENOID_CONF:-$ROOT/config/browsers.json}"

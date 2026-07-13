@@ -40,4 +40,4 @@ apt-mark hold docker-ce docker-ce-cli 2>/dev/null || true
 
 echo "==> Done"
 docker version | grep -E 'Version:|API'
-echo "Expected: Engine ${TARGET_PATCH}, API 1.45"
+echo "Expected: Engine ${TARGET_PATCH}, API 1.55"

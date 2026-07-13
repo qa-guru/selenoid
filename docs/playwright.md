@@ -108,7 +108,7 @@ go build -o selenoid .
 docker pull qaguru/playwright-chromium:1.61.1
 # или сборка из https://github.com/qa-guru/browser-image
 docker pull qaguru/video-recorder:latest
-DOCKER_API_VERSION=1.45 ./selenoid -conf config/browsers.json -limit 5
+DOCKER_API_VERSION=1.55 ./selenoid -conf config/browsers.json -limit 5
 ```
 
 Конфиг синхронизируется из `dev/browsers.json` (`../dev/scripts/sync-cm-browsers.sh`).
@@ -129,7 +129,7 @@ cd browser-image/playwright
 
 ## Toolchain
 
-Hub требует **Docker Engine 26.1.x** (API **1.45**), **Go 1.26.x** и Docker SDK **moby** (`github.com/moby/moby/client`). Локальный старт:
+Hub требует **Docker Engine 29.x** (API **1.55**), **Go 1.26.x** и Docker SDK **moby** (`github.com/moby/moby/client`). Локальный старт:
 
 ```bash
 ./scripts/start-selenoid.sh
