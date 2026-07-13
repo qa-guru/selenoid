@@ -12,7 +12,7 @@
 >
 > **Зачем две ветки:** каждая держит воспроизводимый набор версий (Docker API / Engine / Go / React). `main` — активная разработка. Точные версии — в `STACK-PIN.md`.
 >
-> _Вы на ветке [`selenoid2-1.55-engine29.6-go1.26-react18`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.55-engine29.6-go1.26-react18)._
+> _Вы на ветке [`selenoid2-1.45-engine26.1-go1.26-react16`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.45-engine26.1-go1.26-react16)._
 <!-- stack-branches-note:end -->
 
 
@@ -29,8 +29,7 @@
 |---|---|
 | **GitHub** | [qa-guru/selenoid](https://github.com/qa-guru/selenoid) |
 | **Docker Hub** | [`qaguru/selenoid`](https://hub.docker.com/r/qaguru/selenoid) |
-| **Текущий релиз** | **v2.3.0** (in progress) — [docs/RELEASE_v2.3.0.md](docs/RELEASE_v2.3.0.md) · `qaguru/selenoid:v2.3.0` · **Selenoid 2** (maintenance) |
-| **Selenoid 3** | [selenoid.qa.guru](https://selenoid.qa.guru) — planning |
+| **Текущий релиз** | **v2.2.1** — [docs/RELEASE_v2.2.1.md](docs/RELEASE_v2.2.1.md) · `qaguru/selenoid:v2.2.1` |
 
 ## Что это
 
@@ -61,6 +60,7 @@ flowchart TB
 - **selenoid (hub)** — Selenium `/wd/hub` + Playwright WebSocket
 - **selenoid-ui** — web UI сессий и capabilities
 - **browser-image** — Playwright и WebDriver browser nodes
+
 
 WebDriver Chrome — [`qaguru/webdriver-chrome`](https://hub.docker.com/r/qaguru/webdriver-chrome) (`browser-image/webdriver/`). Playwright-образы — [`qaguru/playwright-*`](https://hub.docker.com/u/qaguru). Hub — [`qaguru/selenoid`](https://hub.docker.com/r/qaguru/selenoid).
 
@@ -98,8 +98,8 @@ ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableV
 | Компонент | Версия | Зачем |
 |-----------|--------|-------|
 | **Go** | **1.26.x** | Сборка hub (`.go-version` — `1.26.5`, `go.mod` `toolchain go1.26.5`) |
-| **Docker Engine** | **29.x** (рекомендуется 29.6+) | Совместим с `DOCKER_API_VERSION=1.55` (moby client MaxAPIVersion) |
-| **Docker API** | **1.55** | Версия API, с которой hub ходит к daemon (`DOCKER_API_VERSION`) |
+| **Docker Engine** | **26.1.x** (рекомендуется 26.1.5) | Совместим с `DOCKER_API_VERSION=1.45` (prod: Debian 10 / Engine 26.1.4) |
+| **Docker API** | **1.45** | Версия API, с которой hub ходит к daemon (`DOCKER_API_VERSION`) |
 | **Docker SDK** | **moby** | `github.com/moby/moby/client` + `github.com/moby/moby/api` (не `github.com/docker/docker`) |
 
 Проверка:
@@ -107,11 +107,11 @@ ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableV
 ```bash
 ./scripts/check-toolchain.sh
 docker version | grep -E 'Version:|API'
-# Engine: 29.x, API version: 1.55
+# Engine: 26.1.x, API version: 1.45
 go version   # go1.26.x
 ```
 
-Hub и `cm` фиксируют `DOCKER_API_VERSION=1.55` (скрипт `./scripts/start-selenoid.sh`, образ, CI). На Linux/CI: Engine **29.x** (`./scripts/check-toolchain.sh`). Hub без env пина может снизить API через negotiation (`main.go`).
+Hub и `cm` фиксируют `DOCKER_API_VERSION=1.45` (скрипт `./scripts/start-selenoid.sh`, образ, CI, prod). На Linux/CI: Engine **26.1.x** (`./scripts/docker-engine-pin-ubuntu.sh`). На Mac Docker Desktop (Engine 27.x) hub работает с тем же пином `1.45`.
 
 Сборка без локального Go использует образ `golang:1.26` (см. `./scripts/build-selenoid.sh`).
 
@@ -128,7 +128,7 @@ docker pull qaguru/playwright-chromium:1.61.1   # или сборка в browser
 
 ```bash
 go build -o selenoid .
-DOCKER_API_VERSION=1.55 ./selenoid -conf config/browsers.json -limit 5
+DOCKER_API_VERSION=1.45 ./selenoid -conf config/browsers.json -limit 5
 ```
 
 **SSOT:** [`../dev/browsers.json`](../dev/browsers.json) (полный каталог).  
@@ -136,8 +136,8 @@ Sync: [`../dev/scripts/sync-cm-browsers.sh`](../dev/scripts/sync-cm-browsers.sh)
 
 Smoke-тест Playwright: [examples/playwright](examples/playwright) (`npm install && npm test`).
 
-Текущий релиз hub: **v2.3.0** — [docs/RELEASE_v2.3.0.md](docs/RELEASE_v2.3.0.md) (moby API 1.55, React 17/CRA5 UI).  
-Предыдущий: [docs/RELEASE_v2.2.1.md](docs/RELEASE_v2.2.1.md). Docker: `qaguru/selenoid:v2.3.0`.
+Текущий релиз hub: **v2.2.1** — [docs/RELEASE_v2.2.1.md](docs/RELEASE_v2.2.1.md) (patch: tag alignment + ecosystem README).  
+Предыдущий: [docs/RELEASE_v2.2.0.md](docs/RELEASE_v2.2.0.md). Docker: `qaguru/selenoid:v2.2.1`.
 
 ## browsers.json
 
@@ -184,7 +184,7 @@ ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1-min
 
 | Переменная | Описание |
 |------------|----------|
-| `DOCKER_API_VERSION` | API Docker для hub (канон `1.55`) |
+| `DOCKER_API_VERSION` | API Docker для hub (канон `1.45`) |
 | `DOCKER_HOST` | Адрес Docker daemon (стандартный Docker client) |
 | `GGR_HOST` | Хост GGR (если hub за GGR) |
 | `OVERRIDE_VIDEO_OUTPUT_DIR` | Переопределение каталога video |
