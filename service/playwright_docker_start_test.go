@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const playwrightDockerAPIVersion = "1.45"
+const playwrightDockerAPIVersion = "1.55"
 
 const (
 	mockBrowserContainerID = "pw-browser-001"

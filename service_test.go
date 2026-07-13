@@ -40,7 +40,7 @@ func updateMux(mux http.Handler) {
 	defer lock.Unlock()
 	mockServer = httptest.NewServer(mux)
 	_ = os.Setenv("DOCKER_HOST", "tcp://"+hostPort(mockServer.URL))
-	// Mock Docker API path prefix only — prod/canon is DOCKER_API_VERSION=1.45 (Dockerfile, start-selenoid.sh).
+	// Mock Docker API path prefix only — prod/canon is DOCKER_API_VERSION=1.55 (Dockerfile, start-selenoid.sh).
 	_ = os.Setenv("DOCKER_API_VERSION", "1.29")
 	cli, _ = client.New(client.FromEnv)
 }
