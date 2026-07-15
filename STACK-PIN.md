@@ -12,7 +12,7 @@
 | Go (примечание) | Факт на теге v2.2.1 (`go.mod` + `toolchain go1.26.5`) |
 | React | 16 |
 | UI | CRA (react-scripts 3.x) |
-| Prod reference | selenoid.autotests.cloud (v2.2.x) |
+| Prod reference | rollback reference (бывший prod v2.2.1) |
 | До | Selenoid 3 UI — не трогать |
 | Git anchor | тег `v2.2.1` |
 | Docker image | `qaguru/selenoid:v2.2.1` |
