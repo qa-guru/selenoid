@@ -54,6 +54,7 @@ var (
 	videoRecorderImage       string
 	logOutputDir             string
 	saveAllLogs              bool
+	playwrightAccessKeys     string
 	ggrHost                  *ggr.Host
 	conf                     *config.Config
 	queue                    *protect.Queue
@@ -93,6 +94,7 @@ func init() {
 	flag.StringVar(&videoRecorderImage, "video-recorder-image", "qaguru/video-recorder:latest", "Image to use as video recorder")
 	flag.StringVar(&logOutputDir, "log-output-dir", "", "Directory to save session log to")
 	flag.BoolVar(&saveAllLogs, "save-all-logs", false, "Whether to save all logs without considering capabilities")
+	flag.StringVar(&playwrightAccessKeys, "playwright-access-key", "", "Comma-separated required ?accessKey= values for /playwright/ WebSocket (empty = no check)")
 	flag.DurationVar(&gracefulPeriod, "graceful-period", 300*time.Second, "graceful shutdown period in time.Duration format, e.g. 300s or 500ms")
 	flag.Parse()
 

@@ -1,18 +1,18 @@
 # Selenoid (qa-guru fork)
 
 <!-- stack-branches-note:start -->
-> ## Стабильные билды — две ветки
->
-> Стабильные версии стека зафиксированы в **двух долгоживущих ветках** (а не в `main`). Имя ветки кодирует согласованный toolchain всего стека, включая React из paired `selenoid-ui`:
->
-> | Ветка | Стабильный билд | Docker API | Engine | Go | React | UI |
-> |-------|-----------------|------------|--------|-----|-------|-----|
-> | [`selenoid2-1.45-engine26.1-go1.26-react16`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.45-engine26.1-go1.26-react16) | **v2.2.1** — прежний prod ([selenoid.autotests.cloud](https://selenoid.autotests.cloud)) | 1.45 | 26.1.x | 1.26.5 | 16 | CRA (react-scripts 3.x) |
-> | [`selenoid2-1.55-engine29.6-go1.26-react18`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.55-engine29.6-go1.26-react18) | **v2.3.0** — актуальный, до нового UI (Selenoid 3) | 1.55 | 29.6+ | 1.26.5 | 18 | Vite 6 |
->
-> **Зачем две ветки:** каждая держит воспроизводимый набор версий (Docker API / Engine / Go / React). `main` — активная разработка. Точные версии — в `STACK-PIN.md`.
->
-> _Вы на ветке [`selenoid2-1.45-engine26.1-go1.26-react16`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.45-engine26.1-go1.26-react16)._
+## Стабильные билды — две ветки
+
+Стабильные версии стека зафиксированы в **двух долгоживущих ветках** (а не в `main`). Имя ветки кодирует согласованный toolchain всего стека, включая React из paired `selenoid-ui`:
+
+| Ветка | Стабильный билд | Docker API | Engine | Go | React | UI |
+|-------|-----------------|------------|--------|-----|-------|-----|
+| [`selenoid2-1.45-engine26.1-go1.26-react16`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.45-engine26.1-go1.26-react16) | **v2.2.1** — прежний prod ([selenoid.autotests.cloud](https://selenoid.autotests.cloud)) | 1.45 | 26.1.x | 1.26.5 | 16 | CRA (react-scripts 3.x) |
+| [`selenoid2-1.55-engine29.6-go1.26-react18`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.55-engine29.6-go1.26-react18) | **v2.3.0** — актуальный, до нового UI (Selenoid 3) | 1.55 | 29.6+ | 1.26.5 | 18 | Vite 6 |
+
+**Зачем две ветки:** каждая держит воспроизводимый набор версий (Docker API / Engine / Go / React). `main` — активная разработка. Точные версии — в `STACK-PIN.md`.
+
+_Вы на ветке [`selenoid2-1.45-engine26.1-go1.26-react16`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.45-engine26.1-go1.26-react16)._
 <!-- stack-branches-note:end -->
 
 
@@ -85,6 +85,8 @@ WebSocket endpoint (схема URL совместима с Moon):
 ws://localhost:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true
 ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true
 ```
+
+Опционально: `-playwright-access-key=…` → обязательный query `?accessKey=`. Несколько ключей задаются через запятую (на демо: `user1:1234,qa_engineer:aAb_-4gs53FD`). Local без flag — без ключа.
 
 Документация и smoke-тест:
 

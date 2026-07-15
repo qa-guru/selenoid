@@ -135,6 +135,53 @@ func TestPlaywrightConnectProxiesWebSocket(t *testing.T) {
 	})
 }
 
+const playwrightPublicAccessKeyDemo = "qa_engineer:aAb_-4gs53FD"
+
+func TestPlaywrightAccessKeyRequired(t *testing.T) {
+	t.Run("Rejects websocket without accessKey", func(t *testing.T) {
+		prev := playwrightAccessKeys
+		playwrightAccessKeys = "user1:1234," + playwrightPublicAccessKeyDemo
+		defer func() { playwrightAccessKeys = prev }()
+
+		manager = &HTTPTest{Handler: Selenium()}
+		wsURL := strings.Replace(srv.URL, "http://", "ws://", 1) + "/playwright/playwright-chromium/1.61.1?name=smoke"
+		conn, resp, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		if conn != nil {
+			_ = conn.Close()
+		}
+		assert.Error(t, err)
+		if resp != nil {
+			assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+		}
+	})
+
+	t.Run("Accepts websocket with student accessKey", func(t *testing.T) {
+		prev := playwrightAccessKeys
+		playwrightAccessKeys = "user1:1234," + playwrightPublicAccessKeyDemo
+		defer func() { playwrightAccessKeys = prev }()
+
+		manager = &HTTPTest{Handler: Selenium()}
+		wsURL := strings.Replace(srv.URL, "http://", "ws://", 1) +
+			"/playwright/playwright-chromium/1.61.1?accessKey=" + url.QueryEscape("user1:1234") + "&name=smoke"
+		conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		assert.NoError(t, err)
+		defer conn.Close()
+	})
+
+	t.Run("Accepts websocket with public accessKey alias", func(t *testing.T) {
+		prev := playwrightAccessKeys
+		playwrightAccessKeys = "user1:1234, " + playwrightPublicAccessKeyDemo
+		defer func() { playwrightAccessKeys = prev }()
+
+		manager = &HTTPTest{Handler: Selenium()}
+		wsURL := strings.Replace(srv.URL, "http://", "ws://", 1) +
+			"/playwright/playwright-chromium/1.61.1?access_key=" + url.QueryEscape(playwrightPublicAccessKeyDemo) + "&name=smoke"
+		conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+		assert.NoError(t, err)
+		defer conn.Close()
+	})
+}
+
 func TestProxyPlaywright(t *testing.T) {
 	t.Run("Proxy playwright to backend", func(t *testing.T) {
 		upgrader := websocket.Upgrader{CheckOrigin: func(_ *http.Request) bool { return true }}
