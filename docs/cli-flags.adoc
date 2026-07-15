@@ -51,6 +51,8 @@ The following flags are supported by `selenoid` command:
     Directory to save recorded video to (default "video")
 -video-recorder-image string
     Image to use as video recorder (default "qaguru/video-recorder:latest")
+-playwright-access-key string
+    Comma-separated required ?accessKey= values for /playwright/ WebSocket (empty = no check)
 ----
 
 For example:
