@@ -248,5 +248,24 @@
         "shmSize": 2147483648
       }
     }
+  },
+  "android": {
+    "default": "16.0",
+    "versions": {
+      "16.0": {
+        "image": "qaguru/android:16",
+        "port": "4444",
+        "path": "/wd/hub",
+        "shmSize": 2147483648,
+        "mem": "4g",
+        "cpu": "2.0",
+        "env": [
+          "SCREEN_RESOLUTION=1080x1920x24"
+        ],
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      }
+    }
   }
 }
