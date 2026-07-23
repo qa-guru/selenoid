@@ -250,17 +250,101 @@
     }
   },
   "android": {
-    "default": "16.0",
+    "default": "10.0",
     "versions": {
+      "4.4": {
+        "image": "selenoid/android:4.4",
+        "port": "4444",
+        "path": "/wd/hub",
+        "mem": "2g",
+        "cpu": "2.0"
+      },
+      "10.0": {
+        "image": "selenoid/android:10.0",
+        "port": "4444",
+        "path": "/wd/hub",
+        "mem": "2g",
+        "cpu": "2.0"
+      },
+      "11.0": {
+        "image": "qaguru/android:11",
+        "port": "4444",
+        "path": "/wd/hub",
+        "shmSize": 2147483648,
+        "mem": "6g",
+        "cpu": "4.0",
+        "env": [
+          "SCREEN_RESOLUTION=2100x2100x24"
+        ],
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      },
+      "12.0": {
+        "image": "qaguru/android:12",
+        "port": "4444",
+        "path": "/wd/hub",
+        "shmSize": 2147483648,
+        "mem": "6g",
+        "cpu": "4.0",
+        "env": [
+          "SCREEN_RESOLUTION=2100x2100x24"
+        ],
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      },
+      "13.0": {
+        "image": "qaguru/android:13",
+        "port": "4444",
+        "path": "/wd/hub",
+        "shmSize": 2147483648,
+        "mem": "6g",
+        "cpu": "4.0",
+        "env": [
+          "SCREEN_RESOLUTION=2100x2100x24"
+        ],
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      },
+      "14.0": {
+        "image": "qaguru/android:14",
+        "port": "4444",
+        "path": "/wd/hub",
+        "shmSize": 2147483648,
+        "mem": "6g",
+        "cpu": "4.0",
+        "env": [
+          "SCREEN_RESOLUTION=2100x2100x24"
+        ],
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      },
+      "15.0": {
+        "image": "qaguru/android:15",
+        "port": "4444",
+        "path": "/wd/hub",
+        "shmSize": 2147483648,
+        "mem": "6g",
+        "cpu": "4.0",
+        "env": [
+          "SCREEN_RESOLUTION=2100x2100x24"
+        ],
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
+      },
       "16.0": {
         "image": "qaguru/android:16",
         "port": "4444",
         "path": "/wd/hub",
         "shmSize": 2147483648,
-        "mem": "4g",
-        "cpu": "2.0",
+        "mem": "6g",
+        "cpu": "4.0",
         "env": [
-          "SCREEN_RESOLUTION=1080x1920x24"
+          "SCREEN_RESOLUTION=2100x2100x24"
         ],
         "hosts": [
           "host.docker.internal:host-gateway"

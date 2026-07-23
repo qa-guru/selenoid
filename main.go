@@ -328,7 +328,7 @@ func video(w http.ResponseWriter, r *http.Request) {
 	}
 	user, remote := info.RequestInfo(r)
 	if _, ok := r.URL.Query()[jsonParam]; ok {
-		listFilesAsJson(requestId, w, videoOutputDir, "VIDEO_ERROR")
+		listVideosAsJson(requestId, w, r, videoOutputDir)
 		return
 	}
 	log.Printf("[%d] [VIDEO_LISTING] [%s] [%s]", requestId, user, remote)
