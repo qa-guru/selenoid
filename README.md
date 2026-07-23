@@ -25,18 +25,17 @@
 | [selenoid-tests](https://github.com/qa-guru/selenoid-tests) | Orchestrator + merged Allure |
 
 <!-- stack-branches-note:start -->
-> ## Стабильные билды — две ветки
+> ## Стабильные билды
 >
-> Стабильные версии стека зафиксированы в **двух долгоживущих ветках** (а не в `main`). Имя ветки кодирует согласованный toolchain всего стека, включая React из paired `selenoid-ui`:
+> **Prod hub/cm:** релизы с **`main`** → **v3.0.0+** ([selenoid.qa.guru](https://selenoid.qa.guru)). UI — отдельная v3.x линия на `selenoid-ui` `main`.
 >
-> | Ветка | Стабильный билд | Docker API | Engine | Go | React | UI |
-> |-------|-----------------|------------|--------|-----|-------|-----|
-> | [`selenoid2-1.45-engine26.1-go1.26-react16`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.45-engine26.1-go1.26-react16) | **v2.2.1** — прежний prod ([selenoid.autotests.cloud](https://selenoid.autotests.cloud)) | 1.45 | 26.1.x | 1.26.5 | 16 | CRA (react-scripts 3.x) |
-> | [`selenoid2-1.55-engine29.6-go1.26-react18`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.55-engine29.6-go1.26-react18) | **v2.3.0** — актуальный prod, до нового UI (Selenoid 3) | 1.55 | 29.6+ | 1.26.5 | 18 | Vite 6 |
+> Pin-ветки **2.x** (`selenoid2-…-react16` / `react18`) — **заморожены**, только rollback reference; **не** использовать для новых релизов.
 >
-> **Зачем две ветки:** каждая держит воспроизводимый набор версий (Docker API / Engine / Go / React). Точные версии — в `STACK-PIN.md`.
->
-> _Вы на `main` — активная разработка (следующий рубеж: 3.0.0). Prod-линия зафиксирована тегом **v2.3.0** на [`selenoid2-1.55-engine29.6-go1.26-react18`](https://github.com/qa-guru/selenoid/tree/selenoid2-1.55-engine29.6-go1.26-react18)._
+> | Ветка | Semver | Назначение |
+> |-------|--------|------------|
+> | **`main`** | **v3.0.0+** | Активная prod-линия hub |
+> | `selenoid2-1.55-…-react18` | v2.3.0 | frozen maintenance pin |
+> | `selenoid2-1.45-…-react16` | v2.2.1 | frozen rollback reference |
 <!-- stack-branches-note:end -->
 
 
@@ -53,8 +52,8 @@
 |---|---|
 | **GitHub** | [qa-guru/selenoid](https://github.com/qa-guru/selenoid) |
 | **Docker Hub** | [`qaguru/selenoid`](https://hub.docker.com/r/qaguru/selenoid) |
-| **Текущий релиз** | **v2.3.0** (in progress) — [docs/RELEASE_v2.3.0.md](docs/RELEASE_v2.3.0.md) · `qaguru/selenoid:v2.3.0` · **Selenoid 2** (maintenance) |
-| **Selenoid 3** | [selenoid.qa.guru](https://selenoid.qa.guru) — planning |
+| **Текущий релиз** | **v3.0.0** — [docs/RELEASE_v3.0.0.md](docs/RELEASE_v3.0.0.md) · `qaguru/selenoid:v3.0.0` · **Selenoid 3 hub** |
+| **Selenoid 3** | [selenoid.qa.guru](https://selenoid.qa.guru) — hub **v3.0.0** + UI **v3.0.x** |
 
 ## Что это
 
@@ -109,6 +108,8 @@ WebSocket endpoint (схема URL совместима с Moon):
 ws://localhost:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true
 ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true
 ```
+
+Опционально: `-playwright-access-key=…` → обязательный query `?accessKey=`. Несколько ключей задаются через запятую (на демо: `user1:1234,qa_engineer:aAb_-4gs53FD`). Local без flag — без ключа.
 
 Документация и smoke-тест:
 

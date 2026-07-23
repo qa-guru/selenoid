@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"log"
 	"net/http"
@@ -25,6 +26,12 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 
 	if !websocket.IsWebSocketUpgrade(r) {
 		http.Error(w, "WebSocket upgrade required for Playwright connections", http.StatusBadRequest)
+		return
+	}
+
+	if !playwrightAccessKeyOK(r) {
+		log.Printf("[%d] [PLAYWRIGHT_UNAUTHORIZED] [%s] [%s]", requestId, user, remote)
+		http.Error(w, "Playwright accessKey required", http.StatusUnauthorized)
 		return
 	}
 
@@ -183,6 +190,26 @@ func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName 
 		}
 	}
 	log.Printf("[%d] [PLAYWRIGHT_SESSION_DELETED] [%s]", requestId, sessionId)
+}
+
+func playwrightAccessKeyOK(r *http.Request) bool {
+	if strings.TrimSpace(playwrightAccessKeys) == "" {
+		return true
+	}
+	provided := r.URL.Query().Get("accessKey")
+	if provided == "" {
+		provided = r.URL.Query().Get("access_key")
+	}
+	for _, key := range strings.Split(playwrightAccessKeys, ",") {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			continue
+		}
+		if subtle.ConstantTimeCompare([]byte(provided), []byte(key)) == 1 {
+			return true
+		}
+	}
+	return false
 }
 
 func parsePlaywrightRequest(u *url.URL) (browser, version string, caps session.Caps, err error) {

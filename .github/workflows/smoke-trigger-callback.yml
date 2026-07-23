@@ -24,7 +24,7 @@ on:
         description: "Env profile (-Denv=)"
         required: false
         type: string
-        default: selenoid_autotests_cloud_api
+        default: selenoid_qa_guru_api
       source_variant:
         description: "Deploy variant (playwright, webdriver, ...)"
         required: false

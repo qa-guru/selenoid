@@ -933,9 +933,12 @@ func TestServeAndDeleteVideoFile(t *testing.T) {
 		rsp, err = http.Get(With(srv.URL).Path("/video/?json"))
 		assert.NoError(t, err)
 		assert.Equal(t, rsp.StatusCode, http.StatusOK)
-		var files []string
-		assert.NoError(t, json.NewDecoder(rsp.Body).Decode(&files))
-		assert.Equal(t, files, []string{"testfile"})
+		var listed videoListResponse
+		assert.NoError(t, json.NewDecoder(rsp.Body).Decode(&listed))
+		assert.Equal(t, []string{"testfile"}, listed.Videos)
+		assert.Equal(t, 1, listed.Total)
+		assert.Equal(t, defaultVideoListLimit, listed.Limit)
+		assert.Equal(t, 0, listed.Offset)
 
 		deleteReq, _ := http.NewRequest(http.MethodDelete, With(srv.URL).Path("/video/testfile"), nil)
 		rsp, err = http.DefaultClient.Do(deleteReq)

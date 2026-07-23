@@ -19,6 +19,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -869,8 +870,17 @@ func vnc(wsconn *websocket.Conn) {
 }
 
 const (
-	jsonParam = "json"
+	jsonParam             = "json"
+	defaultVideoListLimit = 10
+	maxVideoListLimit     = 100
 )
+
+type videoListResponse struct {
+	Videos []string `json:"videos"`
+	Total  int      `json:"total"`
+	Limit  int      `json:"limit"`
+	Offset int      `json:"offset"`
+}
 
 func logs(w http.ResponseWriter, r *http.Request) {
 	requestId := serial()
@@ -906,6 +916,81 @@ func listFilesAsJson(requestId uint64, w http.ResponseWriter, dir string, errSta
 	}
 	w.Header().Add("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(ret)
+}
+
+func parseVideoListLimitOffset(query url.Values) (limit, offset int) {
+	limit = defaultVideoListLimit
+	if raw := query.Get("limit"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil {
+			limit = parsed
+		}
+	}
+	if limit <= 0 {
+		limit = defaultVideoListLimit
+	}
+	if limit > maxVideoListLimit {
+		limit = maxVideoListLimit
+	}
+
+	if raw := query.Get("offset"); raw != "" {
+		if parsed, err := strconv.Atoi(raw); err == nil {
+			offset = parsed
+		}
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	return limit, offset
+}
+
+func filterFileNames(names []string, q string) []string {
+	if q == "" {
+		return names
+	}
+	filtered := make([]string, 0, len(names))
+	for _, name := range names {
+		if strings.Contains(name, q) {
+			filtered = append(filtered, name)
+		}
+	}
+	return filtered
+}
+
+func paginateFileNames(names []string, limit, offset int) []string {
+	if offset >= len(names) {
+		return []string{}
+	}
+	end := offset + limit
+	if end > len(names) {
+		end = len(names)
+	}
+	page := make([]string, end-offset)
+	copy(page, names[offset:end])
+	return page
+}
+
+func listVideosAsJson(requestId uint64, w http.ResponseWriter, r *http.Request, dir string) {
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		log.Printf("[%d] [VIDEO_ERROR] [%s]", requestId, fmt.Sprintf("Failed to list directory %s: %v", dir, err))
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	names := make([]string, 0, len(files))
+	for _, f := range files {
+		names = append(names, f.Name())
+	}
+	query := r.URL.Query()
+	names = filterFileNames(names, query.Get("q"))
+	limit, offset := parseVideoListLimitOffset(query)
+	page := paginateFileNames(names, limit, offset)
+	w.Header().Add("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(videoListResponse{
+		Videos: page,
+		Total:  len(names),
+		Limit:  limit,
+		Offset: offset,
+	})
 }
 
 func streamLogs(wsconn *websocket.Conn) {

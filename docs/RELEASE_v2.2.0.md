@@ -19,7 +19,7 @@
 
 Images (browser nodes): [browser-image](https://github.com/qa-guru/browser-image) — теги `webdriver/chrome-149`, `firefox-151`, `msedge-145` (+ `-min`); не тот же git-тег `v2.2.0`.
 
-Prod: [selenoid.autotests.cloud](https://github.com/qa-guru/selenoid.autotests.cloud) после cut — отдельный deploy.
+Prod: [selenoid.qa.guru](https://github.com/qa-guru/selenoid.qa.guru) после cut — отдельный deploy.
 
 ---
 
