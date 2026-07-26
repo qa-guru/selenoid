@@ -21,14 +21,14 @@ import (
 // Optional name/quota/started/finished come from the sidecar metadata JSON
 // written when the session stops (and finished falls back to newest artifact mtime).
 type sessionArtifacts struct {
-	ID       string    `json:"id"`
-	Video    string    `json:"video,omitempty"`
-	Log      string    `json:"log,omitempty"`
-	HAR      string    `json:"har,omitempty"`
-	Name     string    `json:"name,omitempty"`
-	Quota    string    `json:"quota,omitempty"`
-	Started  time.Time `json:"started,omitempty"`
-	Finished time.Time `json:"finished,omitempty"`
+	ID       string     `json:"id"`
+	Video    string     `json:"video,omitempty"`
+	Log      string     `json:"log,omitempty"`
+	HAR      string     `json:"har,omitempty"`
+	Name     string     `json:"name,omitempty"`
+	Quota    string     `json:"quota,omitempty"`
+	Started  *time.Time `json:"started,omitempty"`
+	Finished *time.Time `json:"finished,omitempty"`
 }
 
 type sessionListResponse struct {
@@ -116,8 +116,9 @@ func collectSessionArtifacts() map[string]*sessionArtifacts {
 			set(a, name)
 			if info, err := f.Info(); err == nil {
 				mt := info.ModTime()
-				if a.Finished.IsZero() || mt.After(a.Finished) {
-					a.Finished = mt
+				if a.Finished == nil || mt.After(*a.Finished) {
+					t := mt
+					a.Finished = &t
 				}
 			}
 		}
@@ -152,9 +153,11 @@ func applySessionMetadata(a *sessionArtifacts) {
 		a.Quota = meta.Quota
 	}
 	if !meta.Started.IsZero() {
-		a.Started = meta.Started
+		t := meta.Started
+		a.Started = &t
 	}
 	if !meta.Finished.IsZero() {
-		a.Finished = meta.Finished
+		t := meta.Finished
+		a.Finished = &t
 	}
 }

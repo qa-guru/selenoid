@@ -49,6 +49,7 @@ func TestSessionsListGroupsArtifactsById(t *testing.T) {
 	sessionsList(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
 
+	body := rr.Body.Bytes()
 	listed := decodeSessions(t, rr)
 	assert.Equal(t, 3, listed.Total)
 	assert.Len(t, listed.Sessions, 3)
@@ -60,10 +61,22 @@ func TestSessionsListGroupsArtifactsById(t *testing.T) {
 	assert.Equal(t, "session-a.mp4", byID["session-a"].Video)
 	assert.Equal(t, "session-a.log", byID["session-a"].Log)
 	assert.Equal(t, "session-a.har", byID["session-a"].HAR)
-	assert.False(t, byID["session-a"].Finished.IsZero(), "finished falls back to artifact mtime")
+	assert.NotNil(t, byID["session-a"].Finished, "finished falls back to artifact mtime")
+	assert.Nil(t, byID["session-a"].Started, "started omitted without metadata sidecar")
 	assert.Equal(t, "session-b.mp4", byID["session-b"].Video)
 	assert.Equal(t, "session-b.log", byID["session-b"].Log)
 	assert.Equal(t, "session-c.har", byID["session-c"].HAR)
+
+	// Zero time.Time must not leak as 0001-01-01 in JSON (UI would show junk).
+	var raw map[string]any
+	assert.NoError(t, json.Unmarshal(body, &raw))
+	sessions, ok := raw["sessions"].([]any)
+	assert.True(t, ok)
+	for _, item := range sessions {
+		m := item.(map[string]any)
+		assert.NotContains(t, m, "started")
+		assert.Contains(t, m, "finished")
+	}
 }
 
 func TestSessionsListEnrichesFromMetadata(t *testing.T) {
@@ -99,8 +112,12 @@ func TestSessionsListEnrichesFromMetadata(t *testing.T) {
 	assert.Equal(t, "sess-meta.mp4", got.Video)
 	assert.Equal(t, "alice", got.Quota)
 	assert.Equal(t, "MyCoolTest.shouldPass", got.Name)
-	assert.True(t, got.Started.Equal(started))
-	assert.True(t, got.Finished.Equal(finished))
+	if assert.NotNil(t, got.Started) {
+		assert.True(t, got.Started.Equal(started))
+	}
+	if assert.NotNil(t, got.Finished) {
+		assert.True(t, got.Finished.Equal(finished))
+	}
 }
 
 func TestSessionsListPaginationAndSort(t *testing.T) {
