@@ -41,4 +41,4 @@ Prod: deploy workflow с `version=v2.2.1`.
 2. `git tag -a v2.2.1 -m "v2.2.1"` → `git push origin main --tags` *(только по явной команде)*.
 3. GitHub Release / CI `release.yml` → assets `dist/selenoid_*`; Docker `qaguru/selenoid:v2.2.1`.
 4. deploy-smoke dispatch → selenoid-tests.
-5. OUT: `warm-pool-orchestrator/`.
+5. OUT: `selenoid-warm-pool/`.

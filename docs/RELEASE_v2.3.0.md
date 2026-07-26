@@ -50,4 +50,4 @@ Docker: `docker pull qaguru/selenoid:v2.3.0`
 2. `git tag -a v2.3.0 -m "v2.3.0"` → `git push origin main --tags` *(только по явной команде)*.
 3. GitHub Release / CI `release.yml` → assets `dist/selenoid_*`; Docker `qaguru/selenoid:v2.3.0`.
 4. deploy-smoke dispatch → selenoid-tests (CI/github profile; **не** prod autotests.cloud).
-5. OUT: `warm-pool-orchestrator/`; prod [selenoid.autotests.cloud](https://selenoid.autotests.cloud) (v2.2.x, обновление отложено).
+5. OUT: `selenoid-warm-pool/`; prod [selenoid.autotests.cloud](https://selenoid.autotests.cloud) (v2.2.x, обновление отложено).
