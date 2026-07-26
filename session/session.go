@@ -23,6 +23,8 @@ type Caps struct {
 	Headless              bool              `json:"headless,omitempty"`
 	Video                 bool              `json:"enableVideo,omitempty"`
 	Log                   bool              `json:"enableLog,omitempty"`
+	HAR                   bool              `json:"enableHAR,omitempty"`
+	HARName               string            `json:"harName,omitempty"`
 	VideoName             string            `json:"videoName,omitempty"`
 	VideoScreenSize       string            `json:"videoScreenSize,omitempty"`
 	VideoFrameRate        uint16            `json:"videoFrameRate,omitempty"`
@@ -153,6 +155,7 @@ func (m *Map) Len() int {
 // Metadata - session metadata saved to file
 type Metadata struct {
 	ID           string    `json:"id"`
+	Quota        string    `json:"quota,omitempty"`
 	Capabilities Caps      `json:"capabilities"`
 	Started      time.Time `json:"started"`
 	Finished     time.Time `json:"finished"`
