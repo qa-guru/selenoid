@@ -53,6 +53,7 @@ var (
 	videoOutputDir           string
 	videoRecorderImage       string
 	logOutputDir             string
+	harOutputDir             string
 	saveAllLogs              bool
 	playwrightAccessKeys     string
 	ggrHost                  *ggr.Host
@@ -93,6 +94,7 @@ func init() {
 	flag.StringVar(&videoOutputDir, "video-output-dir", "video", "Directory to save recorded video to")
 	flag.StringVar(&videoRecorderImage, "video-recorder-image", "qaguru/video-recorder:latest", "Image to use as video recorder")
 	flag.StringVar(&logOutputDir, "log-output-dir", "", "Directory to save session log to")
+	flag.StringVar(&harOutputDir, "har-output-dir", "", "Directory to save session HAR (HTTP Archive) files to")
 	flag.BoolVar(&saveAllLogs, "save-all-logs", false, "Whether to save all logs without considering capabilities")
 	flag.StringVar(&playwrightAccessKeys, "playwright-access-key", "", "Comma-separated required ?accessKey= values for /playwright/ WebSocket (empty = no check)")
 	flag.DurationVar(&gracefulPeriod, "graceful-period", 300*time.Second, "graceful shutdown period in time.Duration format, e.g. 300s or 500ms")
@@ -153,6 +155,17 @@ func init() {
 		if saveAllLogs {
 			log.Printf("[-] [INIT] [Saving all logs]")
 		}
+	}
+	if harOutputDir != "" {
+		harOutputDir, err = filepath.Abs(harOutputDir)
+		if err != nil {
+			log.Fatalf("[-] [INIT] [Invalid HAR output dir %s: %v]", harOutputDir, err)
+		}
+		err = os.MkdirAll(harOutputDir, 0o755)
+		if err != nil {
+			log.Fatalf("[-] [INIT] [Failed to create HAR output dir %s: %v]", harOutputDir, err)
+		}
+		log.Printf("[-] [INIT] [HAR Dir: %s]", harOutputDir)
 	}
 
 	upload.Init()
@@ -354,11 +367,13 @@ func deleteFileIfExists(requestId uint64, w http.ResponseWriter, r *http.Request
 }
 
 var paths = struct {
-	Video, VNC, Logs, Devtools, Download, Clipboard, File, Ping, Status, Error, WdHub, Welcome, Playwright string
+	Video, VNC, Logs, Har, Sessions, Devtools, Download, Clipboard, File, Ping, Status, Error, WdHub, Welcome, Playwright string
 }{
 	Video:      "/video/",
 	VNC:        "/vnc/",
 	Logs:       "/logs/",
+	Har:        "/har/",
+	Sessions:   "/sessions/",
 	Devtools:   "/devtools/",
 	Download:   "/download/",
 	Clipboard:  "/clipboard/",
@@ -392,6 +407,8 @@ func handler() http.Handler {
 	root.Handle(paths.VNC, websocket.Handler(vnc))
 	root.HandleFunc(paths.Logs, logs)
 	root.HandleFunc(paths.Video, video)
+	root.HandleFunc(paths.Har, har)
+	root.HandleFunc(paths.Sessions, sessionsList)
 	root.HandleFunc(paths.Download, reverseProxy(func(sess *session.Session) string { return sess.HostPort.Fileserver }, "DOWNLOADING_FILE"))
 	root.HandleFunc(paths.Clipboard, reverseProxy(func(sess *session.Session) string { return sess.HostPort.Clipboard }, "CLIPBOARD"))
 	root.HandleFunc(paths.Devtools, reverseProxy(func(sess *session.Session) string { return sess.HostPort.Devtools }, "DEVTOOLS"))

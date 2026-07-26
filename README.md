@@ -205,6 +205,8 @@ ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1-min
 
 Записи с `enableVideo=true` сохраняются в каталог `video/` (или `http://127.0.0.1:4444/video/`).
 
+Сессии с `enableHAR=true` (WebDriver Chrome/Edge, при `-har-output-dir`) — hub пишет сетевой архив через CDP в каталог `har/`, скачивается рядом с video/logs: `GET http://127.0.0.1:4444/har/<session-id>.har` (list `?json`, `DELETE` — как у video). Это hub-артефакт для ручных сессий; в автотестах — один writer на сессию (client CDP→Allure или Playwright `recordHar`), не дублировать. Подробнее — [docs/har.adoc](docs/har.adoc).
+
 ## Переменные окружения (process hub)
 
 | Переменная | Описание |

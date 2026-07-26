@@ -111,6 +111,35 @@ logName: "my-cool-log.log"
 
 WARNING: It is important to add `log` file extension.
 
+=== Saving Session HAR: enableHAR, harName
+
+NOTE: This feature requires some preparation. Please refer to <<Saving Session HAR (Network Archive)>> section for more details.
+
+To record a network archive (HAR) for a session, add:
+
+.Type: boolean
+----
+enableHAR: true
+----
+
+The hub captures the browser network activity over CDP and writes a HAR file at
+session close. This works for Chromium-based WebDriver sessions (Chrome / Edge)
+in Docker mode and requires the `-har-output-dir` flag to be set.
+
+By default saved HAR files are named `<session-id>.har` where `<session-id>` is a
+unique identifier of the Selenium session. To provide a custom file name specify:
+
+.Type: string
+----
+harName: "my-cool-session.har"
+----
+
+WARNING: It is important to add the `har` file extension.
+
+TIP: This is a hub artifact for manual/debugging sessions. For automated tests
+prefer the client-side HAR recorder (WebDriver CDP → Allure, or Playwright
+`recordHar`) and keep a single HAR writer per session.
+
 === Custom Test Name: name
 
 For debugging purposes it is often useful to give a distinct name to every test case.

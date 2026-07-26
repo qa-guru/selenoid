@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/aerokube/selenoid/config"
+	harpkg "github.com/aerokube/selenoid/har"
 	"github.com/aerokube/selenoid/info"
 
 	"github.com/aerokube/selenoid/event"
@@ -147,7 +148,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 	var starter service.Starter
 	var ok bool
 	var sessionTimeout time.Duration
-	var finalVideoName, finalLogName string
+	var finalVideoName, finalLogName, finalHarName string
 	for _, fmc := range firstMatchCaps {
 		caps = browser.Caps
 		_ = mergo.Merge(&caps, *fmc)
@@ -183,6 +184,9 @@ func create(w http.ResponseWriter, r *http.Request) {
 		if logOutputDir != "" && (saveAllLogs || caps.Log) {
 			caps.LogName = getTemporaryFileName(logOutputDir, logFileExtension)
 		}
+		// HAR is captured in-hub over CDP and written on session close, so no
+		// temporary file / rename dance is needed — only the final name matters.
+		finalHarName = caps.HARName
 		starter, ok = manager.Find(caps, requestId)
 		if ok {
 			break
@@ -325,6 +329,10 @@ func create(w http.ResponseWriter, r *http.Request) {
 			request{r}.session(s.ID).Delete(requestId)
 		}),
 		Started: time.Now()}
+	var harRecorder *harpkg.Session
+	if harCaptureEnabled(caps, devtoolsWsHostPort(startedService.HostPort.Devtools)) {
+		harRecorder = startHarCapture(requestId, preprocessSessionId(s.ID), devtoolsWsHostPort(startedService.HostPort.Devtools))
+	}
 	cancelAndRenameFiles := func() {
 		cancel()
 		sessionId := preprocessSessionId(s.ID)
@@ -372,6 +380,25 @@ func create(w http.ResponseWriter, r *http.Request) {
 					Type:  "log",
 				}
 				event.FileCreated(createdFile)
+			}
+		}
+		if harRecorder != nil {
+			rec := harRecorder.Stop()
+			if finalHarName == "" {
+				finalHarName = sessionId + harFileExtension
+				e.Session.Caps.HARName = finalHarName
+			}
+			harPath := filepath.Join(harOutputDir, finalHarName)
+			if err := rec.WriteFile(harPath, caps.TestName); err != nil {
+				log.Printf("[%d] [HAR_ERROR] [%s]", requestId, fmt.Sprintf("Failed to write HAR %s: %v", harPath, err))
+			} else {
+				createdFile := event.CreatedFile{
+					Event: e,
+					Name:  harPath,
+					Type:  "har",
+				}
+				event.FileCreated(createdFile)
+				log.Printf("[%d] [HAR_SAVED] [%s] [%s] [%d entries]", requestId, sessionId, finalHarName, rec.EntryCount())
 			}
 		}
 		event.SessionStopped(event.StoppedSession{Event: e})

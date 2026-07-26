@@ -11,9 +11,11 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aerokube/selenoid/event"
+	harpkg "github.com/aerokube/selenoid/har"
 	"github.com/aerokube/selenoid/info"
 	"github.com/aerokube/selenoid/session"
 	"github.com/google/uuid"
@@ -103,6 +105,18 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 		sessionId = ggrHost.Sum() + sessionId
 	}
 
+	// Manual Playwright sessions may opt into a hub-side HAR (enableHAR query
+	// param). Capture reuses the same CDP path as WebDriver — best-effort, only
+	// when a DevTools endpoint is exposed for the container. Automated Playwright
+	// tests should prefer the client-side recordHar option (one writer/session).
+	// The recorder is stashed in a registry so whichever delete path fires
+	// (client WS close, idle timeout or an explicit hub DELETE) writes the HAR.
+	if harCaptureEnabled(caps, devtoolsWsHostPort(startedService.HostPort.Devtools)) {
+		if rec := startHarCapture(requestId, sessionId, devtoolsWsHostPort(startedService.HostPort.Devtools)); rec != nil {
+			putPlaywrightHar(sessionId, rec, caps.HARName)
+		}
+	}
+
 	sess := &session.Session{
 		Quota:     user,
 		Caps:      caps,
@@ -189,7 +203,63 @@ func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName 
 			})
 		}
 	}
+	if h := takePlaywrightHar(sessionId); h != nil {
+		rec := h.recorder.Stop()
+		finalHarName := h.name
+		if finalHarName == "" {
+			finalHarName = sessionId + harFileExtension
+		}
+		harPath := filepath.Join(harOutputDir, finalHarName)
+		if err := rec.WriteFile(harPath, sess.Caps.TestName); err != nil {
+			log.Printf("[%d] [HAR_ERROR] [%s]", requestId, fmt.Sprintf("Failed to write HAR %s: %v", harPath, err))
+		} else {
+			event.FileCreated(event.CreatedFile{
+				Event: event.Event{
+					RequestId: requestId,
+					SessionId: sessionId,
+					Session:   sess,
+				},
+				Name: harPath,
+				Type: "har",
+			})
+			log.Printf("[%d] [HAR_SAVED] [%s] [%s] [%d entries]", requestId, sessionId, finalHarName, rec.EntryCount())
+		}
+	}
 	log.Printf("[%d] [PLAYWRIGHT_SESSION_DELETED] [%s]", requestId, sessionId)
+}
+
+// playwrightHar holds a live hub HAR recorder for a manual Playwright session
+// plus the requested output name. It is kept in a package-level registry so any
+// session-teardown path (client WS close, idle timeout or an explicit hub
+// DELETE via the /wd/hub proxy) can stop the recorder and write the HAR exactly
+// once — the recorder cannot live on the closure alone because the hub-DELETE
+// path removes the session before the connect handler's deferred cleanup runs.
+type playwrightHar struct {
+	recorder *harpkg.Session
+	name     string
+}
+
+var (
+	playwrightHarMu   sync.Mutex
+	playwrightHarByID = map[string]*playwrightHar{}
+)
+
+// putPlaywrightHar registers a recorder for a session id.
+func putPlaywrightHar(sessionId string, recorder *harpkg.Session, name string) {
+	playwrightHarMu.Lock()
+	defer playwrightHarMu.Unlock()
+	playwrightHarByID[sessionId] = &playwrightHar{recorder: recorder, name: name}
+}
+
+// takePlaywrightHar removes and returns the recorder for a session id, or nil if
+// none was registered. It is safe to call from every teardown path; only the
+// first caller for a given id gets the recorder.
+func takePlaywrightHar(sessionId string) *playwrightHar {
+	playwrightHarMu.Lock()
+	defer playwrightHarMu.Unlock()
+	h := playwrightHarByID[sessionId]
+	delete(playwrightHarByID, sessionId)
+	return h
 }
 
 func playwrightAccessKeyOK(r *http.Request) bool {
@@ -264,6 +334,12 @@ func capsFromQuery(values url.Values, caps *session.Caps) {
 	}
 	if _, ok := values["enableLog"]; ok {
 		caps.Log = queryBool(values, "enableLog")
+	}
+	if _, ok := values["enableHAR"]; ok {
+		caps.HAR = queryBool(values, "enableHAR")
+	}
+	if harName := values.Get("harName"); harName != "" {
+		caps.HARName = harName
 	}
 	if tz := values.Get("timeZone"); tz != "" {
 		caps.TimeZone = tz

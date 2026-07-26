@@ -1,0 +1,154 @@
+== Saving Session HAR (Network Archive)
+
+[NOTE]
+====
+. This feature only works when browsers are run in containers (Docker mode).
+. Capture is performed **hub-side over the Chrome DevTools Protocol (CDP)**, so it works for Chromium-based WebDriver sessions (Chrome / Edge). See the capture path note below.
+. An additional `enableHAR` capability should be added to tests. See <<Special Capabilities>> section for more details.
+. This hub artifact is meant for **manual / debugging sessions** — a `.har` you can download next to `/video` and `/logs`. For automated tests prefer the client-side recorder (Selenide/WebDriver CDP or Playwright `recordHar`) which writes the HAR into your Allure report. Do not enable both for the same session — keep **one writer per session** to avoid duplicate archives.
+====
+
+Selenoid can record all network requests a browser makes during a session and
+save them as a https://w3c.github.io/web-performance/specs/HAR/Overview.html[HAR 1.2]
+file. Files are saved as `<session-id>.har` by default, or under a custom name
+via the `harName` capability.
+
+=== Capture path (CDP, not ffmpeg)
+
+Unlike video (captured with ffmpeg, which cannot see network traffic), HAR is
+built by the hub connecting to the browser container **DevTools endpoint** — the
+same target exposed via the `se:cdp` capability and the
+`/devtools/<session-id>/page` proxy (browser container port `7070`). The hub
+enables the CDP `Network` domain, streams `requestWillBeSent` /
+`responseReceived` / `loadingFinished` / `loadingFailed` events and serializes
+them to a HAR on session close.
+
+This is the deliberately chosen path:
+
+* **CDP in the browser session** — preferred. No extra container, sees real
+  network activity, reuses the existing Selenoid DevTools contract.
+* **MITM proxy sidecar** — fallback only, *not* implemented here. Consider it
+  only if the CDP endpoint is unavailable on a given deployment.
+
+[IMPORTANT]
+====
+Hub-side CDP HAR requires the browser image to expose a CDP/DevTools endpoint on
+container port `7070` (the upstream Aerokube `se:cdp` / `/devtools/` contract).
+The qaguru **warm** Chrome and Edge (WebDriver) images ship this endpoint: a
+small static proxy on `7070` bridges the hub to chromedriver's random
+remote-debugging port, so hub-HAR, `se:cdp` and `/devtools/<id>/` work out of
+the box. The `-min` (headless CI) and Firefox images do **not** expose `7070`
+by design. Playwright browser images (`qaguru/playwright-*`) currently also
+lack the `7070` listener — manual `enableHAR` on a Playwright WS session is
+accepted and shown in the UI, but capture fails with `HAR_CAPTURE_FAILED`
+until those images grow the same DevTools proxy. Capture is **best-effort**:
+if the hub cannot reach the DevTools endpoint it logs `HAR_CAPTURE_FAILED` and
+simply produces no file — the session is unaffected.
+====
+
+=== Enabling HAR
+
+Add the `-har-output-dir </path/to/some/dir>` flag to Selenoid:
+
+    $ ./selenoid -har-output-dir /path/to/some/dir
+
+When running Selenoid **in a Docker container** mount the directory from the host:
+
+.Example Docker Command
+----
+$ docker run -d
+--name selenoid                                 \
+-p 4444:4444                                    \
+-v /var/run/docker.sock:/var/run/docker.sock    \
+-v /your/directory/config/:/etc/selenoid/:ro    \
+-v /your/directory/har/:/opt/selenoid/har/      \
+qaguru/selenoid:latest -har-output-dir /opt/selenoid/har
+----
+
+Then request the `enableHAR` capability per session (see <<Special Capabilities>>).
+When `enableHAR` is not set — or `-har-output-dir` is not configured — no `.har`
+file is written.
+
+=== Downloading HAR Files from Selenoid
+
+You can access saved HAR files using the following URL:
+
+.Direct Link to HAR File
+----
+http://selenoid-host.example.com:4444/har/<filename>.har
+----
+
+NOTE: Direct link will work only after the session has finished — the hub writes
+the file (named `<session-id>.har` by default) at session close.
+
+To see available files use the JSON listing (paginated, default page size 10):
+
+.Listing HAR Files (JSON, page 1)
+----
+http://selenoid-host.example.com:4444/har/?json
+----
+
+.Response
+----
+{"videos":["<session-id>.har"],"total":42,"limit":10,"offset":0}
+----
+
+Optional query params: `limit` (1..100, default 10), `offset` (default 0), `q`
+(substring filter on file name). HTML directory listing (without `?json`) works
+for manual browsing at `http://selenoid-host.example.com:4444/har/`.
+
+==== Session-centric listing (`/sessions/`)
+
+To browse artifacts grouped by session rather than by type, use the
+`/sessions/?json` endpoint. It scans the video, log and HAR directories and
+groups files that share a base name (the session id for default naming):
+
+.Listing sessions (JSON, page 1)
+----
+http://selenoid-host.example.com:4444/sessions/?json
+----
+
+.Response
+----
+{"sessions":[{"id":"<session-id>","video":"<session-id>.mp4","log":"<session-id>.log","har":"<session-id>.har"}],"total":42,"limit":10,"offset":0}
+----
+
+Each field is present only when the corresponding artifact exists; the same
+`limit`/`offset`/`q` params apply. This endpoint is read-only — delete a whole
+session by issuing the per-artifact `DELETE /video/<f>`, `DELETE /logs/<f>` and
+`DELETE /har/<f>` requests. The Selenoid UI **Sessions** page is built on top of
+this endpoint. Grouping only lines up when the artifacts share a base name;
+custom `videoName`/`harName` values that differ from the session id surface as
+separate entries.
+
+=== Deleting HAR Files
+
+As with video and log files, cleanup is up to you. Either schedule a job:
+
+.Shell Command to Remove Old HAR Files
+----
+$ find /path/to/har/dir -mindepth 1 -maxdepth 1 -mmin +120 -name '*.har' | xargs rm -rf
+----
+
+or send an HTTP `DELETE` (e.g. from passed test cases):
+
+.Deleting HAR File via HTTP API
+----
+$ curl -X DELETE http://selenoid-host.example.com:4444/har/<filename>.har
+----
+
+=== Playwright sessions
+
+Manual Playwright sessions accept `enableHAR` (and `harName`) as WebSocket query
+parameters, e.g. `.../playwright/playwright-chromium/1.61.1?enableHAR=true`
+(Selenoid UI Capabilities toggle wires the same query). The value is recorded in
+session metadata. Hub-side HAR is produced using the same CDP mechanism **when a
+DevTools endpoint is available** on container port `7070`. Today that listener
+exists on warm WebDriver Chrome/Edge only — see the capture-path note above.
+For Playwright **autotests**, prefer the built-in `recordHar` context option —
+it is the single writer for that session; do not also enable hub HAR for the
+same run.
+
+Known gaps vs client `recordHar` baseline: hub CDP HAR omits `content.text`
+(size/mimeType only), and Playwright hub-HAR is blocked until Playwright images
+expose `7070`.

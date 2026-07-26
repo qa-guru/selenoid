@@ -28,6 +28,7 @@ include::faq.adoc[leveloffset=+1]
 == Main Features
 include::video.adoc[leveloffset=+1]
 include::logs.adoc[leveloffset=+1]
+include::har.adoc[leveloffset=+1]
 include::file-upload.adoc[leveloffset=+1]
 include::file-download.adoc[leveloffset=+1]
 include::clipboard.adoc[leveloffset=+1]

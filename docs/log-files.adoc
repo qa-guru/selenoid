@@ -86,6 +86,7 @@ The following statuses are available:
 | TERMINATED_PROCESS | Driver process was successfully stopped
 | UPLOADING_FILE | An issue occurred while uploading file
 | UPLOADED_FILE | File successfully uploaded
+| SESSIONS_LISTING | Received a request to list finished sessions grouped by artifact
 | VIDEO_LISTING | Received a request to list all videos
 | VIDEO_ERROR | An error occurred when post-processing recorded video
 | VNC_CLIENT_DISCONNECTED | User VNC client disconnected

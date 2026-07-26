@@ -21,6 +21,8 @@ The following flags are supported by `selenoid` command:
     File upload support
 -graceful-period duration
     graceful shutdown period in time.Duration format, e.g. 300s or 500ms (default 5m0s)
+-har-output-dir string
+    Directory to save session HAR (HTTP Archive) files to
 -limit int
     Simultaneous container runs (default 5)
 -listen string

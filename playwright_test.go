@@ -29,6 +29,40 @@ func TestParsePlaywrightRequest(t *testing.T) {
 	})
 }
 
+func TestParsePlaywrightRequestHar(t *testing.T) {
+	t.Run("Parse playwright request enableHAR and harName", func(t *testing.T) {
+		u, err := url.Parse("ws://localhost:4444/playwright/playwright-chromium/1.61.1?enableHAR=true&harName=manual.har")
+		assert.NoError(t, err)
+
+		_, _, caps, err := parsePlaywrightRequest(u)
+		assert.NoError(t, err)
+		assert.True(t, caps.HAR)
+		assert.Equal(t, "manual.har", caps.HARName)
+	})
+
+	t.Run("enableHAR absent leaves HAR off", func(t *testing.T) {
+		u, err := url.Parse("ws://localhost:4444/playwright/playwright-chromium/1.61.1?name=smoke")
+		assert.NoError(t, err)
+
+		_, _, caps, err := parsePlaywrightRequest(u)
+		assert.NoError(t, err)
+		assert.False(t, caps.HAR)
+		assert.Empty(t, caps.HARName)
+	})
+}
+
+func TestPlaywrightHarRegistryTakeOnce(t *testing.T) {
+	id := "har-registry-session"
+	putPlaywrightHar(id, nil, "custom.har")
+
+	h := takePlaywrightHar(id)
+	assert.NotNil(t, h)
+	assert.Equal(t, "custom.har", h.name)
+
+	// A second take for the same id yields nil so only one teardown path writes.
+	assert.Nil(t, takePlaywrightHar(id))
+}
+
 func TestParsePlaywrightRequestLabels(t *testing.T) {
 	t.Run("Parse playwright request labels", func(t *testing.T) {
 		u, err := url.Parse("ws://localhost:4444/playwright/playwright-chromium/1.61.1?name=Manual+session&labels.manual=true")
