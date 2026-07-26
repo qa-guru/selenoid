@@ -55,7 +55,7 @@ var (
 	logOutputDir             string
 	harOutputDir             string
 	saveAllLogs              bool
-	playwrightAccessKeys     string
+	accessKeys               string
 	ggrHost                  *ggr.Host
 	conf                     *config.Config
 	queue                    *protect.Queue
@@ -96,7 +96,7 @@ func init() {
 	flag.StringVar(&logOutputDir, "log-output-dir", "", "Directory to save session log to")
 	flag.StringVar(&harOutputDir, "har-output-dir", "", "Directory to save session HAR (HTTP Archive) files to")
 	flag.BoolVar(&saveAllLogs, "save-all-logs", false, "Whether to save all logs without considering capabilities")
-	flag.StringVar(&playwrightAccessKeys, "playwright-access-key", "", "Comma-separated required ?accessKey= values for /playwright/ WebSocket (empty = no check)")
+	flag.StringVar(&accessKeys, "access-key", "", "Comma-separated required ?accessKey= values for /playwright/ WebSocket (empty = no check)")
 	flag.DurationVar(&gracefulPeriod, "graceful-period", 300*time.Second, "graceful shutdown period in time.Duration format, e.g. 300s or 500ms")
 	flag.Parse()
 

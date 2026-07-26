@@ -171,11 +171,11 @@ func TestPlaywrightConnectProxiesWebSocket(t *testing.T) {
 
 const playwrightPublicAccessKeyDemo = "qa_engineer:aAb_-4gs53FD"
 
-func TestPlaywrightAccessKeyRequired(t *testing.T) {
+func TestAccessKeyRequired(t *testing.T) {
 	t.Run("Rejects websocket without accessKey", func(t *testing.T) {
-		prev := playwrightAccessKeys
-		playwrightAccessKeys = "user1:1234," + playwrightPublicAccessKeyDemo
-		defer func() { playwrightAccessKeys = prev }()
+		prev := accessKeys
+		accessKeys = "user1:1234," + playwrightPublicAccessKeyDemo
+		defer func() { accessKeys = prev }()
 
 		manager = &HTTPTest{Handler: Selenium()}
 		wsURL := strings.Replace(srv.URL, "http://", "ws://", 1) + "/playwright/playwright-chromium/1.61.1?name=smoke"
@@ -190,9 +190,9 @@ func TestPlaywrightAccessKeyRequired(t *testing.T) {
 	})
 
 	t.Run("Accepts websocket with student accessKey", func(t *testing.T) {
-		prev := playwrightAccessKeys
-		playwrightAccessKeys = "user1:1234," + playwrightPublicAccessKeyDemo
-		defer func() { playwrightAccessKeys = prev }()
+		prev := accessKeys
+		accessKeys = "user1:1234," + playwrightPublicAccessKeyDemo
+		defer func() { accessKeys = prev }()
 
 		manager = &HTTPTest{Handler: Selenium()}
 		wsURL := strings.Replace(srv.URL, "http://", "ws://", 1) +
@@ -203,9 +203,9 @@ func TestPlaywrightAccessKeyRequired(t *testing.T) {
 	})
 
 	t.Run("Accepts websocket with public accessKey alias", func(t *testing.T) {
-		prev := playwrightAccessKeys
-		playwrightAccessKeys = "user1:1234, " + playwrightPublicAccessKeyDemo
-		defer func() { playwrightAccessKeys = prev }()
+		prev := accessKeys
+		accessKeys = "user1:1234, " + playwrightPublicAccessKeyDemo
+		defer func() { accessKeys = prev }()
 
 		manager = &HTTPTest{Handler: Selenium()}
 		wsURL := strings.Replace(srv.URL, "http://", "ws://", 1) +

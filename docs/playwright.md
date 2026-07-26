@@ -16,7 +16,7 @@ ws://localhost:4444/playwright/playwright-chromium/1.61.1?name=smoke&enableVNC=t
 wss://selenoid.example.com/playwright/playwright-webkit/1.61.1?accessKey=qa_engineer%3AaAb_-4gs53FD&enableVNC=true&enableVideo=true
 ```
 
-На публичном стенде (и при `-playwright-access-key`) добавьте `accessKey` в query — браузерный WebSocket не умеет Basic Auth. Несколько ключей задаются через запятую, например `-playwright-access-key=user1:1234,qa_engineer:aAb_-4gs53FD`.
+На публичном стенде (и при `-access-key`) добавьте `accessKey` в query — браузерный WebSocket не умеет Basic Auth. Несколько ключей задаются через запятую, например `-access-key=user1:1234,qa_engineer:aAb_-4gs53FD`.
 
 За reverse proxy проксируйте `/playwright/` через UI на hub (WebSocket upgrade).
 
@@ -81,7 +81,7 @@ Playwright-браузеры используют `"protocol": "playwright"` и �
 
 | Параметр | Описание |
 |----------|----------|
-| `accessKey` | Если hub запущен с `-playwright-access-key`, обязателен (на демо-стенде: `qa_engineer:aAb_-4gs53FD` для public, `user1:1234` для учащихся). Алиас: `access_key` |
+| `accessKey` | Если hub запущен с `-access-key`, обязателен (на демо-стенде: `qa_engineer:aAb_-4gs53FD` для public, `user1:1234` для учащихся). Алиас: `access_key` |
 | `name` | Имя сессии (метка) |
 | `enableVNC` | Живой экран браузера через VNC (нужен образ `qaguru/playwright-*`) |
 | `headless` | Запуск с UI (`false`) для VNC; по умолчанию `true`. Ручные сессии через UI передают `headless=false` автоматически |

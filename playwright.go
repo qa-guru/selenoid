@@ -31,7 +31,7 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !playwrightAccessKeyOK(r) {
+	if !accessKeyOK(r) {
 		log.Printf("[%d] [PLAYWRIGHT_UNAUTHORIZED] [%s] [%s]", requestId, user, remote)
 		http.Error(w, "Playwright accessKey required", http.StatusUnauthorized)
 		return
@@ -262,15 +262,15 @@ func takePlaywrightHar(sessionId string) *playwrightHar {
 	return h
 }
 
-func playwrightAccessKeyOK(r *http.Request) bool {
-	if strings.TrimSpace(playwrightAccessKeys) == "" {
+func accessKeyOK(r *http.Request) bool {
+	if strings.TrimSpace(accessKeys) == "" {
 		return true
 	}
 	provided := r.URL.Query().Get("accessKey")
 	if provided == "" {
 		provided = r.URL.Query().Get("access_key")
 	}
-	for _, key := range strings.Split(playwrightAccessKeys, ",") {
+	for _, key := range strings.Split(accessKeys, ",") {
 		key = strings.TrimSpace(key)
 		if key == "" {
 			continue
