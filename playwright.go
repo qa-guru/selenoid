@@ -335,6 +335,9 @@ func capsFromQuery(values url.Values, caps *session.Caps) {
 	if _, ok := values["enableLog"]; ok {
 		caps.Log = queryBool(values, "enableLog")
 	}
+	if logName := values.Get("logName"); logName != "" {
+		caps.LogName = logName
+	}
 	if _, ok := values["enableHAR"]; ok {
 		caps.HAR = queryBool(values, "enableHAR")
 	}

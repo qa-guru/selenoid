@@ -75,6 +75,21 @@ func TestParsePlaywrightRequestLabels(t *testing.T) {
 	})
 }
 
+func TestParsePlaywrightRequestLogName(t *testing.T) {
+	t.Run("Parse playwright request enableLog and logName", func(t *testing.T) {
+		u, err := url.Parse("ws://localhost:4444/playwright/playwright-chromium/1.61.1?enableLog=true&logName=manual.log&screenResolution=1280x1024x24&timeZone=Europe%2FMoscow&env.FOO=bar")
+		assert.NoError(t, err)
+
+		_, _, caps, err := parsePlaywrightRequest(u)
+		assert.NoError(t, err)
+		assert.True(t, caps.Log)
+		assert.Equal(t, "manual.log", caps.LogName)
+		assert.Equal(t, "1280x1024x24", caps.ScreenResolution)
+		assert.Equal(t, "Europe/Moscow", caps.TimeZone)
+		assert.Equal(t, []string{"FOO=bar"}, caps.Env)
+	})
+}
+
 func TestPlaywrightSessionDeletedViaHub(t *testing.T) {
 	t.Run("Playwright session deleted via hub", func(t *testing.T) {
 		canceled := false
