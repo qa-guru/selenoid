@@ -347,6 +347,13 @@ func capsFromQuery(values url.Values, caps *session.Caps) {
 	if tz := values.Get("timeZone"); tz != "" {
 		caps.TimeZone = tz
 	}
+	// SOCKS/HTTP proxy for launchServer / headed VNC (image reads PW_PROXY).
+	// Accept host:port (→ socks5://) or a full URL with scheme.
+	if proxy := values.Get("socksProxy"); proxy != "" {
+		if u := normalizePlaywrightProxy(proxy); u != "" {
+			caps.Env = append(caps.Env, "PW_PROXY="+u)
+		}
+	}
 	for key, vals := range values {
 		if strings.HasPrefix(key, "env.") && len(vals) > 0 {
 			caps.Env = append(caps.Env, fmt.Sprintf("%s=%s", strings.TrimPrefix(key, "env."), vals[0]))
@@ -358,6 +365,17 @@ func capsFromQuery(values url.Values, caps *session.Caps) {
 			caps.Labels[strings.TrimPrefix(key, "labels.")] = vals[0]
 		}
 	}
+}
+
+func normalizePlaywrightProxy(raw string) string {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return ""
+	}
+	if strings.Contains(s, "://") {
+		return s
+	}
+	return "socks5://" + s
 }
 
 func queryBool(values url.Values, key string) bool {

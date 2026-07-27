@@ -90,6 +90,26 @@ func TestParsePlaywrightRequestLogName(t *testing.T) {
 	})
 }
 
+func TestParsePlaywrightRequestSocksProxy(t *testing.T) {
+	t.Run("host:port becomes PW_PROXY socks5 URL", func(t *testing.T) {
+		u, err := url.Parse("ws://localhost:4444/playwright/playwright-chromium/1.61.1?socksProxy=proxy.qaguru.school%3A7777")
+		assert.NoError(t, err)
+
+		_, _, caps, err := parsePlaywrightRequest(u)
+		assert.NoError(t, err)
+		assert.Contains(t, caps.Env, "PW_PROXY=socks5://proxy.qaguru.school:7777")
+	})
+
+	t.Run("full proxy URL is preserved", func(t *testing.T) {
+		u, err := url.Parse("ws://localhost:4444/playwright/playwright-chromium/1.61.1?socksProxy=http%3A%2F%2Fproxy.example%3A3128")
+		assert.NoError(t, err)
+
+		_, _, caps, err := parsePlaywrightRequest(u)
+		assert.NoError(t, err)
+		assert.Contains(t, caps.Env, "PW_PROXY=http://proxy.example:3128")
+	})
+}
+
 func TestPlaywrightSessionDeletedViaHub(t *testing.T) {
 	t.Run("Playwright session deleted via hub", func(t *testing.T) {
 		canceled := false
