@@ -88,7 +88,7 @@ Playwright-браузеры используют `"protocol": "playwright"` и �
 | `enableVideo` | Запись сессии в H.264 (sidecar `qaguru/video-recorder`) |
 | `videoName` | Имя видеофайла (например `smoke.mp4`); по умолчанию `<session-id>.mp4` |
 | `enableLog` | Сохранять логи контейнера |
-| `enableHAR` | Hub-side HAR ручной сессии через CDP → скачать `/har/<session-id>.har` (best-effort: только если у образа открыт DevTools-эндпоинт на порту `7070`) |
+| `enableHAR` | Hub-side HAR ручной сессии через CDP → скачать `/har/<session-id>.har` (Chromium-family images с DevTools на `7070`; firefox/webkit/`-min` — нет) |
 | `harName` | Имя HAR-файла (например `manual.har`); по умолчанию `<session-id>.har` |
 | `screenResolution` | Например `1920x1080x24` |
 | `sessionTimeout` | Например `5m` |

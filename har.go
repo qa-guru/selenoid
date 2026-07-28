@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	harpkg "github.com/aerokube/selenoid/har"
 	"github.com/aerokube/selenoid/info"
@@ -64,6 +65,27 @@ func startHarCapture(requestId uint64, sessionId, devtoolsHostPort string) *harp
 	}
 	log.Printf("[%d] [HAR_CAPTURE_STARTED] [%s] [%s]", requestId, sessionId, wsURL)
 	return rec
+}
+
+// startHarCapturePlaywright retries page-level CDP attach. Playwright
+// launchServer has no page until the client calls newPage(); the hub races a
+// short retry loop so Network.enable runs on that page. Clients should create
+// the page before navigating (or pause briefly after newPage) so the first
+// navigation is captured — same one-writer CDP path as WebDriver /page.
+func startHarCapturePlaywright(requestId uint64, sessionId, devtoolsHostPort string, attempts int, delay time.Duration) *harpkg.Session {
+	wsURL := "ws://" + devtoolsHostPort + "/page"
+	var lastErr error
+	for i := 0; i < attempts; i++ {
+		rec, err := harpkg.Start(context.Background(), wsURL)
+		if err == nil {
+			log.Printf("[%d] [HAR_CAPTURE_STARTED] [%s] [%s]", requestId, sessionId, wsURL)
+			return rec
+		}
+		lastErr = err
+		time.Sleep(delay)
+	}
+	log.Printf("[%d] [HAR_CAPTURE_FAILED] [%s] [%v]", requestId, sessionId, lastErr)
+	return nil
 }
 
 // devtoolsWsHostPort normalizes a HostPort.Devtools value (host:port) for use

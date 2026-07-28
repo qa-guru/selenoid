@@ -34,14 +34,12 @@ This is the deliberately chosen path:
 ====
 Hub-side CDP HAR requires the browser image to expose a CDP/DevTools endpoint on
 container port `7070` (the upstream Aerokube `se:cdp` / `/devtools/` contract).
-The qaguru **warm** Chrome and Edge (WebDriver) images ship this endpoint: a
-small static proxy on `7070` bridges the hub to chromedriver's random
-remote-debugging port, so hub-HAR, `se:cdp` and `/devtools/<id>/` work out of
-the box. The `-min` (headless CI) and Firefox images do **not** expose `7070`
-by design. Playwright browser images (`qaguru/playwright-*`) currently also
-lack the `7070` listener — manual `enableHAR` on a Playwright WS session is
-accepted and shown in the UI, but capture fails with `HAR_CAPTURE_FAILED`
-until those images grow the same DevTools proxy. Capture is **best-effort**:
+The qaguru **warm** Chrome and Edge (WebDriver) images and the Chromium-family
+Playwright images (`playwright-chromium`, `playwright-chrome`,
+`playwright-msedge`) ship this endpoint: a small static proxy on `7070` bridges
+the hub to the browser's random remote-debugging port, so hub-HAR, `se:cdp` and
+`/devtools/<id>/` work out of the box. The `-min` (headless CI), Firefox and
+WebKit images do **not** expose `7070` by design. Capture is **best-effort**:
 if the hub cannot reach the DevTools endpoint it logs `HAR_CAPTURE_FAILED` and
 simply produces no file — the session is unaffected.
 ====
@@ -142,13 +140,15 @@ $ curl -X DELETE http://selenoid-host.example.com:4444/har/<filename>.har
 Manual Playwright sessions accept `enableHAR` (and `harName`) as WebSocket query
 parameters, e.g. `.../playwright/playwright-chromium/1.61.1?enableHAR=true`
 (Selenoid UI Capabilities toggle wires the same query). The value is recorded in
-session metadata. Hub-side HAR is produced using the same CDP mechanism **when a
-DevTools endpoint is available** on container port `7070`. Today that listener
-exists on warm WebDriver Chrome/Edge only — see the capture-path note above.
+session metadata. Hub-side HAR is produced using the same CDP mechanism when the
+image exposes DevTools on container port `7070` (Chromium-family Playwright
+images — see the capture-path note above). The hub retries CDP attach until the
+client creates a page (`launchServer` has no page at startup); create the page
+before navigating (or pause briefly after `newPage`) so `Network.enable` wins
+the race with the first request.
 For Playwright **autotests**, prefer the built-in `recordHar` context option —
 it is the single writer for that session; do not also enable hub HAR for the
 same run.
 
 Known gaps vs client `recordHar` baseline: hub CDP HAR omits `content.text`
-(size/mimeType only), and Playwright hub-HAR is blocked until Playwright images
-expose `7070`.
+(size/mimeType only).

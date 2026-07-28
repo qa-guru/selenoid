@@ -140,7 +140,8 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 
 	servicePort := d.Service.Port
 	pc := map[string]nat.Port{
-		servicePort: portConfig.SeleniumPort,
+		servicePort:    portConfig.SeleniumPort,
+		ports.Devtools: portConfig.DevtoolsPort,
 	}
 	if portConfig.VNCPort != "" {
 		pc[ports.VNC] = portConfig.VNCPort
@@ -205,10 +206,18 @@ func getPlaywrightPortConfig(service *config.Browser, caps session.Caps, env Env
 	if err != nil {
 		return nil, fmt.Errorf("new playwright port: %v", err)
 	}
-	exposedPorts := map[nat.Port]struct{}{serverPort: {}}
+	// Always publish 7070 so hub-HAR / se:cdp / /devtools/<id>/ can reach the
+	// image-side CDP proxy (Chromium-family images). Same contract as WebDriver
+	// getPortConfig — listener absence inside the container is best-effort.
+	devtools, err := nat.NewPort("tcp", ports.Devtools)
+	if err != nil {
+		return nil, fmt.Errorf("new devtools port: %v", err)
+	}
+	exposedPorts := map[nat.Port]struct{}{serverPort: {}, devtools: {}}
 	portBindings := nat.PortMap{}
 	if env.IP != "" || !env.InDocker {
 		portBindings[serverPort] = []nat.PortBinding{{HostIP: "0.0.0.0"}}
+		portBindings[devtools] = []nat.PortBinding{{HostIP: "0.0.0.0"}}
 	}
 
 	var vnc nat.Port
@@ -226,6 +235,7 @@ func getPlaywrightPortConfig(service *config.Browser, caps session.Caps, env Env
 	return &portConfig{
 		SeleniumPort: serverPort,
 		VNCPort:      vnc,
+		DevtoolsPort: devtools,
 		PortBindings: portBindings,
 		ExposedPorts: exposedPorts,
 	}, nil

@@ -151,9 +151,13 @@ func inspectJSON(hostPort string) string {
 		if idx := strings.LastIndex(hostPort, ":"); idx >= 0 {
 			p = hostPort[idx+1:]
 		}
-		binding = fmt.Sprintf(`"3000/tcp":[{"HostIp":"0.0.0.0","HostPort":"%s"}]`, p)
+		// Playwright server + DevTools (7070) — hub-HAR needs the latter mapping.
+		binding = fmt.Sprintf(
+			`"3000/tcp":[{"HostIp":"0.0.0.0","HostPort":"%s"}],"7070/tcp":[{"HostIp":"0.0.0.0","HostPort":"%s"}]`,
+			p, "37070",
+		)
 	} else {
-		binding = `"3000/tcp":[]`
+		binding = `"3000/tcp":[],"7070/tcp":[]`
 	}
 	return `{
 		"Id":"` + mockBrowserContainerID + `",
@@ -219,6 +223,7 @@ func TestPlaywrightDockerStartWithCancel_Success(t *testing.T) {
 	assert.Contains(t, started.Url.Host, "127.0.0.1")
 	assert.Equal(t, mockBrowserContainerID, started.Container.ID)
 	assert.NotEmpty(t, started.HostPort.Playwright)
+	assert.NotEmpty(t, started.HostPort.Devtools)
 
 	mock.mu.Lock()
 	assert.Equal(t, 1, mock.createCalls)

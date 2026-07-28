@@ -111,11 +111,12 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 	// tests should prefer the client-side recordHar option (one writer/session).
 	// The recorder is stashed in a registry so whichever delete path fires
 	// (client WS close, idle timeout or an explicit hub DELETE) writes the HAR.
-	if harCaptureEnabled(caps, devtoolsWsHostPort(startedService.HostPort.Devtools)) {
-		if rec := startHarCapture(requestId, sessionId, devtoolsWsHostPort(startedService.HostPort.Devtools)); rec != nil {
-			putPlaywrightHar(sessionId, rec, caps.HARName)
-		}
-	}
+	//
+	// Playwright launchServer has no page until the client calls newPage(), so
+	// HAR start runs asynchronously with retries (unlike WebDriver, where a page
+	// exists before the hub returns the session).
+	devtoolsHP := devtoolsWsHostPort(startedService.HostPort.Devtools)
+	startPWHar := harCaptureEnabled(caps, devtoolsHP)
 
 	sess := &session.Session{
 		Quota:     user,
@@ -134,6 +135,16 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 	queue.Create()
 	sessionCreated = true
 	log.Printf("[%d] [PLAYWRIGHT_SESSION_CREATED] [%s] [%s] [%s]", requestId, sessionId, browser, version)
+
+	if startPWHar {
+		harName := caps.HARName
+		go func() {
+			// Page CDP appears only after client newPage(); retry until attach.
+			if rec := startHarCapturePlaywright(requestId, sessionId, devtoolsHP, 120, 250*time.Millisecond); rec != nil {
+				putPlaywrightHar(sessionId, rec, harName)
+			}
+		}()
+	}
 
 	backendURL := startedService.Url
 	log.Printf("[%d] [PLAYWRIGHT_CONNECTING] [%s] [%s]", requestId, sessionId, backendURL.String())
