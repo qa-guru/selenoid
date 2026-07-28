@@ -54,16 +54,21 @@ func harCaptureEnabled(caps session.Caps, devtoolsHostPort string) bool {
 
 // startHarCapture opens a CDP HAR recorder against the browser container
 // DevTools page endpoint (ws://<host:7070>/page — the same target exposed by
-// the se:cdp capability and the /devtools/<id>/page proxy). It returns nil on
-// failure so callers can treat capture as best-effort.
-func startHarCapture(requestId uint64, sessionId, devtoolsHostPort string) *harpkg.Session {
+// the se:cdp capability and the /devtools/<id>/page proxy). captureBodies opts
+// into Network.getResponseBody (harContent=bodies). Returns nil on failure so
+// callers can treat capture as best-effort.
+func startHarCapture(requestId uint64, sessionId, devtoolsHostPort string, captureBodies bool) *harpkg.Session {
 	wsURL := "ws://" + devtoolsHostPort + "/page"
-	rec, err := harpkg.Start(context.Background(), wsURL)
+	rec, err := startHarSession(wsURL, captureBodies)
 	if err != nil {
 		log.Printf("[%d] [HAR_CAPTURE_FAILED] [%s] [%v]", requestId, sessionId, err)
 		return nil
 	}
-	log.Printf("[%d] [HAR_CAPTURE_STARTED] [%s] [%s]", requestId, sessionId, wsURL)
+	mode := "meta"
+	if captureBodies {
+		mode = "bodies"
+	}
+	log.Printf("[%d] [HAR_CAPTURE_STARTED] [%s] [%s] [%s]", requestId, sessionId, wsURL, mode)
 	return rec
 }
 
@@ -72,13 +77,17 @@ func startHarCapture(requestId uint64, sessionId, devtoolsHostPort string) *harp
 // short retry loop so Network.enable runs on that page. Clients should create
 // the page before navigating (or pause briefly after newPage) so the first
 // navigation is captured — same one-writer CDP path as WebDriver /page.
-func startHarCapturePlaywright(requestId uint64, sessionId, devtoolsHostPort string, attempts int, delay time.Duration) *harpkg.Session {
+func startHarCapturePlaywright(requestId uint64, sessionId, devtoolsHostPort string, captureBodies bool, attempts int, delay time.Duration) *harpkg.Session {
 	wsURL := "ws://" + devtoolsHostPort + "/page"
 	var lastErr error
 	for i := 0; i < attempts; i++ {
-		rec, err := harpkg.Start(context.Background(), wsURL)
+		rec, err := startHarSession(wsURL, captureBodies)
 		if err == nil {
-			log.Printf("[%d] [HAR_CAPTURE_STARTED] [%s] [%s]", requestId, sessionId, wsURL)
+			mode := "meta"
+			if captureBodies {
+				mode = "bodies"
+			}
+			log.Printf("[%d] [HAR_CAPTURE_STARTED] [%s] [%s] [%s]", requestId, sessionId, wsURL, mode)
 			return rec
 		}
 		lastErr = err
@@ -86,6 +95,13 @@ func startHarCapturePlaywright(requestId uint64, sessionId, devtoolsHostPort str
 	}
 	log.Printf("[%d] [HAR_CAPTURE_FAILED] [%s] [%v]", requestId, sessionId, lastErr)
 	return nil
+}
+
+func startHarSession(wsURL string, captureBodies bool) (*harpkg.Session, error) {
+	if captureBodies {
+		return harpkg.StartWithBodies(context.Background(), wsURL)
+	}
+	return harpkg.Start(context.Background(), wsURL)
 }
 
 // devtoolsWsHostPort normalizes a HostPort.Devtools value (host:port) for use

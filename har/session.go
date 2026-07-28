@@ -24,16 +24,27 @@ const stopTimeout = 3 * time.Second
 // 7070), enables the Network domain and streams events into a Recorder until
 // Stop is called.
 type Session struct {
-	recorder *Recorder
-	conn     *rpcc.Conn
-	cancel   context.CancelFunc
-	done     chan struct{}
+	recorder      *Recorder
+	conn          *rpcc.Conn
+	cancel        context.CancelFunc
+	done          chan struct{}
+	captureBodies bool
 }
 
 // Start opens a CDP connection to wsURL (e.g. ws://<host:7070>/page), enables
-// the Network domain and begins recording. The passed ctx bounds only the
-// initial dial/enable; recording then runs until Stop.
+// the Network domain and begins recording in meta mode (size/mimeType only).
+// The passed ctx bounds only the initial dial/enable; recording then runs until Stop.
 func Start(ctx context.Context, wsURL string) (*Session, error) {
+	return start(ctx, wsURL, false)
+}
+
+// StartWithBodies is like Start but opts into best-effort Network.getResponseBody
+// after each loadingFinished (harContent=bodies). Failures are swallowed per entry.
+func StartWithBodies(ctx context.Context, wsURL string) (*Session, error) {
+	return start(ctx, wsURL, true)
+}
+
+func start(ctx context.Context, wsURL string, captureBodies bool) (*Session, error) {
 	dialCtx, dialCancel := context.WithTimeout(ctx, dialTimeout)
 	defer dialCancel()
 
@@ -50,11 +61,16 @@ func Start(ctx context.Context, wsURL string) (*Session, error) {
 		return nil, fmt.Errorf("enable network domain: %w", err)
 	}
 
+	rec := NewRecorder()
+	if captureBodies {
+		rec = NewRecorderBodies()
+	}
 	s := &Session{
-		recorder: NewRecorder(),
-		conn:     conn,
-		cancel:   cancel,
-		done:     make(chan struct{}),
+		recorder:      rec,
+		conn:          conn,
+		cancel:        cancel,
+		done:          make(chan struct{}),
+		captureBodies: captureBodies,
 	}
 	go s.run(runCtx, c)
 	return s, nil
@@ -105,6 +121,12 @@ func (s *Session) run(ctx context.Context, c *cdp.Client) {
 				ev, err := cl.Recv()
 				if err != nil {
 					return
+				}
+				if s.captureBodies {
+					// Best-effort: evicted / redirect / binary race → leave entry meta-like.
+					if reply, err := c.Network.GetResponseBody(ctx, network.NewGetResponseBodyArgs(ev.RequestID)); err == nil && reply != nil {
+						s.recorder.SetResponseBody(ev.RequestID, reply.Body, reply.Base64Encoded)
+					}
 				}
 				s.recorder.LoadingFinished(ev)
 			}

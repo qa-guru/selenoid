@@ -138,9 +138,10 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 
 	if startPWHar {
 		harName := caps.HARName
+		captureBodies := caps.HARBodies()
 		go func() {
 			// Page CDP appears only after client newPage(); retry until attach.
-			if rec := startHarCapturePlaywright(requestId, sessionId, devtoolsHP, 120, 250*time.Millisecond); rec != nil {
+			if rec := startHarCapturePlaywright(requestId, sessionId, devtoolsHP, captureBodies, 120, 250*time.Millisecond); rec != nil {
 				putPlaywrightHar(sessionId, rec, harName)
 			}
 		}()
@@ -355,6 +356,10 @@ func capsFromQuery(values url.Values, caps *session.Caps) {
 	if harName := values.Get("harName"); harName != "" {
 		caps.HARName = harName
 	}
+	if harContent := values.Get("harContent"); harContent != "" {
+		caps.HARContent = harContent
+	}
+	caps.NormalizeHARContent()
 	if tz := values.Get("timeZone"); tz != "" {
 		caps.TimeZone = tz
 	}

@@ -49,6 +49,28 @@ func TestParsePlaywrightRequestHar(t *testing.T) {
 		assert.False(t, caps.HAR)
 		assert.Empty(t, caps.HARName)
 	})
+
+	t.Run("harContent=bodies with enableHAR", func(t *testing.T) {
+		u, err := url.Parse("ws://localhost:4444/playwright/playwright-chromium/1.61.1?enableHAR=true&harContent=bodies")
+		assert.NoError(t, err)
+
+		_, _, caps, err := parsePlaywrightRequest(u)
+		assert.NoError(t, err)
+		assert.True(t, caps.HAR)
+		assert.Equal(t, "bodies", caps.HARContent)
+		assert.True(t, caps.HARBodies())
+	})
+
+	t.Run("harContent omit defaults to meta", func(t *testing.T) {
+		u, err := url.Parse("ws://localhost:4444/playwright/playwright-chromium/1.61.1?enableHAR=true")
+		assert.NoError(t, err)
+
+		_, _, caps, err := parsePlaywrightRequest(u)
+		assert.NoError(t, err)
+		assert.True(t, caps.HAR)
+		assert.Empty(t, caps.HARContent)
+		assert.False(t, caps.HARBodies())
+	})
 }
 
 func TestPlaywrightHarRegistryTakeOnce(t *testing.T) {

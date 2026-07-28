@@ -33,6 +33,40 @@ func TestCapsBrowserName(t *testing.T) {
 	assert.Equal(t, "", (&Caps{}).BrowserName())
 }
 
+func TestCapsHARContentNormalizeAndMerge(t *testing.T) {
+	meta := Caps{}
+	meta.NormalizeHARContent()
+	assert.Equal(t, "", meta.HARContent)
+	assert.False(t, meta.HARBodies())
+
+	bodies := Caps{HARContent: "BODIES"}
+	bodies.NormalizeHARContent()
+	assert.Equal(t, "bodies", bodies.HARContent)
+	assert.True(t, bodies.HARBodies())
+
+	explicitMeta := Caps{HARContent: "meta"}
+	explicitMeta.NormalizeHARContent()
+	assert.Equal(t, "meta", explicitMeta.HARContent)
+	assert.False(t, explicitMeta.HARBodies())
+
+	unknown := Caps{HARContent: "full"}
+	unknown.NormalizeHARContent()
+	assert.Equal(t, "", unknown.HARContent)
+	assert.False(t, unknown.HARBodies())
+
+	// selenoid:options merge carries harContent.
+	caps := Caps{
+		ExtensionCapabilities: &Caps{
+			HAR:        true,
+			HARContent: "bodies",
+		},
+	}
+	caps.ProcessExtensionCapabilities()
+	assert.True(t, caps.HAR)
+	assert.Equal(t, "bodies", caps.HARContent)
+	assert.True(t, caps.HARBodies())
+}
+
 func TestMapPutGetRemoveEachLen(t *testing.T) {
 	m := NewMap()
 	s := &Session{Quota: "user1"}

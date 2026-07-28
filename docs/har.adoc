@@ -13,6 +13,13 @@ save them as a https://w3c.github.io/web-performance/specs/HAR/Overview.html[HAR
 file. Files are saved as `<session-id>.har` by default, or under a custom name
 via the `harName` capability.
 
+Content depth is controlled by `harContent` (only when `enableHAR=true`):
+
+* **`meta`** (default) — URL, headers, status, size/mimeType; **no** `content.text`; no `Network.getResponseBody`.
+* **`bodies`** (opt-in) — best-effort `Network.getResponseBody` after `loadingFinished`, writing `content.text` (+ `encoding: base64` when CDP returns base64). Per-entry failures (evicted body, redirect, race) leave that entry meta-like; the session does not fail.
+
+Hub `bodies` is **not** equivalent to Playwright `recordHar` (status/size/text completeness differ). Keep **one writer per session**: hub `enableHAR` **or** client `recordHar` / `HarCapture`, never both.
+
 === Capture path (CDP, not ffmpeg)
 
 Unlike video (captured with ffmpeg, which cannot see network traffic), HAR is
@@ -21,7 +28,8 @@ same target exposed via the `se:cdp` capability and the
 `/devtools/<session-id>/page` proxy (browser container port `7070`). The hub
 enables the CDP `Network` domain, streams `requestWillBeSent` /
 `responseReceived` / `loadingFinished` / `loadingFailed` events and serializes
-them to a HAR on session close.
+them to a HAR on session close. In `bodies` mode the hub additionally calls
+`Network.getResponseBody` after each successful `loadingFinished`.
 
 This is the deliberately chosen path:
 
@@ -137,9 +145,10 @@ $ curl -X DELETE http://selenoid-host.example.com:4444/har/<filename>.har
 
 === Playwright sessions
 
-Manual Playwright sessions accept `enableHAR` (and `harName`) as WebSocket query
-parameters, e.g. `.../playwright/playwright-chromium/1.61.1?enableHAR=true`
-(Selenoid UI Capabilities toggle wires the same query). The value is recorded in
+Manual Playwright sessions accept `enableHAR`, `harName` and `harContent` as
+WebSocket query parameters, e.g.
+`.../playwright/playwright-chromium/1.61.1?enableHAR=true&harContent=bodies`
+(omit `harContent` or set `meta` for the default). Values are recorded in
 session metadata. Hub-side HAR is produced using the same CDP mechanism when the
 image exposes DevTools on container port `7070` (Chromium-family Playwright
 images — see the capture-path note above). The hub retries CDP attach until the
@@ -150,5 +159,7 @@ For Playwright **autotests**, prefer the built-in `recordHar` context option —
 it is the single writer for that session; do not also enable hub HAR for the
 same run.
 
-Known gaps vs client `recordHar` baseline: hub CDP HAR omits `content.text`
-(size/mimeType only).
+Known gaps vs client `recordHar` baseline: even with `harContent=bodies`, hub CDP
+HAR remains best-effort — partial `status`/`size`, in-flight requests at quit,
+and missing `content.text` on some entries are expected. Default `meta` omits
+`content.text` by design.

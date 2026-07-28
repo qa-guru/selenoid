@@ -104,10 +104,13 @@ type Response struct {
 	BodySize    int64       `json:"bodySize"`
 }
 
-// Content describes the response body (text omitted by default).
+// Content describes the response body.
+// Text/Encoding are filled only in bodies mode (harContent=bodies); meta omits them.
 type Content struct {
 	Size     int64  `json:"size"`
 	MimeType string `json:"mimeType"`
+	Text     string `json:"text,omitempty"`
+	Encoding string `json:"encoding,omitempty"` // "base64" when Text is base64-encoded
 }
 
 // Cache is always empty — Selenoid does not track cache state.
@@ -141,10 +144,11 @@ type PostData struct {
 // Recorder turns CDP network events into HAR entries. It is safe for
 // concurrent use so multiple CDP event streams can feed it in parallel.
 type Recorder struct {
-	mu        sync.Mutex
-	pending   map[network.RequestID]*entryState
-	completed []*entryState
-	seq       int64
+	mu            sync.Mutex
+	pending       map[network.RequestID]*entryState
+	completed     []*entryState
+	seq           int64
+	captureBodies bool
 }
 
 // entryState is an in-progress entry plus the bookkeeping needed to finalize it.
@@ -155,9 +159,40 @@ type entryState struct {
 	finished  bool
 }
 
-// NewRecorder returns an empty recorder.
+// NewRecorder returns an empty meta-mode recorder (no content.text).
 func NewRecorder() *Recorder {
 	return &Recorder{pending: make(map[network.RequestID]*entryState)}
+}
+
+// NewRecorderBodies returns a recorder that accepts SetResponseBody (bodies mode).
+func NewRecorderBodies() *Recorder {
+	return &Recorder{pending: make(map[network.RequestID]*entryState), captureBodies: true}
+}
+
+// CaptureBodies reports whether this recorder stores response body text.
+func (r *Recorder) CaptureBodies() bool {
+	return r.captureBodies
+}
+
+// SetResponseBody attaches a CDP Network.getResponseBody result to a pending
+// entry. No-op in meta mode, on unknown request ids, or after the entry was
+// already finalized. Call before LoadingFinished so the body lands on the entry.
+func (r *Recorder) SetResponseBody(id network.RequestID, body string, base64Encoded bool) {
+	if !r.captureBodies {
+		return
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	e, ok := r.pending[id]
+	if !ok || e.finished {
+		return
+	}
+	e.entry.Response.Content.Text = body
+	if base64Encoded {
+		e.entry.Response.Content.Encoding = "base64"
+	} else {
+		e.entry.Response.Content.Encoding = ""
+	}
 }
 
 // RequestWillBeSent records the start of a request. Redirects reuse the same

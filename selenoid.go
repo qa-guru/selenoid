@@ -331,7 +331,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 		Started: time.Now()}
 	var harRecorder *harpkg.Session
 	if harCaptureEnabled(caps, devtoolsWsHostPort(startedService.HostPort.Devtools)) {
-		harRecorder = startHarCapture(requestId, preprocessSessionId(s.ID), devtoolsWsHostPort(startedService.HostPort.Devtools))
+		harRecorder = startHarCapture(requestId, preprocessSessionId(s.ID), devtoolsWsHostPort(startedService.HostPort.Devtools), caps.HARBodies())
 	}
 	cancelAndRenameFiles := func() {
 		cancel()

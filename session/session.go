@@ -2,6 +2,7 @@ package session
 
 import (
 	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -25,6 +26,9 @@ type Caps struct {
 	Log                   bool              `json:"enableLog,omitempty"`
 	HAR                   bool              `json:"enableHAR,omitempty"`
 	HARName               string            `json:"harName,omitempty"`
+	// HARContent selects hub HAR depth when enableHAR is true: "meta" (default)
+	// or "bodies". Absent/unknown → meta. Ignored when enableHAR is off.
+	HARContent            string            `json:"harContent,omitempty"`
 	VideoName             string            `json:"videoName,omitempty"`
 	VideoScreenSize       string            `json:"videoScreenSize,omitempty"`
 	VideoFrameRate        uint16            `json:"videoFrameRate,omitempty"`
@@ -58,6 +62,25 @@ func (c *Caps) ProcessExtensionCapabilities() {
 	if c.ExtensionCapabilities != nil {
 		mergo.Merge(c, *c.ExtensionCapabilities, mergo.WithOverride) //We probably need to handle returned error
 	}
+	c.NormalizeHARContent()
+}
+
+// NormalizeHARContent coerces harContent to "meta", "bodies", or empty (default meta).
+// Empty and unknown values mean meta; only "bodies" opts into response bodies.
+func (c *Caps) NormalizeHARContent() {
+	switch strings.ToLower(strings.TrimSpace(c.HARContent)) {
+	case "bodies":
+		c.HARContent = "bodies"
+	case "meta":
+		c.HARContent = "meta"
+	default:
+		c.HARContent = ""
+	}
+}
+
+// HARBodies reports whether hub HAR should call Network.getResponseBody (opt-in).
+func (c *Caps) HARBodies() bool {
+	return strings.EqualFold(c.HARContent, "bodies")
 }
 
 func (c *Caps) BrowserName() string {

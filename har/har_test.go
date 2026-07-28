@@ -183,3 +183,84 @@ func TestRecorderWriteFile(t *testing.T) {
 	assert.Equal(t, "1.2", parsed.Log.Version)
 	assert.Len(t, parsed.Log.Entries, 1)
 }
+
+func TestRecorderMetaOmitsContentText(t *testing.T) {
+	r := NewRecorder()
+	assert.False(t, r.CaptureBodies())
+	// SetResponseBody must be ignored in meta mode (bit-compatible with prior HAR).
+	r.RequestWillBeSent(&network.RequestWillBeSentReply{
+		RequestID: network.RequestID("req-1"),
+		Timestamp: network.MonotonicTime(1.0),
+		WallTime:  network.TimeSinceEpoch(1700000000),
+		Request:   network.Request{Method: "GET", URL: "https://example.com/"},
+	})
+	r.SetResponseBody(network.RequestID("req-1"), "<html>nope</html>", false)
+	r.LoadingFinished(&network.LoadingFinishedReply{
+		RequestID: network.RequestID("req-1"),
+		Timestamp: network.MonotonicTime(1.2),
+	})
+
+	data, err := json.Marshal(r.Build(""))
+	assert.NoError(t, err)
+	assert.NotContains(t, string(data), `"text"`)
+	assert.NotContains(t, string(data), `"encoding"`)
+	assert.Empty(t, r.Build("").Log.Entries[0].Response.Content.Text)
+}
+
+func TestRecorderBodiesSetsContentText(t *testing.T) {
+	r := NewRecorderBodies()
+	assert.True(t, r.CaptureBodies())
+
+	r.RequestWillBeSent(&network.RequestWillBeSentReply{
+		RequestID: network.RequestID("req-1"),
+		Timestamp: network.MonotonicTime(1.0),
+		WallTime:  network.TimeSinceEpoch(1700000000),
+		Request:   network.Request{Method: "GET", URL: "https://example.com/"},
+	})
+	proto := "http/1.1"
+	r.ResponseReceived(&network.ResponseReceivedReply{
+		RequestID: network.RequestID("req-1"),
+		Response: network.Response{
+			Status:   200,
+			MimeType: "text/html",
+			Protocol: &proto,
+		},
+	})
+	body := "<html>hello</html>"
+	r.SetResponseBody(network.RequestID("req-1"), body, false)
+	r.LoadingFinished(&network.LoadingFinishedReply{
+		RequestID:         network.RequestID("req-1"),
+		Timestamp:         network.MonotonicTime(1.5),
+		EncodedDataLength: float64(len(body)),
+	})
+
+	e := r.Build("").Log.Entries[0]
+	assert.Equal(t, body, e.Response.Content.Text)
+	assert.Empty(t, e.Response.Content.Encoding)
+
+	data, err := json.Marshal(r.Build(""))
+	assert.NoError(t, err)
+	assert.Contains(t, string(data), `"text":`)
+	var parsed HAR
+	assert.NoError(t, json.Unmarshal(data, &parsed))
+	assert.Equal(t, body, parsed.Log.Entries[0].Response.Content.Text)
+}
+
+func TestRecorderBodiesBase64Encoding(t *testing.T) {
+	r := NewRecorderBodies()
+	r.RequestWillBeSent(&network.RequestWillBeSentReply{
+		RequestID: network.RequestID("req-bin"),
+		Timestamp: network.MonotonicTime(1.0),
+		WallTime:  network.TimeSinceEpoch(1700000000),
+		Request:   network.Request{Method: "GET", URL: "https://example.com/pixel.png"},
+	})
+	r.SetResponseBody(network.RequestID("req-bin"), "iVBORw0KGgo=", true)
+	r.LoadingFinished(&network.LoadingFinishedReply{
+		RequestID: network.RequestID("req-bin"),
+		Timestamp: network.MonotonicTime(1.1),
+	})
+
+	e := r.Build("").Log.Entries[0]
+	assert.Equal(t, "iVBORw0KGgo=", e.Response.Content.Text)
+	assert.Equal(t, "base64", e.Response.Content.Encoding)
+}

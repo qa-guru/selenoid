@@ -111,7 +111,7 @@ logName: "my-cool-log.log"
 
 WARNING: It is important to add `log` file extension.
 
-=== Saving Session HAR: enableHAR, harName
+=== Saving Session HAR: enableHAR, harName, harContent
 
 NOTE: This feature requires some preparation. Please refer to <<Saving Session HAR (Network Archive)>> section for more details.
 
@@ -136,9 +136,22 @@ harName: "my-cool-session.har"
 
 WARNING: It is important to add the `har` file extension.
 
+Content depth (only meaningful with `enableHAR=true`; otherwise ignored):
+
+.Type: string (`meta` | `bodies`, default `meta`)
+----
+harContent: "meta"
+----
+
+* `meta` (default) — headers/status/size/mimeType; no `content.text`.
+* `bodies` — opt-in best-effort response bodies via CDP `Network.getResponseBody`
+  (`content.text`, and `encoding: base64` when needed). Not equivalent to Playwright
+  `recordHar`.
+
 TIP: This is a hub artifact for manual/debugging sessions. For automated tests
 prefer the client-side HAR recorder (WebDriver CDP → Allure, or Playwright
-`recordHar`) and keep a single HAR writer per session.
+`recordHar`) and keep a single HAR writer per session — do not combine hub
+`enableHAR` with client `recordHar` / `HarCapture` on the same session.
 
 === Custom Test Name: name
 
