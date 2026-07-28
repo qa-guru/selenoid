@@ -6,7 +6,7 @@
 
 | Слой | Upstream | Наш артефакт | Примечание |
 |------|----------|--------------|------------|
-| **Hub** | [aerokube/selenoid](https://github.com/aerokube/selenoid) | [qa-guru/selenoid](https://github.com/qa-guru/selenoid) → `qaguru/selenoid` | Форк hub с native Playwright. **Не Twilio.** |
+| **Hub** | [aerokube/selenoid](https://github.com/qa-guru/selenoid) | [qa-guru/selenoid](https://github.com/qa-guru/selenoid) → `qaguru/selenoid` | Форк hub с native Playwright. **Не Twilio.** |
 | **Playwright nodes** | [mcr.microsoft.com/playwright](https://mcr.microsoft.com/en-us/product/playwright/about) + npm [`@playwright/test`](https://www.npmjs.com/package/@playwright/test) | `qaguru/playwright-*` ([browser-image/playwright](https://github.com/qa-guru/browser-image)) | Upstream npm/MCR без форка; кастомизируем только Docker node (VNC, `launchServer`, warm API). |
 | **WebDriver nodes** | Chrome for Testing / Mozilla / Microsoft Edge | `qaguru/webdriver-chrome*` · `webdriver-firefox*` · `webdriver-msedge*` ([browser-image/webdriver](https://github.com/qa-guru/browser-image)) | Selenium `/wd/hub`, driver path `/`. Warm (VNC) + min (CI). |
 

@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aerokube/selenoid/config"
-	"github.com/aerokube/selenoid/service"
-	"github.com/aerokube/selenoid/session"
+	"github.com/qa-guru/selenoid/config"
+	"github.com/qa-guru/selenoid/service"
+	"github.com/qa-guru/selenoid/session"
 	ctr "github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 	assert "github.com/stretchr/testify/require"

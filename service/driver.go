@@ -3,7 +3,7 @@ package service
 import (
 	"errors"
 	"fmt"
-	"github.com/aerokube/selenoid/info"
+	"github.com/qa-guru/selenoid/info"
 	"log"
 	"net"
 	"net/url"
@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/aerokube/selenoid/session"
+	"github.com/qa-guru/selenoid/session"
 )
 
 // Driver - driver processes manager

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aerokube/selenoid/session"
+	"github.com/qa-guru/selenoid/session"
 	ctr "github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/assert"

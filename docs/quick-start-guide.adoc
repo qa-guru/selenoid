@@ -3,7 +3,7 @@
 === Start Selenoid
 
 . Make sure you have recent https://www.docker.com/[Docker] version installed.
-. Download http://aerokube.com/cm/latest/[Configuration Manager] (Selenoid quick installation binary) for your platform from https://github.com/aerokube/cm/releases/latest[releases] page.
+. Download http://aerokube.com/cm/latest/[Configuration Manager] (Selenoid quick installation binary) for your platform from https://github.com/qa-guru/cm/releases/latest[releases] page.
 . On Linux or Mac give execution permissions to binary:
 
     $ chmod +x cm

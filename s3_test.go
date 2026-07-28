@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aerokube/selenoid/event"
-	"github.com/aerokube/selenoid/session"
-	"github.com/aerokube/selenoid/upload"
+	"github.com/qa-guru/selenoid/event"
+	"github.com/qa-guru/selenoid/session"
+	"github.com/qa-guru/selenoid/upload"
 	assert "github.com/stretchr/testify/require"
 )
 

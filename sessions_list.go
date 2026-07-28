@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aerokube/selenoid/info"
-	"github.com/aerokube/selenoid/session"
+	"github.com/qa-guru/selenoid/info"
+	"github.com/qa-guru/selenoid/session"
 )
 
 // sessionArtifacts is one finished session's artifacts, grouped by session id

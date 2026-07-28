@@ -8,7 +8,7 @@ To build Selenoid:
 
 . Clone Selenoid source:
 
-    $ git clone https://github.com/aerokube/selenoid.git
+    $ git clone https://github.com/qa-guru/selenoid.git
 
 . Go to project directory:
 

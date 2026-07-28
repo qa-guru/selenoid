@@ -87,7 +87,7 @@ Will not match:
 === Image
 Image by default is a string with container specification in Docker format (`hub.example.com/project/image:tag`).
 
-Image must be already pulled. https://github.com/aerokube/cm[Configuration Manager] can help with this task.
+Image must be already pulled. https://github.com/qa-guru/cm[Configuration Manager] can help with this task.
 
 .Valid images
 ====
@@ -140,7 +140,7 @@ To achieve this define one or more mount points and their respective sizes in op
 Which value to specify in this field depends on container contents.
 For example, most of Firefox containers have http://seleniumhq.org/[Selenium server] inside - thus you need to specify `/wd/hub`.
 Chrome and Opera containers use web driver binary as entrypoint application which is accepting requests at `/`.
-We recommend to use our https://github.com/aerokube/cm[configuration tool] to avoid errors with this field.
+We recommend to use our https://github.com/qa-guru/cm[configuration tool] to avoid errors with this field.
 
 * *volumes* (_optional_) - This field allows to mount volumes from host machine to browser container. Should be specified as an array of Docker volume expressions: `/host/dir:/container/dir[:mode]`.
 
@@ -165,7 +165,7 @@ In order to pull browser images use on of the following options:
 
 *Option 1: using CM*
 
-Recent https://github.com/aerokube/cm[CM] tool versions are able to configure Selenoid from existing `browsers.json` file as follows:
+Recent https://github.com/qa-guru/cm[CM] tool versions are able to configure Selenoid from existing `browsers.json` file as follows:
 
     # ./cm selenoid start --browsers-json /path/to/your/browsers.json
 

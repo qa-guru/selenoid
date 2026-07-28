@@ -3,7 +3,7 @@
 Selenoid is using containers to start browsers. However cases exist when running browser in container is not possible. For example on Windows you have Internet Explorer which can not be run inside container. Selenoid can be used as a lightweight Selenium server replacement to run IE, Firefox or Chrome on Windows. For example to use Selenoid with IE:
 
 . Download latest http://www.seleniumhq.org/download/[IEDriverServer] archive and unpack it to some directory (```C:\``` in this example).
-. Download latest https://github.com/aerokube/selenoid/releases/latest[Selenoid] binary.
+. Download latest https://github.com/qa-guru/selenoid/releases/latest[Selenoid] binary.
 . Create ```browsers.json``` configuration file:
 +
 ```json

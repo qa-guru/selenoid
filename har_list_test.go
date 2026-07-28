@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/aerokube/selenoid/session"
+	"github.com/qa-guru/selenoid/session"
 	"github.com/stretchr/testify/assert"
 )
 

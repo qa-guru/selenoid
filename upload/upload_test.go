@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aerokube/selenoid/event"
+	"github.com/qa-guru/selenoid/event"
 	assert "github.com/stretchr/testify/require"
 )
 

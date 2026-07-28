@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	harpkg "github.com/aerokube/selenoid/har"
-	"github.com/aerokube/selenoid/info"
-	"github.com/aerokube/selenoid/session"
+	harpkg "github.com/qa-guru/selenoid/har"
+	"github.com/qa-guru/selenoid/info"
+	"github.com/qa-guru/selenoid/session"
 )
 
 const harFileExtension = ".har"

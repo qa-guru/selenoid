@@ -41,7 +41,7 @@ We maintain a set of prebuilt Docker container images for different browsers inc
 * https://hub.docker.com/r/selenoid/chrome/[Google Chrome]
 * https://hub.docker.com/r/selenoid/opera/[Opera]
 
-All these images are free to use. See image tags for a list of supported versions. Build files are stored in http://github.com/aerokube/selenoid-images[selenoid-images] repository.
+All these images are free to use. See image tags for a list of supported versions. Build files are stored in http://github.com/qa-guru/selenoid-images[selenoid-images] repository.
 Feel free to create issues or request images for new versions.
 
 [NOTE]
@@ -68,7 +68,7 @@ Feel free to create issues or request images for new versions.
 === Start Selenoid
 ==== Option 1: start Selenoid binary
 
-. Download binary for your operating system from https://github.com/aerokube/selenoid/releases/latest[releases] page
+. Download binary for your operating system from https://github.com/qa-guru/selenoid/releases/latest[releases] page
 and save it as `selenoid` (or `selenoid.exe` on windows).
 +
 NOTE: Add execution permission in case of *nix os-type with `chmod +x selenoid`.

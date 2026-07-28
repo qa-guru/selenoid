@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/aerokube/selenoid/info"
+	"github.com/qa-guru/selenoid/info"
 	"log"
 	"net"
 	"net/url"
@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aerokube/selenoid/config"
-	"github.com/aerokube/selenoid/session"
+	"github.com/qa-guru/selenoid/config"
+	"github.com/qa-guru/selenoid/session"
 	ctr "github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/network"
 	"github.com/moby/moby/api/pkg/stdcopy"

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aerokube/selenoid/event"
+	"github.com/qa-guru/selenoid/event"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	awssession "github.com/aws/aws-sdk-go/aws/session"

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aerokube/selenoid/session"
+	"github.com/qa-guru/selenoid/session"
 	ctr "github.com/moby/moby/api/types/container"
 )
 

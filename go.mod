@@ -1,4 +1,4 @@
-module github.com/aerokube/selenoid
+module github.com/qa-guru/selenoid
 
 go 1.26
 

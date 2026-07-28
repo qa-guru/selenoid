@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aerokube/selenoid/config"
-	"github.com/aerokube/selenoid/session"
+	"github.com/qa-guru/selenoid/config"
+	"github.com/qa-guru/selenoid/session"
 	"github.com/stretchr/testify/assert"
 )
 

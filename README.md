@@ -39,7 +39,7 @@
 <!-- stack-branches-note:end -->
 
 
-**Основной репозиторий экосистемы.** Форк [aerokube/selenoid](https://github.com/aerokube/selenoid) с нативной поддержкой Playwright.
+**Основной репозиторий экосистемы.** Форк [aerokube/selenoid](https://github.com/qa-guru/selenoid) с нативной поддержкой Playwright.
 
 [![Build Status](https://github.com/qa-guru/selenoid/workflows/build/badge.svg)](https://github.com/qa-guru/selenoid/actions?query=workflow%3Abuild)
 [![Coverage](https://codecov.io/github/qa-guru/selenoid/coverage.svg)](https://codecov.io/gh/qa-guru/selenoid)
@@ -220,4 +220,4 @@ ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1-min
 
 ## Upstream (Aerokube)
 
-Форк [aerokube/selenoid](https://github.com/aerokube/selenoid) (upstream **UNMAINTAINED**). Оригинальная документация: [aerokube.com/selenoid/latest](http://aerokube.com/selenoid/latest/) и AsciiDoc в [`docs/*.adoc`](docs/) (upstream-only, не дублируют qa-guru quick start).
+Форк [aerokube/selenoid](https://github.com/qa-guru/selenoid) (upstream **UNMAINTAINED**). Оригинальная документация: [aerokube.com/selenoid/latest](http://aerokube.com/selenoid/latest/) и AsciiDoc в [`docs/*.adoc`](docs/) (upstream-only, не дублируют qa-guru quick start).

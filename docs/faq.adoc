@@ -109,4 +109,4 @@ No, we did not implement this feature intentionally. We consider that all such c
 
 **Is it possible to run Selenoid in Docker macvlan network?**
 
-Yes, this is possible. See the following https://github.com/aerokube/selenoid/issues/795[Github issue] for possible solutions.
+Yes, this is possible. See the following https://github.com/qa-guru/selenoid/issues/795[Github issue] for possible solutions.

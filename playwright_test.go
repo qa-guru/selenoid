@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aerokube/selenoid/session"
+	"github.com/qa-guru/selenoid/session"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
 )

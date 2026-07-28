@@ -1,7 +1,7 @@
 # Release v2.0.0 — qa-guru/selenoid
 
 **Дата:** 25 июня 2026  
-**База:** форк [aerokube/selenoid](https://github.com/aerokube/selenoid) v1.11.x  
+**База:** форк [aerokube/selenoid](https://github.com/qa-guru/selenoid) v1.11.x  
 **GitHub:** https://github.com/qa-guru/selenoid/releases/tag/v2.0.0
 
 Первый публичный релиз qa-guru с **нативной поддержкой Playwright** поверх классического Selenium WebDriver.

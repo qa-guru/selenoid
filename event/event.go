@@ -1,6 +1,6 @@
 package event
 
-import "github.com/aerokube/selenoid/session"
+import "github.com/qa-guru/selenoid/session"
 
 var (
 	fileCreatedListeners    []FileCreatedListener
