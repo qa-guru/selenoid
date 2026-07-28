@@ -16,6 +16,7 @@
 package har
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/url"
 	"os"
@@ -177,6 +178,10 @@ func (r *Recorder) CaptureBodies() bool {
 // SetResponseBody attaches a CDP Network.getResponseBody result to a pending
 // entry. No-op in meta mode, on unknown request ids, or after the entry was
 // already finalized. Call before LoadingFinished so the body lands on the entry.
+//
+// HAR 1.2: content.size is the uncompressed/decoded body length (not the
+// base64 string length, and not CDP encodedDataLength). response.bodySize
+// remains the on-wire size from loadingFinished.encodedDataLength.
 func (r *Recorder) SetResponseBody(id network.RequestID, body string, base64Encoded bool) {
 	if !r.captureBodies {
 		return
@@ -188,6 +193,7 @@ func (r *Recorder) SetResponseBody(id network.RequestID, body string, base64Enco
 		return
 	}
 	e.entry.Response.Content.Text = body
+	e.entry.Response.Content.Size = contentSizeFromBody(body, base64Encoded)
 	if base64Encoded {
 		e.entry.Response.Content.Encoding = "base64"
 	} else {
@@ -457,6 +463,23 @@ func bodySize(postData *string) int64 {
 		return 0
 	}
 	return int64(len(*postData))
+}
+
+// contentSizeFromBody returns HAR content.size for a CDP getResponseBody payload.
+// Plain text: UTF-8 byte length of body. Base64: decoded byte length (HAR 1.2);
+// if decode fails, fall back to encoded string length so size stays >0 when text is set.
+func contentSizeFromBody(body string, base64Encoded bool) int64 {
+	if !base64Encoded {
+		return int64(len(body))
+	}
+	decoded, err := base64.StdEncoding.DecodeString(body)
+	if err != nil {
+		decoded, err = base64.RawStdEncoding.DecodeString(body)
+		if err != nil {
+			return int64(len(body))
+		}
+	}
+	return int64(len(decoded))
 }
 
 // durationMs returns (end-start) in milliseconds, clamped to >= 0.

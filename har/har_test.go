@@ -196,15 +196,20 @@ func TestRecorderMetaOmitsContentText(t *testing.T) {
 	})
 	r.SetResponseBody(network.RequestID("req-1"), "<html>nope</html>", false)
 	r.LoadingFinished(&network.LoadingFinishedReply{
-		RequestID: network.RequestID("req-1"),
-		Timestamp: network.MonotonicTime(1.2),
+		RequestID:         network.RequestID("req-1"),
+		Timestamp:         network.MonotonicTime(1.2),
+		EncodedDataLength: 2048,
 	})
 
 	data, err := json.Marshal(r.Build(""))
 	assert.NoError(t, err)
 	assert.NotContains(t, string(data), `"text"`)
 	assert.NotContains(t, string(data), `"encoding"`)
-	assert.Empty(t, r.Build("").Log.Entries[0].Response.Content.Text)
+	e := r.Build("").Log.Entries[0]
+	assert.Empty(t, e.Response.Content.Text)
+	// Meta keeps prior size behavior: content.size stays 0; bodySize from encodedDataLength.
+	assert.Equal(t, int64(0), e.Response.Content.Size)
+	assert.Equal(t, int64(2048), e.Response.BodySize)
 }
 
 func TestRecorderBodiesSetsContentText(t *testing.T) {
@@ -231,12 +236,16 @@ func TestRecorderBodiesSetsContentText(t *testing.T) {
 	r.LoadingFinished(&network.LoadingFinishedReply{
 		RequestID:         network.RequestID("req-1"),
 		Timestamp:         network.MonotonicTime(1.5),
-		EncodedDataLength: float64(len(body)),
+		EncodedDataLength: float64(len(body) + 100), // on-wire may differ from decoded
 	})
 
 	e := r.Build("").Log.Entries[0]
 	assert.Equal(t, body, e.Response.Content.Text)
 	assert.Empty(t, e.Response.Content.Encoding)
+	// HAR 1.2: content.size = decoded body bytes; bodySize = encodedDataLength.
+	assert.Equal(t, int64(len(body)), e.Response.Content.Size)
+	assert.Greater(t, e.Response.Content.Size, int64(0))
+	assert.Equal(t, int64(len(body)+100), e.Response.BodySize)
 
 	data, err := json.Marshal(r.Build(""))
 	assert.NoError(t, err)
@@ -244,6 +253,7 @@ func TestRecorderBodiesSetsContentText(t *testing.T) {
 	var parsed HAR
 	assert.NoError(t, json.Unmarshal(data, &parsed))
 	assert.Equal(t, body, parsed.Log.Entries[0].Response.Content.Text)
+	assert.Equal(t, int64(len(body)), parsed.Log.Entries[0].Response.Content.Size)
 }
 
 func TestRecorderBodiesBase64Encoding(t *testing.T) {
@@ -254,13 +264,23 @@ func TestRecorderBodiesBase64Encoding(t *testing.T) {
 		WallTime:  network.TimeSinceEpoch(1700000000),
 		Request:   network.Request{Method: "GET", URL: "https://example.com/pixel.png"},
 	})
-	r.SetResponseBody(network.RequestID("req-bin"), "iVBORw0KGgo=", true)
+	encoded := "iVBORw0KGgo="
+	r.SetResponseBody(network.RequestID("req-bin"), encoded, true)
 	r.LoadingFinished(&network.LoadingFinishedReply{
 		RequestID: network.RequestID("req-bin"),
 		Timestamp: network.MonotonicTime(1.1),
 	})
 
 	e := r.Build("").Log.Entries[0]
-	assert.Equal(t, "iVBORw0KGgo=", e.Response.Content.Text)
+	assert.Equal(t, encoded, e.Response.Content.Text)
 	assert.Equal(t, "base64", e.Response.Content.Encoding)
+	// content.size is decoded bytes (8), not base64 string length (12).
+	assert.Equal(t, int64(8), e.Response.Content.Size)
+	assert.NotEqual(t, int64(len(encoded)), e.Response.Content.Size)
+}
+
+func TestContentSizeFromBody(t *testing.T) {
+	assert.Equal(t, int64(5), contentSizeFromBody("hello", false))
+	assert.Equal(t, int64(8), contentSizeFromBody("iVBORw0KGgo=", true))
+	assert.Equal(t, int64(0), contentSizeFromBody("", false))
 }
