@@ -47,7 +47,7 @@ Playwright images (`playwright-chromium`, `playwright-chrome`,
 `playwright-msedge`) ship this endpoint: a small static proxy on `7070` bridges
 the hub to the browser's random remote-debugging port, so hub-HAR, `se:cdp` and
 `/devtools/<id>/` work out of the box. The `-min` (headless CI), Firefox and
-WebKit images do **not** expose `7070` by design. Capture is **best-effort**:
+WebKit images do **not** expose `7070` by design. **Android** (`qaguru/android:*`, Appium/UiAutomator2) also does **not** expose `7070` — hub `enableHAR` is unavailable for mobile sessions until a Chrome Mobile + CDP path exists in the image. Capture is **best-effort**:
 if the hub cannot reach the DevTools endpoint it logs `HAR_CAPTURE_FAILED` and
 simply produces no file — the session is unaffected.
 ====
