@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
@@ -78,23 +79,93 @@ func startHarCapture(requestId uint64, sessionId, devtoolsHostPort string, captu
 // the page before navigating (or pause briefly after newPage) so the first
 // navigation is captured — same one-writer CDP path as WebDriver /page.
 func startHarCapturePlaywright(requestId uint64, sessionId, devtoolsHostPort string, captureBodies bool, attempts int, delay time.Duration) *harpkg.Session {
-	wsURL := "ws://" + devtoolsHostPort + "/page"
 	var lastErr error
 	for i := 0; i < attempts; i++ {
-		rec, err := startHarSession(wsURL, captureBodies)
-		if err == nil {
-			mode := "meta"
-			if captureBodies {
-				mode = "bodies"
+		for _, wsURL := range devtoolsPageWSURLs(devtoolsHostPort) {
+			rec, err := startHarSession(wsURL, captureBodies)
+			if err == nil {
+				mode := "meta"
+				if captureBodies {
+					mode = "bodies"
+				}
+				log.Printf("[%d] [HAR_CAPTURE_STARTED] [%s] [%s] [%s]", requestId, sessionId, wsURL, mode)
+				return rec
 			}
-			log.Printf("[%d] [HAR_CAPTURE_STARTED] [%s] [%s] [%s]", requestId, sessionId, wsURL, mode)
-			return rec
+			lastErr = err
 		}
-		lastErr = err
 		time.Sleep(delay)
 	}
 	log.Printf("[%d] [HAR_CAPTURE_FAILED] [%s] [%v]", requestId, sessionId, lastErr)
 	return nil
+}
+
+// ensureDevtoolsPage opens about:blank on the browser DevTools HTTP API so manual
+// Playwright sessions (UI bare WebSocket, no client newPage) still expose a /page
+// target for hub-side HAR capture.
+func ensureDevtoolsPage(requestId uint64, sessionId, devtoolsHostPort string) {
+	devtoolsHostPort = strings.TrimSpace(devtoolsHostPort)
+	if devtoolsHostPort == "" {
+		return
+	}
+	client := &http.Client{Timeout: 3 * time.Second}
+	req, err := http.NewRequest(http.MethodPut, "http://"+devtoolsHostPort+"/json/new?about:blank", nil)
+	if err != nil {
+		return
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Printf("[%d] [HAR_PAGE_BOOTSTRAP_FAILED] [%s] [%v]", requestId, sessionId, err)
+		return
+	}
+	_ = resp.Body.Close()
+	if resp.StatusCode/100 != 2 {
+		log.Printf("[%d] [HAR_PAGE_BOOTSTRAP_FAILED] [%s] [HTTP %d]", requestId, sessionId, resp.StatusCode)
+		return
+	}
+	log.Printf("[%d] [HAR_PAGE_BOOTSTRAP] [%s]", requestId, sessionId)
+}
+
+type devtoolsTarget struct {
+	Type                 string `json:"type"`
+	WebSocketDebuggerURL string `json:"webSocketDebuggerUrl"`
+}
+
+func devtoolsPageWSURLs(devtoolsHostPort string) []string {
+	devtoolsHostPort = strings.TrimSpace(devtoolsHostPort)
+	if devtoolsHostPort == "" {
+		return nil
+	}
+	defaultURL := "ws://" + devtoolsHostPort + "/page"
+	client := &http.Client{Timeout: 2 * time.Second}
+	resp, err := client.Get("http://" + devtoolsHostPort + "/json/list")
+	if err != nil {
+		return []string{defaultURL}
+	}
+	defer resp.Body.Close()
+	var targets []devtoolsTarget
+	if err := json.NewDecoder(resp.Body).Decode(&targets); err != nil {
+		return []string{defaultURL}
+	}
+	out := make([]string, 0, len(targets)+1)
+	seen := map[string]struct{}{}
+	add := func(url string) {
+		url = strings.TrimSpace(url)
+		if url == "" {
+			return
+		}
+		if _, ok := seen[url]; ok {
+			return
+		}
+		seen[url] = struct{}{}
+		out = append(out, url)
+	}
+	for _, target := range targets {
+		if target.Type == "page" {
+			add(target.WebSocketDebuggerURL)
+		}
+	}
+	add(defaultURL)
+	return out
 }
 
 func startHarSession(wsURL string, captureBodies bool) (*harpkg.Session, error) {

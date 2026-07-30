@@ -79,6 +79,42 @@ func TestSessionsListGroupsArtifactsById(t *testing.T) {
 	}
 }
 
+func TestSessionsListLinksHarFromMetadataHarName(t *testing.T) {
+	video := t.TempDir()
+	logs := t.TempDir()
+	har := t.TempDir()
+	setArtifactDirs(t, video, logs, har)
+
+	assert.NoError(t, os.WriteFile(filepath.Join(video, "sess-har.mp4"), []byte("v"), 0644))
+	assert.NoError(t, os.WriteFile(filepath.Join(har, "custom-name.har"), []byte("{}"), 0644))
+	meta := session.Metadata{
+		ID:    "sess-har",
+		Quota: "user1",
+		Capabilities: session.Caps{
+			HAR:     true,
+			HARName: "custom-name.har",
+		},
+	}
+	raw, err := json.MarshalIndent(meta, "", "    ")
+	assert.NoError(t, err)
+	assert.NoError(t, os.WriteFile(filepath.Join(logs, "sess-har.json"), raw, 0644))
+
+	req := httptest.NewRequest(http.MethodGet, "/sessions/?json", nil)
+	rr := httptest.NewRecorder()
+	sessionsList(rr, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	listed := decodeSessions(t, rr)
+	byID := map[string]sessionArtifacts{}
+	for _, s := range listed.Sessions {
+		byID[s.ID] = s
+	}
+	got, ok := byID["sess-har"]
+	assert.True(t, ok)
+	assert.Equal(t, "sess-har.mp4", got.Video)
+	assert.Equal(t, "custom-name.har", got.HAR)
+}
+
 func TestSessionsListEnrichesFromMetadata(t *testing.T) {
 	video := t.TempDir()
 	logs := t.TempDir()

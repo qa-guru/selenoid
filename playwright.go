@@ -140,7 +140,9 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 		harName := caps.HARName
 		captureBodies := caps.HARBodies()
 		go func() {
-			// Page CDP appears only after client newPage(); retry until attach.
+			// Manual UI sessions keep a bare WS without Playwright newPage(); seed a page
+			// over DevTools HTTP so hub HAR can attach before the client navigates.
+			ensureDevtoolsPage(requestId, sessionId, devtoolsHP)
 			if rec := startHarCapturePlaywright(requestId, sessionId, devtoolsHP, captureBodies, 120, 250*time.Millisecond); rec != nil {
 				putPlaywrightHar(sessionId, rec, harName)
 			}
@@ -237,6 +239,13 @@ func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName 
 			log.Printf("[%d] [HAR_SAVED] [%s] [%s] [%d entries]", requestId, sessionId, finalHarName, rec.EntryCount())
 		}
 	}
+	event.SessionStopped(event.StoppedSession{
+		Event: event.Event{
+			RequestId: requestId,
+			SessionId: sessionId,
+			Session:   sess,
+		},
+	})
 	log.Printf("[%d] [PLAYWRIGHT_SESSION_DELETED] [%s]", requestId, sessionId)
 }
 

@@ -160,4 +160,15 @@ func applySessionMetadata(a *sessionArtifacts) {
 		t := meta.Finished
 		a.Finished = &t
 	}
+	if a.HAR == "" && harOutputDir != "" && meta.Capabilities.HAR {
+		name := strings.TrimSpace(meta.Capabilities.HARName)
+		if name == "" {
+			name = a.ID + harFileExtension
+		} else if !strings.HasSuffix(name, harFileExtension) {
+			name += harFileExtension
+		}
+		if _, err := os.Stat(filepath.Join(harOutputDir, name)); err == nil {
+			a.HAR = name
+		}
+	}
 }
