@@ -75,6 +75,9 @@ jobs:
           DOCKER_IMAGE: qaguru/selenoid
         run: ci/docker-push.sh latest-release
 
+  # Gate of record for prod hub: wait until /hub/ping matches the release tag,
+  # then run api+smoke. Image publish alone is not a deploy — without
+  # wait_for_prod_hub_version this races hub restart (v3.0.7: 20 fails → post-deploy green).
   deploy-smoke:
     name: Release smoke → selenoid-tests
     needs: golang
@@ -90,3 +93,5 @@ jobs:
       source_version: ${{ needs.golang.outputs.release_version }}
       source_ref: ${{ github.ref }}
       summary_title: Release smoke → selenoid-tests
+      wait_for_prod_hub_version: true
+      wait_timeout_minutes: 25

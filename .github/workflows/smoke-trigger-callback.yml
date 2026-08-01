@@ -35,6 +35,31 @@ on:
         required: false
         type: string
         default: Deploy smoke → selenoid-tests
+      wait_for_prod_ui_version:
+        description: "Poll prod /ui/status until .version matches source_version before dispatch (release→deploy race guard)"
+        required: false
+        type: boolean
+        default: false
+      prod_ui_status_url:
+        description: "Prod UI status URL for version wait"
+        required: false
+        type: string
+        default: https://selenoid.qa.guru/ui/status
+      wait_for_prod_hub_version:
+        description: "Poll prod /hub/ping until .version matches source_version before dispatch (hub release→deploy race guard)"
+        required: false
+        type: boolean
+        default: false
+      prod_hub_ping_url:
+        description: "Prod hub ping URL for version wait"
+        required: false
+        type: string
+        default: https://selenoid.qa.guru/hub/ping
+      wait_timeout_minutes:
+        description: "Max minutes to wait for prod pin (when wait_for_prod_*_version)"
+        required: false
+        type: number
+        default: 25
     secrets:
       SELENOID_TESTS_DISPATCH_TOKEN:
         required: true
@@ -47,7 +72,8 @@ jobs:
   trigger:
     name: Trigger selenoid-tests with callback
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # Extra headroom when waiting for prod pin before dispatch + smoke callback.
+    timeout-minutes: 55
     env:
       TESTS_REPO: qa-guru/selenoid-tests
       TEST_TAGS: ${{ inputs.test_tags }}
@@ -71,6 +97,84 @@ jobs:
           fi
           echo "ref=${ref}" >> "$GITHUB_OUTPUT"
           echo "version=${{ inputs.source_version }}" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for prod UI pin
+        if: inputs.wait_for_prod_ui_version
+        env:
+          PROD_VERSION_URL: ${{ inputs.prod_ui_status_url }}
+          EXPECTED_VERSION: ${{ inputs.source_version }}
+          WAIT_TIMEOUT_MINUTES: ${{ inputs.wait_timeout_minutes }}
+          PROD_LABEL: UI
+          DEPLOY_HINT: "ui_version"
+        run: |
+          set -euo pipefail
+          expected="${EXPECTED_VERSION#v}"
+          expected="${expected%%[*}"
+          deadline=$(($(date +%s) + WAIT_TIMEOUT_MINUTES * 60))
+          echo "Waiting until ${PROD_VERSION_URL} reports ${PROD_LABEL} version matching '${EXPECTED_VERSION}' (timeout ${WAIT_TIMEOUT_MINUTES}m)..."
+          echo "Release image publish ≠ prod pin — smoke must wait for selenoid.qa.guru deploy."
+          while [[ "$(date +%s)" -lt "${deadline}" ]]; do
+            body="$(curl -fsSL "${PROD_VERSION_URL}" || true)"
+            version="$(printf '%s' "${body}" | jq -r '.version // empty' 2>/dev/null || true)"
+            if [[ -n "${version}" ]]; then
+              # Prod stamps look like v3.0.11[2026-07-27_02:23:20PM]
+              if [[ "${version}" == "${EXPECTED_VERSION}"* ]] || [[ "${version}" == "v${expected}"* ]] || [[ "${version}" == "${expected}"* ]]; then
+                echo "Prod ${PROD_LABEL} version ready: ${version}"
+                # Settle: hub/nginx must accept /status after pin flip (avoid 502 race).
+                if curl -fsSL --max-time 5 https://selenoid.qa.guru/status >/dev/null 2>&1; then
+                  sleep 15
+                  exit 0
+                fi
+                echo "Version matched but /status not healthy yet — keep waiting"
+              else
+                echo "Prod still on: ${version} (want ${EXPECTED_VERSION})"
+              fi
+            else
+              echo "Prod ${PROD_VERSION_URL} not ready yet"
+            fi
+            sleep 20
+          done
+          echo "::error::Timed out waiting for prod ${PROD_LABEL} pin ${EXPECTED_VERSION} at ${PROD_VERSION_URL}."
+          echo "::error::Deploy via qa-guru/selenoid.qa.guru (${DEPLOY_HINT}=${EXPECTED_VERSION}), then re-run or rely on post-deploy smoke."
+          exit 1
+
+      - name: Wait for prod hub pin
+        if: inputs.wait_for_prod_hub_version
+        env:
+          PROD_VERSION_URL: ${{ inputs.prod_hub_ping_url }}
+          EXPECTED_VERSION: ${{ inputs.source_version }}
+          WAIT_TIMEOUT_MINUTES: ${{ inputs.wait_timeout_minutes }}
+          PROD_LABEL: hub
+          DEPLOY_HINT: "version"
+        run: |
+          set -euo pipefail
+          expected="${EXPECTED_VERSION#v}"
+          expected="${expected%%[*}"
+          deadline=$(($(date +%s) + WAIT_TIMEOUT_MINUTES * 60))
+          echo "Waiting until ${PROD_VERSION_URL} reports ${PROD_LABEL} version matching '${EXPECTED_VERSION}' (timeout ${WAIT_TIMEOUT_MINUTES}m)..."
+          echo "Release image publish ≠ prod pin — smoke must wait for selenoid.qa.guru deploy."
+          while [[ "$(date +%s)" -lt "${deadline}" ]]; do
+            body="$(curl -fsSL "${PROD_VERSION_URL}" || true)"
+            version="$(printf '%s' "${body}" | jq -r '.version // empty' 2>/dev/null || true)"
+            if [[ -n "${version}" ]]; then
+              if [[ "${version}" == "${EXPECTED_VERSION}"* ]] || [[ "${version}" == "v${expected}"* ]] || [[ "${version}" == "${expected}"* ]]; then
+                echo "Prod ${PROD_LABEL} version ready: ${version}"
+                if curl -fsSL --max-time 5 https://selenoid.qa.guru/status >/dev/null 2>&1; then
+                  sleep 15
+                  exit 0
+                fi
+                echo "Version matched but /status not healthy yet — keep waiting"
+              else
+                echo "Prod still on: ${version} (want ${EXPECTED_VERSION})"
+              fi
+            else
+              echo "Prod ${PROD_VERSION_URL} not ready yet"
+            fi
+            sleep 20
+          done
+          echo "::error::Timed out waiting for prod ${PROD_LABEL} pin ${EXPECTED_VERSION} at ${PROD_VERSION_URL}."
+          echo "::error::Deploy via qa-guru/selenoid.qa.guru (${DEPLOY_HINT}=${EXPECTED_VERSION}), then re-run or rely on post-deploy smoke."
+          exit 1
 
       - name: Dispatch deploy-smoke to selenoid-tests
         env:
