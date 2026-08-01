@@ -30,6 +30,16 @@ on:
         required: false
         type: string
         default: ""
+      source_browser:
+        description: "WebDriver browser (chrome, firefox, msedge)"
+        required: false
+        type: string
+        default: ""
+      webdriver_variant:
+        description: "WebDriver image variant (warm, min)"
+        required: false
+        type: string
+        default: ""
       summary_title:
         description: "Job summary heading"
         required: false
@@ -179,6 +189,8 @@ jobs:
       - name: Dispatch deploy-smoke to selenoid-tests
         env:
           SOURCE_VARIANT: ${{ inputs.source_variant }}
+          SOURCE_BROWSER: ${{ inputs.source_browser }}
+          WEBDRIVER_VARIANT: ${{ inputs.webdriver_variant }}
         run: |
           set -euo pipefail
           payload="$(jq -n \
@@ -189,6 +201,8 @@ jobs:
             --arg test_tags "${{ env.TEST_TAGS }}" \
             --arg trigger_run_id "${{ github.run_id }}-${{ github.run_attempt }}" \
             --arg source_variant "${SOURCE_VARIANT}" \
+            --arg source_browser "${SOURCE_BROWSER}" \
+            --arg webdriver_variant "${WEBDRIVER_VARIANT}" \
             '{
               source_repo: $source_repo,
               source_version: $source_version,
@@ -197,7 +211,10 @@ jobs:
               test_tags: $test_tags,
               skip_go_unit: true,
               trigger_run_id: $trigger_run_id
-            } + (if $source_variant != "" then {source_variant: $source_variant} else {} end)')"
+            }
+            + (if $source_variant != "" then {source_variant: $source_variant} else {} end)
+            + (if $source_browser != "" then {source_browser: $source_browser} else {} end)
+            + (if $webdriver_variant != "" then {webdriver_variant: $webdriver_variant} else {} end)')"
           curl -fsSL -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}" \
