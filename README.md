@@ -36,6 +36,8 @@
 > | **`main`** | **v3.0.0+** | Активная prod-линия hub |
 > | `selenoid2-1.55-…-react18` | v2.3.0 | frozen maintenance pin |
 > | `selenoid2-1.45-…-react16` | v2.2.1 | frozen rollback reference |
+>
+> Monorepo SSOT: [`projects/selenoid-home/README.md`](https://github.com/qa-guru/zero-design-system/blob/master/projects/selenoid-home/README.md).
 <!-- stack-branches-note:end -->
 
 
