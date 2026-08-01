@@ -25,6 +25,7 @@ import (
 	"github.com/qa-guru/selenoid/service"
 	"github.com/qa-guru/selenoid/session"
 	"github.com/qa-guru/selenoid/upload"
+	"github.com/qa-guru/selenoid/warm"
 	"github.com/moby/moby/client"
 	"github.com/pkg/errors"
 	"golang.org/x/net/websocket"
@@ -56,11 +57,13 @@ var (
 	harOutputDir             string
 	saveAllLogs              bool
 	accessKeys               string
+	warmPoolURL              string
 	ggrHost                  *ggr.Host
 	conf                     *config.Config
 	queue                    *protect.Queue
 	manager                  service.Manager
 	cli                      *client.Client
+	warmTracker              *warm.Tracker
 
 	startTime = time.Now()
 
@@ -97,6 +100,7 @@ func init() {
 	flag.StringVar(&harOutputDir, "har-output-dir", "", "Directory to save session HAR (HTTP Archive) files to")
 	flag.BoolVar(&saveAllLogs, "save-all-logs", false, "Whether to save all logs without considering capabilities")
 	flag.StringVar(&accessKeys, "access-key", "", "Comma-separated required ?accessKey= values for /playwright/ WebSocket (empty = no check)")
+	flag.StringVar(&warmPoolURL, "warm-pool-url", os.Getenv("SELENOID_WARM_POOL_URL"), "Warm-pool orchestrator base URL for /status warmReady/warmTotal (e.g. http://127.0.0.1:9090); empty disables")
 	flag.DurationVar(&gracefulPeriod, "graceful-period", 300*time.Second, "graceful shutdown period in time.Duration format, e.g. 300s or 500ms")
 	flag.Parse()
 
@@ -109,6 +113,11 @@ func init() {
 	hostname, err = os.Hostname()
 	if err != nil {
 		log.Fatalf("[-] [INIT] [%s: %v]", os.Args[0], err)
+	}
+	if warmPoolURL != "" {
+		warmTracker = warm.NewTracker(warmPoolURL)
+		go warmTracker.Start(context.Background())
+		log.Printf("[-] [INIT] [Warm pool status probe: %s]", warmPoolURL)
 	}
 	if ggrHostEnv := os.Getenv("GGR_HOST"); ggrHostEnv != "" {
 		ggrHost = parseGgrHost(ggrHostEnv)
@@ -400,7 +409,11 @@ func handler() http.Handler {
 	})
 	root.HandleFunc(paths.Status, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(conf.State(sessions, limit, queue.Queued(), queue.Pending()))
+		state := conf.State(sessions, limit, queue.Queued(), queue.Pending())
+		if warmTracker != nil {
+			state.WarmReady, state.WarmTotal = warmTracker.Snapshot()
+		}
+		_ = json.NewEncoder(w).Encode(state)
 	})
 	root.HandleFunc(paths.Ping, ping)
 	root.HandleFunc(paths.Playwright, playwrightConnect)

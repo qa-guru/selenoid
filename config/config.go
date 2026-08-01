@@ -41,11 +41,13 @@ type Browsers map[string]Version
 
 // State - current state
 type State struct {
-	Total    int      `json:"total"`
-	Used     int      `json:"used"`
-	Queued   int      `json:"queued"`
-	Pending  int      `json:"pending"`
-	Browsers Browsers `json:"browsers"`
+	Total     int      `json:"total"`
+	Used      int      `json:"used"`
+	Queued    int      `json:"queued"`
+	Pending   int      `json:"pending"`
+	WarmReady int      `json:"warmReady"`
+	WarmTotal int      `json:"warmTotal"`
+	Browsers  Browsers `json:"browsers"`
 }
 
 // Browser configuration
@@ -247,7 +249,12 @@ func (config *Config) Find(name string, version string) (*Browser, string, bool)
 func (config *Config) State(sessions *session.Map, limit, queued, pending int) *State {
 	config.lock.RLock()
 	defer config.lock.RUnlock()
-	state := &State{limit, 0, queued, pending, make(Browsers)}
+	state := &State{
+		Total:    limit,
+		Queued:   queued,
+		Pending:  pending,
+		Browsers: make(Browsers),
+	}
 	for n, b := range config.Browsers {
 		state.Browsers[n] = make(Version)
 		for v := range b.Versions {
