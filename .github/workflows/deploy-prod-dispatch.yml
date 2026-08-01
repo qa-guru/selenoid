@@ -36,7 +36,7 @@ on:
         type: string
         default: main
     secrets:
-      SELENOID_DEPLOY_DISPATCH_TOKEN:
+      SELENOID_TESTS_DISPATCH_TOKEN:
         required: true
 
 permissions:
@@ -50,14 +50,14 @@ jobs:
     steps:
       - name: Validate token
         run: |
-          if [[ -z "${{ secrets.SELENOID_DEPLOY_DISPATCH_TOKEN }}" ]]; then
-            echo "::error::Missing secret SELENOID_DEPLOY_DISPATCH_TOKEN (PAT: repo scope on qa-guru/selenoid.qa.guru)"
+          if [[ -z "${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}" ]]; then
+            echo "::error::Missing secret SELENOID_TESTS_DISPATCH_TOKEN (PAT: repo scope on qa-guru/selenoid.qa.guru)"
             exit 1
           fi
 
       - name: Dispatch prod deploy
         env:
-          TOKEN: ${{ secrets.SELENOID_DEPLOY_DISPATCH_TOKEN }}
+          TOKEN: ${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}
           HUB_VERSION: ${{ inputs.version }}
           UI_VERSION: ${{ inputs.ui_version }}
           PULL_BROWSERS: ${{ inputs.pull_browsers }}
