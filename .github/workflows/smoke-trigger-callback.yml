@@ -187,7 +187,7 @@ jobs:
             --arg source_ref "${{ steps.meta.outputs.ref }}" \
             --arg env_profile "${{ env.ENV_PROFILE }}" \
             --arg test_tags "${{ env.TEST_TAGS }}" \
-            --arg trigger_run_id "${{ github.run_id }}" \
+            --arg trigger_run_id "${{ github.run_id }}-${{ github.run_attempt }}" \
             --arg source_variant "${SOURCE_VARIANT}" \
             '{
               source_repo: $source_repo,
@@ -208,7 +208,8 @@ jobs:
         id: wait
         env:
           GH_TOKEN: ${{ github.token }}
-          ARTIFACT_NAME: smoke-result-${{ github.run_id }}
+          # Include run_attempt so gh run rerun --failed does not pick a stale callback artifact.
+          ARTIFACT_NAME: smoke-result-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
           DEADLINE=$(($(date +%s) + 1200))
