@@ -11,7 +11,7 @@ jobs:
     env:
       GOTOOLCHAIN: auto
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -21,7 +21,7 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -38,9 +38,3 @@ jobs:
 
       - name: Build
         run: ci/build.sh
-
-      - name: Latest image
-        env:
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-        run: ci/docker-push.sh latest

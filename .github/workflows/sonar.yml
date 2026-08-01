@@ -7,6 +7,14 @@ name: sonar
 on:
   push:
     branches: [main]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'sonar-project.properties'
+      - '.github/workflows/sonar.yml'
+  schedule:
+    - cron: '0 3 * * 1'
   workflow_dispatch:
 
 permissions:
