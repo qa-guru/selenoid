@@ -1,0 +1,100 @@
+# SSOT: generators/ethalon/selenoid-stack/deploy-prod-dispatch.yml
+# Copy to consumer: .github/workflows/deploy-prod-dispatch.yml
+# Sync: ./scripts/selenoid/sync-selenoid-stack-workflows.sh
+#
+# Dispatches qa-guru/selenoid.qa.guru deploy-selenoid (repository_dispatch).
+# Release repos call this before deploy-smoke wait — removes manual prod pin step.
+
+name: Deploy prod pin dispatch
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: "Hub release tag (empty = keep deploy.sh default / current pin)"
+        required: false
+        type: string
+        default: ""
+      ui_version:
+        description: "selenoid-ui release tag (empty = keep deploy workflow default)"
+        required: false
+        type: string
+        default: ""
+      pull_browsers:
+        description: "never | auto | always — browser image pull policy on Box1"
+        required: false
+        type: string
+        default: never
+      skip_inline_browser_smoke:
+        description: "Skip 4× WebDriver session smoke in deploy.sh (faster hub/ui pin)"
+        required: false
+        type: boolean
+        default: true
+      ref:
+        description: "Git ref for deploy scripts in selenoid.qa.guru"
+        required: false
+        type: string
+        default: main
+    secrets:
+      SELENOID_DEPLOY_DISPATCH_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    name: Dispatch deploy-selenoid
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate token
+        run: |
+          if [[ -z "${{ secrets.SELENOID_DEPLOY_DISPATCH_TOKEN }}" ]]; then
+            echo "::error::Missing secret SELENOID_DEPLOY_DISPATCH_TOKEN (PAT: repo scope on qa-guru/selenoid.qa.guru)"
+            exit 1
+          fi
+
+      - name: Dispatch prod deploy
+        env:
+          TOKEN: ${{ secrets.SELENOID_DEPLOY_DISPATCH_TOKEN }}
+          HUB_VERSION: ${{ inputs.version }}
+          UI_VERSION: ${{ inputs.ui_version }}
+          PULL_BROWSERS: ${{ inputs.pull_browsers }}
+          SKIP_INLINE: ${{ inputs.skip_inline_browser_smoke }}
+          DEPLOY_REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          payload="$(jq -n \
+            --arg ref "${DEPLOY_REF}" \
+            --arg pull_browsers "${PULL_BROWSERS}" \
+            --argjson skip_inline "${SKIP_INLINE}" \
+            --arg version "${HUB_VERSION}" \
+            --arg ui_version "${UI_VERSION}" \
+            '{
+              ref: $ref,
+              pull_browsers: $pull_browsers,
+              skip_inline_browser_smoke: $skip_inline
+            }
+            + (if $version != "" then {version: $version} else {} end)
+            + (if $ui_version != "" then {ui_version: $ui_version} else {} end)')"
+          echo "Dispatching deploy-selenoid → qa-guru/selenoid.qa.guru"
+          echo "${payload}" | jq .
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/qa-guru/selenoid.qa.guru/dispatches" \
+            -d "$(jq -n --argjson client_payload "${payload}" '{event_type: "deploy-selenoid", client_payload: $client_payload}')"
+
+      - name: Job summary
+        run: |
+          {
+            echo "## Deploy prod pin dispatch"
+            echo ""
+            echo "- Target: [\`qa-guru/selenoid.qa.guru\`](https://github.com/qa-guru/selenoid.qa.guru) (\`deploy-selenoid\`)"
+            echo "- Hub version: \`${{ inputs.version || '(unchanged)' }}\`"
+            echo "- UI version: \`${{ inputs.ui_version || '(unchanged)' }}\`"
+            echo "- pull_browsers: \`${{ inputs.pull_browsers }}\`"
+            echo "- skip_inline_browser_smoke: \`${{ inputs.skip_inline_browser_smoke }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

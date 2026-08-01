@@ -1,6 +1,6 @@
-# SSOT: dispatch deploy-smoke → wait for smoke-complete artifact → job summary.
+# SSOT: generators/ethalon/selenoid-stack/smoke-trigger-callback.yml
 # Copy to consumer: .github/workflows/smoke-trigger-callback.yml
-# Call from release/publish via workflow_call.
+# Sync: ./projects/selenoid-home/scripts/sync-selenoid-stack-workflows.sh
 
 name: Smoke trigger with callback
 
@@ -8,7 +8,7 @@ on:
   workflow_call:
     inputs:
       test_tags:
-        description: "JUnit tags slice (api, smoke, playwright, ...)"
+        description: "Go pyramid slice (integration, api, smoke, playwright, api,smoke, cm)"
         required: true
         type: string
       source_version:
@@ -21,7 +21,7 @@ on:
         type: string
         default: ""
       env_profile:
-        description: "Env profile (-Denv=)"
+        description: "Env profile (SELENOID_TEST_ENV prefix), e.g. selenoid_qa_guru_api"
         required: false
         type: string
         default: selenoid_qa_guru_api
