@@ -97,4 +97,5 @@ jobs:
             echo "- UI version: \`${{ inputs.ui_version || '(unchanged)' }}\`"
             echo "- pull_browsers: \`${{ inputs.pull_browsers }}\`"
             echo "- skip_inline_browser_smoke: \`${{ inputs.skip_inline_browser_smoke }}\`"
+            echo "- Prod smoke owner: **selenoid.qa.guru** \`deploy.yml\` (release uses \`wait_only\` pin gate — no second dispatch)"
           } >> "$GITHUB_STEP_SUMMARY"

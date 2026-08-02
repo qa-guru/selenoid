@@ -1,6 +1,10 @@
 # SSOT: generators/ethalon/selenoid-stack/smoke-trigger-callback.yml
 # Copy to consumer: .github/workflows/smoke-trigger-callback.yml
-# Sync: ./projects/selenoid-home/scripts/sync-selenoid-stack-workflows.sh
+# Sync: ./scripts/selenoid/sync-selenoid-stack-workflows.sh
+#
+# Prod smoke owner: qa-guru/selenoid.qa.guru (deploy.yml → this workflow, full dispatch).
+# Release repos (selenoid / selenoid-ui): wait_only=true after deploy-prod-dispatch —
+# pin gate only, no second deploy-smoke under prod-smoke-gate.
 
 name: Smoke trigger with callback
 
@@ -45,6 +49,11 @@ on:
         required: false
         type: string
         default: Deploy smoke → selenoid-tests
+      wait_only:
+        description: "Pin wait only — no deploy-smoke dispatch/callback (release after deploy-prod-dispatch; smoke owner = selenoid.qa.guru)"
+        required: false
+        type: boolean
+        default: false
       wait_for_prod_ui_version:
         description: "Poll prod /ui/status until .version matches source_version before dispatch (release→deploy race guard)"
         required: false
@@ -71,10 +80,11 @@ on:
         type: number
         default: 10
       callback_timeout_minutes:
-        description: "Max minutes to wait for smoke-complete callback artifact"
+        # api,smoke → go-hub (api+webdriver+ui+playwright) + early callback; 8m was too tight under prod-smoke-gate.
+        description: "Max minutes to wait for smoke-complete callback artifact (api,smoke envelope ~25–35m)"
         required: false
         type: number
-        default: 8
+        default: 35
     secrets:
       SELENOID_TESTS_DISPATCH_TOKEN:
         required: true
@@ -87,19 +97,24 @@ jobs:
   trigger:
     name: Trigger selenoid-tests with callback
     runs-on: ubuntu-latest
-    # wait_timeout_minutes + callback_timeout_minutes + dispatch overhead.
-    timeout-minutes: 22
+    # wait_timeout (10) + callback_timeout (35) + dispatch/overhead.
+    timeout-minutes: 50
     env:
       TESTS_REPO: qa-guru/selenoid-tests
       TEST_TAGS: ${{ inputs.test_tags }}
       ENV_PROFILE: ${{ inputs.env_profile }}
       SUMMARY_TITLE: ${{ inputs.summary_title }}
+      WAIT_ONLY: ${{ inputs.wait_only }}
 
     steps:
       - name: Validate configuration
         run: |
-          if [[ -z "${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}" ]]; then
+          if [[ "${WAIT_ONLY}" != "true" && -z "${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}" ]]; then
             echo "::error::Secret SELENOID_TESTS_DISPATCH_TOKEN is not set (PAT with repo scope on ${TESTS_REPO})."
+            exit 1
+          fi
+          if [[ "${WAIT_ONLY}" == "true" && "${{ inputs.wait_for_prod_ui_version }}" != "true" && "${{ inputs.wait_for_prod_hub_version }}" != "true" ]]; then
+            echo "::error::wait_only requires wait_for_prod_ui_version and/or wait_for_prod_hub_version."
             exit 1
           fi
 
@@ -191,7 +206,21 @@ jobs:
           echo "::error::Deploy via qa-guru/selenoid.qa.guru (${DEPLOY_HINT}=${EXPECTED_VERSION}), then re-run or rely on post-deploy smoke."
           exit 1
 
+      - name: Job summary (wait_only — pin gate)
+        if: inputs.wait_only
+        run: |
+          {
+            echo "## ${SUMMARY_TITLE}"
+            echo ""
+            echo "- Mode: \`wait_only\` (prod pin gate — **no** second \`deploy-smoke\`)"
+            echo "- Deploy version: \`${{ steps.meta.outputs.version }}\`"
+            echo "- Prod smoke owner: [\`qa-guru/selenoid.qa.guru\`](https://github.com/qa-guru/selenoid.qa.guru) \`deploy.yml\` → tags \`${{ env.TEST_TAGS }}\`"
+            echo "- Concurrency: \`prod-smoke-gate\` (single owner avoids duplicate queue)"
+            echo "- [This run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Dispatch deploy-smoke to selenoid-tests
+        if: ${{ !inputs.wait_only }}
         env:
           SOURCE_VARIANT: ${{ inputs.source_variant }}
           SOURCE_BROWSER: ${{ inputs.source_browser }}
@@ -228,6 +257,7 @@ jobs:
 
       - name: Wait for smoke-complete callback
         id: wait
+        if: ${{ !inputs.wait_only }}
         env:
           GH_TOKEN: ${{ github.token }}
           CALLBACK_TIMEOUT_MINUTES: ${{ inputs.callback_timeout_minutes }}
@@ -257,6 +287,7 @@ jobs:
 
       - name: Load smoke result
         id: smoke
+        if: ${{ !inputs.wait_only && steps.wait.outcome == 'success' }}
         run: |
           set -euo pipefail
           while IFS='=' read -r key value; do
@@ -274,16 +305,17 @@ jobs:
           echo "report_built=${report_built}" >> "$GITHUB_OUTPUT"
 
       - name: Job summary
-        if: always() && steps.wait.outcome == 'success'
+        if: ${{ !inputs.wait_only && always() && steps.wait.outcome == 'success' }}
         env:
           STATS_JSON: ${{ steps.smoke.outputs.stats }}
         run: |
           {
             echo "## ${SUMMARY_TITLE}"
             echo ""
-            echo "- Target: [\`${{ env.TESTS_REPO }}\`](https://github.com/${{ env.TESTS_REPO }}) (\`deploy-smoke\`)"
+            echo "- Prod smoke owner: this workflow (caller repo) → [\`${{ env.TESTS_REPO }}\`](https://github.com/${{ env.TESTS_REPO }}) \`deploy-smoke\`"
             echo "- Env profile: \`${{ env.ENV_PROFILE }}\`"
             echo "- Tags slice: \`${{ env.TEST_TAGS }}\`"
+            echo "- Callback timeout: \`${{ inputs.callback_timeout_minutes }}m\` (api,smoke envelope)"
             echo "- Go unit: skipped (\`skip_go_unit\`)"
             echo "- Deploy version: \`${{ steps.meta.outputs.version }}\`"
             echo "- [Trigger run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
@@ -323,18 +355,19 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Job summary (callback timeout)
-        if: always() && steps.wait.outcome != 'success'
+        if: ${{ !inputs.wait_only && always() && steps.wait.outcome != 'success' }}
         run: |
           {
             echo "## ${{ inputs.summary_title }}"
             echo ""
             echo "- Target: [\`${{ env.TESTS_REPO }}\`](https://github.com/${{ env.TESTS_REPO }})"
             echo "- Deploy version: \`${{ steps.meta.outputs.version }}\`"
+            echo "- Callback timeout: \`${{ inputs.callback_timeout_minutes }}m\`"
             echo "- smoke-complete callback: _не получен (timeout или нет callback token в selenoid-tests)_"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fail if prod smoke failed
-        if: always() && steps.smoke.outputs.conclusion != '' && steps.smoke.outputs.conclusion != 'success'
+        if: ${{ !inputs.wait_only && always() && steps.smoke.outputs.conclusion != '' && steps.smoke.outputs.conclusion != 'success' }}
         run: |
           echo "::error::selenoid-tests deploy-smoke concluded with: ${{ steps.smoke.outputs.conclusion }}"
           exit 1

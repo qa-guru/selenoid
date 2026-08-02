@@ -89,10 +89,10 @@ jobs:
       pull_browsers: never
       skip_inline_browser_smoke: true
 
-  # Gate of record for prod hub: wait until /hub/ping matches the release tag,
-  # then run api+smoke Go dispatch (selenoid_qa_guru_api + test_tags=api,smoke).
-  deploy-smoke:
-    name: Release smoke → selenoid-tests
+  # Pin gate only: wait until /hub/ping matches the release tag.
+  # Prod smoke owner = qa-guru/selenoid.qa.guru deploy.yml (no second deploy-smoke here).
+  wait-prod-pin:
+    name: Wait prod hub pin
     needs: [golang, deploy-prod]
     if: success()
     permissions:
@@ -106,6 +106,7 @@ jobs:
       env_profile: selenoid_qa_guru_api
       source_version: ${{ needs.golang.outputs.release_version }}
       source_ref: ${{ github.ref }}
-      summary_title: Release smoke → selenoid-tests
+      summary_title: Wait prod hub pin (smoke → selenoid.qa.guru)
+      wait_only: true
       wait_for_prod_hub_version: true
       wait_timeout_minutes: 10

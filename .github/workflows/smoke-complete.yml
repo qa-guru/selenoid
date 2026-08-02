@@ -1,6 +1,6 @@
 # SSOT: generators/ethalon/selenoid-stack/smoke-complete.yml
 # Copy to consumer: .github/workflows/smoke-complete.yml
-# Sync: ./projects/selenoid-home/scripts/sync-selenoid-stack-workflows.sh
+# Sync: ./scripts/selenoid/sync-selenoid-stack-workflows.sh
 
 name: Prod smoke callback
 
