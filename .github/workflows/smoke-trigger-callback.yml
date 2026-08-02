@@ -69,7 +69,12 @@ on:
         description: "Max minutes to wait for prod pin (when wait_for_prod_*_version)"
         required: false
         type: number
-        default: 25
+        default: 10
+      callback_timeout_minutes:
+        description: "Max minutes to wait for smoke-complete callback artifact"
+        required: false
+        type: number
+        default: 8
     secrets:
       SELENOID_TESTS_DISPATCH_TOKEN:
         required: true
@@ -82,8 +87,8 @@ jobs:
   trigger:
     name: Trigger selenoid-tests with callback
     runs-on: ubuntu-latest
-    # Extra headroom when waiting for prod pin before dispatch + smoke callback.
-    timeout-minutes: 55
+    # wait_timeout_minutes + callback_timeout_minutes + dispatch overhead.
+    timeout-minutes: 22
     env:
       TESTS_REPO: qa-guru/selenoid-tests
       TEST_TAGS: ${{ inputs.test_tags }}
@@ -225,13 +230,14 @@ jobs:
         id: wait
         env:
           GH_TOKEN: ${{ github.token }}
+          CALLBACK_TIMEOUT_MINUTES: ${{ inputs.callback_timeout_minutes }}
           # Include run_attempt so gh run rerun --failed does not pick a stale callback artifact.
           ARTIFACT_NAME: smoke-result-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
-          DEADLINE=$(($(date +%s) + 1200))
+          DEADLINE=$(($(date +%s) + CALLBACK_TIMEOUT_MINUTES * 60))
           ARTIFACT_ID=""
-          echo "Waiting for artifact ${ARTIFACT_NAME} (smoke-complete callback)..."
+          echo "Waiting for artifact ${ARTIFACT_NAME} (smoke-complete callback, timeout ${CALLBACK_TIMEOUT_MINUTES}m)..."
           while [[ "$(date +%s)" -lt "${DEADLINE}" ]]; do
             ARTIFACT_ID="$(gh api \
               "/repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${ARTIFACT_NAME}&per_page=1" \
@@ -242,7 +248,7 @@ jobs:
             sleep 15
           done
           if [[ -z "${ARTIFACT_ID}" ]]; then
-            echo "::error::Timed out waiting for smoke-complete callback (artifact ${ARTIFACT_NAME})."
+            echo "::error::Timed out waiting for smoke-complete callback (artifact ${ARTIFACT_NAME}, ${CALLBACK_TIMEOUT_MINUTES}m)."
             exit 1
           fi
           gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > /tmp/smoke-result.zip
