@@ -250,21 +250,28 @@
     }
   },
   "android": {
-    "default": "10.0",
+    "default": "16.0",
     "versions": {
-      "4.4": {
-        "image": "selenoid/android:4.4",
+      "5.1": {
+        "image": "selenoid/android:5.1",
         "port": "4444",
         "path": "/wd/hub",
         "mem": "2g",
         "cpu": "2.0"
       },
       "10.0": {
-        "image": "selenoid/android:10.0",
+        "image": "qaguru/android:10",
         "port": "4444",
         "path": "/wd/hub",
-        "mem": "2g",
-        "cpu": "2.0"
+        "shmSize": 2147483648,
+        "mem": "6g",
+        "cpu": "4.0",
+        "env": [
+          "SCREEN_RESOLUTION=2100x2100x24"
+        ],
+        "hosts": [
+          "host.docker.internal:host-gateway"
+        ]
       },
       "11.0": {
         "image": "qaguru/android:11",

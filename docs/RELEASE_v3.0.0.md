@@ -14,7 +14,7 @@
 | **Selenoid 3 hub line** | Prod hub semver переходит на **v3.0.0** с `main`; pin-ветки 2.x заморожены |
 | **Playwright accessKey** | Публичный stand: обязательный `accessKey` для Playwright WS (nginx + hub) |
 | **Video list API** | Paginated `/video` list с limit/offset |
-| **Android catalog** | SSOT: android **16.0** (`qaguru/android:16`) + legacy `selenoid/android:4.4`, `10.0` |
+| **Android catalog** | SSOT: default **16.0** (`qaguru/android:16` prepared) + **10–15** + legacy floor `selenoid/android:5.1` (no 4.4) |
 | **Docker API 1.55** | Moby client + Engine **29.x** (наследие v2.3.0 baseline) |
 
 Browser-image теги — без изменений политики; prod overlay — `browsers-production.json`.
