@@ -41,7 +41,10 @@ type sessionListResponse struct {
 // sessionsList serves a session-centric view over the video/log/har artifact
 // directories, mirroring the /video/ and /har/ JSON listing contract:
 //
-//	GET /sessions/?json[&limit=&offset=&q=]
+//	GET /sessions/?json[&limit=&offset=&q=&sort=&order=]
+//
+// sort: id | finished (default) | started | duration | quota | name
+// order: asc | desc (default desc for finished)
 //
 // Files are grouped by the base name shared by <id>.mp4, <id>.log and <id>.har
 // (the session id for default naming). Grouping only lines up when the three
@@ -63,9 +66,9 @@ func sessionsList(w http.ResponseWriter, r *http.Request) {
 	for id := range group {
 		ids = append(ids, id)
 	}
-	sort.Strings(ids)
-
 	query := r.URL.Query()
+	sortSessionIDs(ids, group, query.Get("sort"), query.Get("order"))
+
 	ids = filterFileNames(ids, query.Get("q"))
 	limit, offset := parseVideoListLimitOffset(query)
 	page := paginateFileNames(ids, limit, offset)
@@ -171,4 +174,67 @@ func applySessionMetadata(a *sessionArtifacts) {
 			a.HAR = name
 		}
 	}
+}
+
+func sortSessionIDs(ids []string, group map[string]*sessionArtifacts, sortKey, order string) {
+	sortKey = strings.ToLower(strings.TrimSpace(sortKey))
+	if sortKey == "" {
+		sortKey = "finished"
+	}
+	desc := !strings.EqualFold(order, "asc")
+	if strings.TrimSpace(order) == "" && sortKey == "finished" {
+		desc = true
+	}
+	sort.SliceStable(ids, func(i, j int) bool {
+		a, b := group[ids[i]], group[ids[j]]
+		less := sessionArtifactsLess(a, b, sortKey)
+		if less == sessionArtifactsLess(b, a, sortKey) {
+			return ids[i] < ids[j]
+		}
+		if desc {
+			return !less
+		}
+		return less
+	})
+}
+
+func sessionArtifactsLess(a, b *sessionArtifacts, sortKey string) bool {
+	switch sortKey {
+	case "id":
+		return a.ID < b.ID
+	case "quota":
+		return strings.ToLower(a.Quota) < strings.ToLower(b.Quota)
+	case "name":
+		return strings.ToLower(a.Name) < strings.ToLower(b.Name)
+	case "started":
+		return sessionTimeBefore(a.Started, b.Started)
+	case "duration":
+		return sessionDuration(a) < sessionDuration(b)
+	default:
+		return sessionTimeBefore(a.Finished, b.Finished)
+	}
+}
+
+func sessionTimeBefore(a, b *time.Time) bool {
+	if a == nil && b == nil {
+		return false
+	}
+	if a == nil {
+		return true
+	}
+	if b == nil {
+		return false
+	}
+	return a.Before(*b)
+}
+
+func sessionDuration(a *sessionArtifacts) time.Duration {
+	if a == nil || a.Started == nil || a.Finished == nil {
+		return 0
+	}
+	d := a.Finished.Sub(*a.Started)
+	if d < 0 {
+		return 0
+	}
+	return d
 }

@@ -163,7 +163,7 @@ func TestSessionsListPaginationAndSort(t *testing.T) {
 		assert.NoError(t, os.WriteFile(filepath.Join(video, fmt.Sprintf("session-%02d.mp4", i)), []byte("v"), 0644))
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/sessions/?json&limit=10&offset=10", nil)
+	req := httptest.NewRequest(http.MethodGet, "/sessions/?json&limit=10&offset=10&sort=id&order=asc", nil)
 	rr := httptest.NewRecorder()
 	sessionsList(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
@@ -176,6 +176,72 @@ func TestSessionsListPaginationAndSort(t *testing.T) {
 	// Sorted ascending by id -> offset 10 is session-10.
 	assert.Equal(t, "session-10", listed.Sessions[0].ID)
 	assert.Equal(t, "session-14", listed.Sessions[4].ID)
+}
+
+func TestSessionsListDefaultSortNewestFinishedFirst(t *testing.T) {
+	video := t.TempDir()
+	logs := t.TempDir()
+	setArtifactDirs(t, video, logs, "")
+
+	writeMeta := func(id string, finished time.Time) {
+		meta := session.Metadata{
+			ID:       id,
+			Finished: finished,
+		}
+		raw, err := json.Marshal(meta)
+		assert.NoError(t, err)
+		assert.NoError(t, os.WriteFile(filepath.Join(logs, id+".json"), raw, 0644))
+		assert.NoError(t, os.WriteFile(filepath.Join(video, id+".mp4"), []byte("v"), 0644))
+	}
+
+	writeMeta("old", time.Date(2026, 7, 20, 10, 0, 0, 0, time.UTC))
+	writeMeta("new", time.Date(2026, 7, 30, 10, 0, 0, 0, time.UTC))
+	writeMeta("mid", time.Date(2026, 7, 25, 10, 0, 0, 0, time.UTC))
+
+	req := httptest.NewRequest(http.MethodGet, "/sessions/?json", nil)
+	rr := httptest.NewRecorder()
+	sessionsList(rr, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	listed := decodeSessions(t, rr)
+	assert.Equal(t, []string{"new", "mid", "old"}, []string{
+		listed.Sessions[0].ID,
+		listed.Sessions[1].ID,
+		listed.Sessions[2].ID,
+	})
+}
+
+func TestSessionsListSortByDurationDesc(t *testing.T) {
+	video := t.TempDir()
+	logs := t.TempDir()
+	setArtifactDirs(t, video, logs, "")
+
+	writeMeta := func(id string, started, finished time.Time) {
+		meta := session.Metadata{
+			ID:       id,
+			Started:  started,
+			Finished: finished,
+		}
+		raw, err := json.Marshal(meta)
+		assert.NoError(t, err)
+		assert.NoError(t, os.WriteFile(filepath.Join(logs, id+".json"), raw, 0644))
+		assert.NoError(t, os.WriteFile(filepath.Join(video, id+".mp4"), []byte("v"), 0644))
+	}
+
+	base := time.Date(2026, 7, 26, 10, 0, 0, 0, time.UTC)
+	writeMeta("short", base, base.Add(5*time.Second))
+	writeMeta("long", base, base.Add(2*time.Minute))
+
+	req := httptest.NewRequest(http.MethodGet, "/sessions/?json&sort=duration&order=desc", nil)
+	rr := httptest.NewRecorder()
+	sessionsList(rr, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
+
+	listed := decodeSessions(t, rr)
+	assert.Equal(t, []string{"long", "short"}, []string{
+		listed.Sessions[0].ID,
+		listed.Sessions[1].ID,
+	})
 }
 
 func TestSessionsListFilter(t *testing.T) {
