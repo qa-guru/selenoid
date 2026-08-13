@@ -65,6 +65,7 @@ type DefaultManager struct {
 	Environment *Environment
 	Client      *client.Client
 	Config      *config.Config
+	WarmPool    WarmPool
 }
 
 // Find - default implementation Manager interface
@@ -77,6 +78,7 @@ func (m *DefaultManager) Find(caps session.Caps, requestId uint64) (Starter, boo
 	if !ok {
 		return nil, false
 	}
+	var cold Starter
 	switch service.Image.(type) {
 	case string:
 		if m.Client == nil {
@@ -86,17 +88,19 @@ func (m *DefaultManager) Find(caps session.Caps, requestId uint64) (Starter, boo
 			return nil, false
 		}
 		log.Printf("[%d] [USING_DOCKER] [%s] [%s]", requestId, browserName, version)
-		return &Docker{
+		cold = &Docker{
 			ServiceBase: serviceBase,
 			Environment: *m.Environment,
 			Caps:        caps,
 			Client:      m.Client,
-			LogConfig:   m.Config.ContainerLogs}, true
+			LogConfig:   m.Config.ContainerLogs}
 	case []interface{}:
 		log.Printf("[%d] [USING_DRIVER] [%s] [%s]", requestId, browserName, version)
-		return &Driver{ServiceBase: serviceBase, Environment: *m.Environment, Caps: caps}, true
+		cold = &Driver{ServiceBase: serviceBase, Environment: *m.Environment, Caps: caps}
+	default:
+		return nil, false
 	}
-	return nil, false
+	return wrapWarm(requestId, browserName, caps, cold, m.WarmPool, m.Environment), true
 }
 
 // FindPlaywright locates a Playwright browser by public URL name and version.

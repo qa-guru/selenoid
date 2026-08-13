@@ -158,6 +158,16 @@ go build -o selenoid .
 DOCKER_API_VERSION=1.55 ./selenoid -conf config/browsers.json -limit 5
 ```
 
+## Warm-pool hub-attach
+
+Chrome WebDriver sessions can attach to a pre-started slot when `-warm-pool-url` / `SELENOID_WARM_POOL_URL` points at [selenoid-warm-pool](https://github.com/qa-guru/selenoid-warm-pool) **and** the slot exposes a loopback `webdriverUrl` (`127.0.0.1`). Otherwise the hub starts a cold Docker container. Playwright / video / VNC / HAR stay cold.
+
+```bash
+./selenoid -conf config/browsers.json -warm-pool-url http://127.0.0.1:9090
+```
+
+Operator guide: [docs/HUB-ATTACH.md](docs/HUB-ATTACH.md) · ADR: [docs/ADR-hub-attach.md](docs/ADR-hub-attach.md).
+
 **SSOT:** [`../dev/browsers.json`](../dev/browsers.json) (полный каталог).  
 Sync: [`../dev/scripts/sync-cm-browsers.sh`](../dev/scripts/sync-cm-browsers.sh) → [`config/browsers.json`](config/browsers.json), CM embed, CI fixture, UI.
 

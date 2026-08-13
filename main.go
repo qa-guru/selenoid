@@ -64,6 +64,7 @@ var (
 	manager                  service.Manager
 	cli                      *client.Client
 	warmTracker              *warm.Tracker
+	warmClient               *warm.Client
 
 	startTime = time.Now()
 
@@ -100,7 +101,7 @@ func init() {
 	flag.StringVar(&harOutputDir, "har-output-dir", "", "Directory to save session HAR (HTTP Archive) files to")
 	flag.BoolVar(&saveAllLogs, "save-all-logs", false, "Whether to save all logs without considering capabilities")
 	flag.StringVar(&accessKeys, "access-key", "", "Comma-separated required ?accessKey= values for /playwright/ WebSocket (empty = no check)")
-	flag.StringVar(&warmPoolURL, "warm-pool-url", os.Getenv("SELENOID_WARM_POOL_URL"), "Warm-pool orchestrator base URL for /status warmReady/warmTotal (e.g. http://127.0.0.1:9090); empty disables")
+	flag.StringVar(&warmPoolURL, "warm-pool-url", os.Getenv("SELENOID_WARM_POOL_URL"), "Warm-pool orchestrator base URL for /status warmReady/warmTotal and Chrome WD attach (e.g. http://127.0.0.1:9090); empty disables")
 	flag.DurationVar(&gracefulPeriod, "graceful-period", 300*time.Second, "graceful shutdown period in time.Duration format, e.g. 300s or 500ms")
 	flag.Parse()
 
@@ -116,8 +117,9 @@ func init() {
 	}
 	if warmPoolURL != "" {
 		warmTracker = warm.NewTracker(warmPoolURL)
+		warmClient = warm.NewClient(warmPoolURL)
 		go warmTracker.Start(context.Background())
-		log.Printf("[-] [INIT] [Warm pool status probe: %s]", warmPoolURL)
+		log.Printf("[-] [INIT] [Warm pool status probe + Chrome WD attach: %s]", warmPoolURL)
 	}
 	if ggrHostEnv := os.Getenv("GGR_HOST"); ggrHostEnv != "" {
 		ggrHost = parseGgrHost(ggrHostEnv)
@@ -194,7 +196,7 @@ func init() {
 		Privileged:           !disablePrivileged,
 	}
 	if disableDocker {
-		manager = &service.DefaultManager{Environment: &environment, Config: conf}
+		manager = &service.DefaultManager{Environment: &environment, Config: conf, WarmPool: warmClient}
 		if logOutputDir != "" && captureDriverLogs {
 			log.Fatalf("[-] [INIT] [In drivers mode only one of -capture-driver-logs and -log-output-dir flags is allowed]")
 		}
@@ -224,7 +226,7 @@ func init() {
 	if err != nil {
 		log.Fatalf("[-] [INIT] [New docker client: %v]", err)
 	}
-	manager = &service.DefaultManager{Environment: &environment, Client: cli, Config: conf}
+	manager = &service.DefaultManager{Environment: &environment, Client: cli, Config: conf, WarmPool: warmClient}
 }
 
 func createCompatibleDockerClient(onVersionSpecified, onVersionDetermined, onUsingDefaultVersion func(string)) (*client.Client, error) {

@@ -1,0 +1,80 @@
+# Hub-attach: warm Chrome WebDriver
+
+Hub can reuse a pre-started Chrome node from [selenoid-warm-pool](https://github.com/qa-guru/selenoid-warm-pool) instead of `docker run` on every session.
+
+**ADR:** [ADR-hub-attach.md](ADR-hub-attach.md)
+
+## Enable
+
+Same flag as UI WARM metrics:
+
+```bash
+./selenoid -conf config/browsers.json -warm-pool-url http://127.0.0.1:9090
+# or: SELENOID_WARM_POOL_URL=http://127.0.0.1:9090
+```
+
+Empty URL → no probe, no attach (cold Docker only).
+
+## Flow
+
+```
+POST /wd/hub/session  (browserName=chrome, no video/VNC/HAR)
+        │
+        ├─ POST {warm-pool}/pool/reserve
+        │    {protocol:webdriver, browser:chrome, owner:hub-<id>, loopback:true}
+        │
+        ├─ 200 + loopback webdriverUrl → proxy New Session to that ChromeDriver
+        │    session end → POST /pool/release  (slot stays up)
+        │
+        └─ 409 / error / wait fail → cold Docker (unchanged)
+```
+
+Hub **always** asks for loopback URLs. The orchestrator reserves only slots whose WebDriver URL is reachable on the host (`127.0.0.1` / `localhost` / `::1`), either:
+
+```yaml
+webdriver_url: http://127.0.0.1:14441/          # already loopback
+# or:
+webdriver_url: http://warm-chrome-1:4444/       # docker-DNS for in-network clients
+webdriver_url_loopback: http://127.0.0.1:14441/ # hub-on-host
+```
+
+If no such slot exists → **409** → cold. Compose that only exposes orchestrator `:9090` (prod box1 today) keeps metrics and does **not** attach.
+
+## Local stand
+
+```bash
+# slots (published WD ports) — once
+docker compose -f docker-compose.local.yml up -d   # in selenoid-warm-pool/
+
+# orchestrator — reuse stand, do not kill
+python scripts/stands/ensure.py selenoid-warm-pool
+curl -sf http://127.0.0.1:9090/health
+curl -sf http://127.0.0.1:9090/pool/slots
+
+# hub
+./selenoid -conf config/browsers.json -warm-pool-url http://127.0.0.1:9090
+```
+
+Materials / URL gate: **GET** `/`, `/health`, `/pool/slots` only. Do not put `POST /pool/*` in Materials.
+
+## Cold fallback (always)
+
+| Condition | Result |
+|-----------|--------|
+| No `-warm-pool-url` | Cold |
+| Not Chrome WD (firefox, PW, …) | Cold |
+| `enableVideo` / `enableVNC` / `enableHAR` | Cold |
+| Orchestrator 409 / down | Cold |
+| Returned URL is not loopback | Release if reserved, then cold |
+| ChromeDriver wait fail (~2s) | Release, then cold |
+
+## Out of this slice
+
+MCP · nginx `/pool/*` · Playwright slots · Box2 Jenkins jobs · Gridlane · UI changes · prod deploy · killing the warm-pool stand.
+
+## Verify
+
+```bash
+cd projects/selenoid-home/selenoid && go test ./warm/ ./service/ -count=1
+cd projects/selenoid-home/selenoid-warm-pool && go test . -count=1
+```
