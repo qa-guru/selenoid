@@ -38,7 +38,7 @@ webdriver_url: http://warm-chrome-1:4444/       # docker-DNS for in-network clie
 webdriver_url_loopback: http://127.0.0.1:14441/ # hub-on-host
 ```
 
-If no such slot exists → **409** → cold. Compose that only exposes orchestrator `:9090` (prod box1 today) keeps metrics and does **not** attach.
+If no such slot exists → **409** → cold. Box1 publishes `127.0.0.1:14441/14442` so attach is live; metrics stay on the same `-warm-pool-url`.
 
 ## Local stand
 
@@ -70,7 +70,7 @@ Materials / URL gate: **GET** `/`, `/health`, `/pool/slots` only. Do not put `PO
 
 ## Prod ([selenoid.qa.guru](https://selenoid.qa.guru))
 
-Hub pin **v3.0.9** ships attach + always-`loopback` reserve. Box1 orchestrator has docker-DNS URLs only → **409 → cold**. Metrics stay 2/2. Do not publish WD ports / `webdriver_url_loopback` in this cut.
+Hub pin **v3.0.9** + warm-pool **v1.1.0**: loopback WD ports on `127.0.0.1:14441/14442` (`qaguru/webdriver-chrome:149-min`). Chrome WD sessions **without** video/VNC/HAR attach a warm slot; otherwise cold Docker. Ports are host-loopback only (not public).
 
 Still out: MCP · nginx `/pool/*` · Playwright slots · Box2 Jenkins jobs · Gridlane · UI changes · killing the local warm-pool stand.
 

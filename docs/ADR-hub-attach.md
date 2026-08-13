@@ -32,6 +32,6 @@ Hub is a **native host binary** (not hub-in-docker). Slot `webdriver_url` values
 ## Consequences
 
 - Local: `config.local.yaml` already publishes `127.0.0.1:14441/14442` — attach works when those ports listen.
-- Box1 hub compose: add `webdriver_url_loopback` **and** publish `127.0.0.1:<host>:4444` before attach is live; until then reserve+loopback → 409 → cold.
+- Box1 hub compose: `webdriver_url_loopback` + publish `127.0.0.1:14441/14442→4444` (`qaguru/webdriver-chrome:149-min`) — attach live on [selenoid.qa.guru](https://selenoid.qa.guru) for Chrome WD without video/VNC/HAR.
 - Box2 Jenkins: omit `loopback` (default false) — docker-DNS URLs unchanged.
 - Tests: hub `warm/` + `service` unit; orchestrator reserve/loopback; pyramid does **not** hit a live pool (OUT).
