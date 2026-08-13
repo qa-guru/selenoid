@@ -7,7 +7,7 @@
 | Поле | Значение |
 |------|----------|
 | Линия | Selenoid 3 |
-| Stack semver | hub cut **v3.0.7** (latest tag; prod pin — deploy-чат) |
+| Stack semver | hub cut **v3.0.9** (prod pin [selenoid.qa.guru](https://selenoid.qa.guru)) |
 | Docker API | TBD (paired с prod Engine 29.6+) |
 | Docker Engine | TBD (prod: Debian 12 · Docker 29.6) |
 | Go | 1.26.5+ |

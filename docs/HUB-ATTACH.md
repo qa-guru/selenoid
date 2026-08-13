@@ -68,9 +68,11 @@ Materials / URL gate: **GET** `/`, `/health`, `/pool/slots` only. Do not put `PO
 | Returned URL is not loopback | Release if reserved, then cold |
 | ChromeDriver wait fail (~2s) | Release, then cold |
 
-## Out of this slice
+## Prod ([selenoid.qa.guru](https://selenoid.qa.guru))
 
-MCP · nginx `/pool/*` · Playwright slots · Box2 Jenkins jobs · Gridlane · UI changes · prod deploy · killing the warm-pool stand.
+Hub pin **v3.0.9** ships attach + always-`loopback` reserve. Box1 orchestrator has docker-DNS URLs only → **409 → cold**. Metrics stay 2/2. Do not publish WD ports / `webdriver_url_loopback` in this cut.
+
+Still out: MCP · nginx `/pool/*` · Playwright slots · Box2 Jenkins jobs · Gridlane · UI changes · killing the local warm-pool stand.
 
 ## Verify
 
