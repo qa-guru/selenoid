@@ -77,4 +77,7 @@ MCP · nginx `/pool/*` · Playwright slots · Box2 Jenkins jobs · Gridlane · U
 ```bash
 cd projects/selenoid-home/selenoid && go test ./warm/ ./service/ -count=1
 cd projects/selenoid-home/selenoid-warm-pool && go test . -count=1
+# live pyramid slice (stand :9090; hub-attach skips unless slots + hub -warm-pool-url)
+python scripts/stands/ensure.py selenoid-warm-pool
+cd projects/selenoid-home/selenoid-tests && ./scripts/run-go-pyramid.sh warm-pool
 ```
