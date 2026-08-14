@@ -41,7 +41,15 @@ Hub is a **native host binary** (not hub-in-docker). Slot `webdriver_url` values
 
 ## Consequences
 
-- Local: `config.local.yaml` already publishes `127.0.0.1:14441/14442` — attach works when those ports listen.
-- Box1 hub compose: `webdriver_url_loopback` + publish `127.0.0.1:14441/14442→4444` (`qaguru/webdriver-chrome:149`, shm 2g) — attach live on [selenoid.qa.guru](https://selenoid.qa.guru) for Chrome WD without video/VNC/HAR.
+- Local: `config.local.yaml` publishes `127.0.0.1:14441` (headed `:149`) and `14442` (`:149-min`, shm 2g) plus PW WS `14501/14502` — WD attach works when those ports listen.
+- Box1 hub compose: `webdriver_url_loopback` + publish `127.0.0.1:14441→4444` (`qaguru/webdriver-chrome:149`, shm 2g) and `14442` (`:149-min`, shm 2g). Attach live on [selenoid.qa.guru](https://selenoid.qa.guru) for Chrome WD without video/VNC/HAR. Headed slot is first so the warm-pool Jenkins job prefers it.
 - Box2 Jenkins: omit `loopback` (default false) — docker-DNS URLs unchanged.
 - Tests: hub `warm/` + `service` unit; orchestrator reserve/loopback; pyramid does **not** hit a live pool (OUT).
+
+## 2026-08-14 — warm 4/4 (window 02)
+
+**Playwright hub-attach stays out.** Warm 4/4 means four containers up (`webdriver-chrome:149`, `:149-min`, `playwright-chromium:1.61.1`, `:1.61.1-min`). Hub `Find()` attach remains Chrome WD only (`warmEligible`). Playwright sessions still **cold**-start. PW slots are listed in the orchestrator (metrics + window 03 WS attach bypassing the hub). A later ADR change for PW hub-attach would be a hub cut (`FindPlaywright` + loopback WS), not compose.
+
+**`-min` WD:** shm **2g** (256m died on New Session on box1). No extra client headless caps — the `-min` image is already headless.
+
+**Moved to window 03 (hot):** reuse-session, `PREOPEN_URL`, `WarmRemote`, skip `open()`, JVM-keep / `closeAfterAll` off the wall, frontend refresh on GitHub deploy. Not this ADR.

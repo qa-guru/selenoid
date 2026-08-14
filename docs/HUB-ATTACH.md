@@ -80,9 +80,9 @@ Materials / URL gate: **GET** `/`, `/health`, `/pool/slots` only. Do not put `PO
 
 ## Prod ([selenoid.qa.guru](https://selenoid.qa.guru))
 
-Hub pin **v3.0.9** + warm-pool **v1.1.2** (attach since [v1.1.1](https://github.com/qa-guru/selenoid-warm-pool/releases/tag/v1.1.1)): loopback WD ports on `127.0.0.1:14441/14442` (`qaguru/webdriver-chrome:149`, shm 2g). Chrome WD sessions **without** video/VNC/HAR attach a warm slot; otherwise cold Docker. Ports are host-loopback only (not public).
+Hub pin **v3.0.9** + warm-pool **v1.1.2** (attach since [v1.1.1](https://github.com/qa-guru/selenoid-warm-pool/releases/tag/v1.1.1)). Compose SSOT is warm **4/4**: headed `qaguru/webdriver-chrome:149` on `127.0.0.1:14441` (shm 2g, first reserve), `:149-min` on `14442` (shm 2g), Playwright `1.61.1` / `1.61.1-min` on `14501/14502`. Live box1 until that compose is deployed may still be 2× `:149`. Chrome WD sessions **without** video/VNC/HAR attach a warm WD slot; Playwright and everything else stay **cold** Docker. Ports are host-loopback only (not public).
 
-Still out: Jenkins preopen / reuse-session · MCP · nginx `/pool/*` · Playwright slots · Box2 Jenkins jobs · Gridlane · UI changes · killing the local warm-pool stand.
+Still out: Jenkins preopen / reuse-session · MCP · nginx `/pool/*` · Playwright **hub-attach** · Box2 Jenkins jobs · Gridlane · UI changes · killing the local warm-pool stand.
 
 ## Verify
 
