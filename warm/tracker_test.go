@@ -23,23 +23,59 @@ func TestTrackerSnapshotFromSlots(t *testing.T) {
 
 	tr := NewTracker(srv.URL)
 	tr.refresh()
-	ready, total := tr.Snapshot()
-	if total != 2 {
-		t.Fatalf("total=%d want 2", total)
+	warmReady, warmTotal, hotReady, hotTotal := tr.Snapshot()
+	if warmTotal != 2 {
+		t.Fatalf("warmTotal=%d want 2", warmTotal)
 	}
-	if ready != 1 {
-		t.Fatalf("ready=%d want 1", ready)
+	if warmReady != 1 {
+		t.Fatalf("warmReady=%d want 1", warmReady)
+	}
+	if hotReady != 0 || hotTotal != 0 {
+		t.Fatalf("hot=%d/%d want 0/0", hotReady, hotTotal)
+	}
+}
+
+func TestTrackerSplitsHotFromWarm(t *testing.T) {
+	owner := "jenkins"
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/pool/slots" {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewEncoder(w).Encode([]map[string]any{
+			{"id": "pool-chrome-1", "pool": "warm", "reservedBy": nil},
+			{"id": "pool-chrome-2", "pool": "warm", "reservedBy": owner},
+			{"id": "pool-pw-1", "pool": "warm", "reservedBy": nil},
+			{"id": "pool-pw-min-1", "pool": "warm", "reservedBy": nil},
+			{"id": "pool-hot-chrome-min-1", "pool": "hot", "reservedBy": nil},
+			{"id": "pool-hot-pw-min-1", "pool": "hot", "reservedBy": owner},
+		})
+	}))
+	defer srv.Close()
+
+	tr := NewTracker(srv.URL)
+	tr.refresh()
+	warmReady, warmTotal, hotReady, hotTotal := tr.Snapshot()
+	if warmReady != 3 || warmTotal != 4 {
+		t.Fatalf("warm=%d/%d want 3/4", warmReady, warmTotal)
+	}
+	if hotReady != 1 || hotTotal != 2 {
+		t.Fatalf("hot=%d/%d want 1/2", hotReady, hotTotal)
+	}
+	if warmTotal == hotTotal {
+		t.Fatal("hot count must not collapse into warm")
 	}
 }
 
 func TestTrackerDownClearsCounts(t *testing.T) {
 	tr := NewTracker("http://127.0.0.1:1")
 	tr.mu.Lock()
-	tr.ready, tr.total = 2, 2
+	tr.warmReady, tr.warmTotal = 2, 2
+	tr.hotReady, tr.hotTotal = 1, 2
 	tr.mu.Unlock()
 	tr.refresh()
-	ready, total := tr.Snapshot()
-	if ready != 0 || total != 0 {
-		t.Fatalf("got ready=%d total=%d want 0/0", ready, total)
+	warmReady, warmTotal, hotReady, hotTotal := tr.Snapshot()
+	if warmReady != 0 || warmTotal != 0 || hotReady != 0 || hotTotal != 0 {
+		t.Fatalf("got warm=%d/%d hot=%d/%d want 0/0", warmReady, warmTotal, hotReady, hotTotal)
 	}
 }

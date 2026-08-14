@@ -101,7 +101,7 @@ func init() {
 	flag.StringVar(&harOutputDir, "har-output-dir", "", "Directory to save session HAR (HTTP Archive) files to")
 	flag.BoolVar(&saveAllLogs, "save-all-logs", false, "Whether to save all logs without considering capabilities")
 	flag.StringVar(&accessKeys, "access-key", "", "Comma-separated required ?accessKey= values for /playwright/ WebSocket (empty = no check)")
-	flag.StringVar(&warmPoolURL, "warm-pool-url", os.Getenv("SELENOID_WARM_POOL_URL"), "Warm-pool orchestrator base URL for /status warmReady/warmTotal and Chrome WD attach (e.g. http://127.0.0.1:9090); empty disables")
+	flag.StringVar(&warmPoolURL, "warm-pool-url", os.Getenv("SELENOID_WARM_POOL_URL"), "Warm-pool orchestrator base URL for /status warmReady/warmTotal/hotReady/hotTotal and Chrome WD attach (e.g. http://127.0.0.1:9090); empty disables")
 	flag.DurationVar(&gracefulPeriod, "graceful-period", 300*time.Second, "graceful shutdown period in time.Duration format, e.g. 300s or 500ms")
 	flag.Parse()
 
@@ -413,7 +413,7 @@ func handler() http.Handler {
 		w.Header().Add("Content-Type", "application/json")
 		state := conf.State(sessions, limit, queue.Queued(), queue.Pending())
 		if warmTracker != nil {
-			state.WarmReady, state.WarmTotal = warmTracker.Snapshot()
+			state.WarmReady, state.WarmTotal, state.HotReady, state.HotTotal = warmTracker.Snapshot()
 		}
 		_ = json.NewEncoder(w).Encode(state)
 	})
