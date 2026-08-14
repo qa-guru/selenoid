@@ -4,6 +4,16 @@ Hub can reuse a pre-started Chrome node from [selenoid-warm-pool](https://github
 
 **ADR:** [ADR-hub-attach.md](ADR-hub-attach.md)
 
+## Pools
+
+| Pool | What | Client |
+|------|------|--------|
+| **Cold** (default, live) | Classic Selenoid: hub `docker run` of the image from `browsers.json` for each session | Hub `POST /session` |
+| **Warm** (this doc) | Container already up; hub-attach **New Session** on that node | Hub → `POST /pool/reserve` |
+| **Hot** | Same WD/PW session + live page; attach by UUID / WS **bypassing the hub** | Backlog — window 03 |
+
+Cold is the existing path: no `-warm-pool-url`, 409, not Chrome WD, or video/VNC/HAR. Do not change the Docker starter.
+
 ## Enable
 
 Same flag as UI WARM metrics:

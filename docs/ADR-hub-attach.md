@@ -4,6 +4,16 @@
 **Repo:** [qa-guru/selenoid](https://github.com/qa-guru/selenoid)  
 **Companion:** [HUB-ATTACH.md](HUB-ATTACH.md) · [qa-guru/selenoid-warm-pool](https://github.com/qa-guru/selenoid-warm-pool)
 
+## Pools
+
+Three named pools. This ADR covers **warm** hub-attach only. **Cold** is the default, already-live path (hub `docker run` from `browsers.json`). **Hot** (reuse-session / preopen / bypass hub) is backlog window 03 — not this ADR.
+
+| Pool | Role |
+|------|------|
+| **Cold** | Default. Existing Docker starter. Unchanged. |
+| **Warm** | This ADR: Chrome WD attach to a pre-started loopback slot. |
+| **Hot** | Same session + live page, client bypasses the hub. Not this ADR. |
+
 ## Context
 
 `-warm-pool-url` / `SELENOID_WARM_POOL_URL` already probes the warm-pool orchestrator and exposes `warmReady` / `warmTotal` on hub `/status` (UI WARM). Session create still always started a **cold** Docker container.
