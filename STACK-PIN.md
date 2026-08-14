@@ -7,11 +7,11 @@
 | Поле | Значение |
 |------|----------|
 | Линия | Selenoid 3 |
-| Stack semver | hub cut **v3.0.10** (prod pin [selenoid.qa.guru](https://selenoid.qa.guru)) |
+| Stack semver | hub cut **v3.0.11** (prod pin [selenoid.qa.guru](https://selenoid.qa.guru)) |
 | Docker API | TBD (paired с prod Engine 29.6+) |
 | Docker Engine | TBD (prod: Debian 12 · Docker 29.6) |
-| Go | 1.26.5+ |
-| Go (примечание) | Факт `go.mod` + `toolchain go1.26.5` |
+| Go | 1.26.6 |
+| Go (примечание) | Факт `go.mod` + `toolchain go1.26.6` |
 | Prod | [selenoid.qa.guru](https://selenoid.qa.guru) |
 | Git anchor | `main` |
 | Docker image | `qaguru/selenoid:v3.0.x` |

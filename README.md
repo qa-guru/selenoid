@@ -54,8 +54,8 @@
 |---|---|
 | **GitHub** | [qa-guru/selenoid](https://github.com/qa-guru/selenoid) |
 | **Docker Hub** | [`qaguru/selenoid`](https://hub.docker.com/r/qaguru/selenoid) |
-| **Текущий релиз** | **v3.0.10** — [docs/RELEASE_v3.0.10.md](docs/RELEASE_v3.0.10.md) · `qaguru/selenoid:v3.0.10` · **Selenoid 3 hub** (hub-attach Chrome WD) |
-| **Selenoid 3** | [selenoid.qa.guru](https://selenoid.qa.guru) — hub **v3.0.10** + UI **v3.0.31** |
+| **Текущий релиз** | **v3.0.11** — [docs/RELEASE_v3.0.11.md](docs/RELEASE_v3.0.11.md) · `qaguru/selenoid:v3.0.11` · **Selenoid 3 hub** (hub-attach Chrome WD) |
+| **Selenoid 3** | [selenoid.qa.guru](https://selenoid.qa.guru) — hub **v3.0.11** + UI **v3.0.31** |
 
 ## Что это
 
@@ -124,7 +124,7 @@ ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableV
 
 | Компонент | Версия | Зачем |
 |-----------|--------|-------|
-| **Go** | **1.26.x** | Сборка hub (`.go-version` — `1.26.5`, `go.mod` `toolchain go1.26.5`) |
+| **Go** | **1.26.x** | Сборка hub (`.go-version` — `1.26.6`, `go.mod` `toolchain go1.26.6`) |
 | **Docker Engine** | **29.x** (рекомендуется 29.6+) | Совместим с `DOCKER_API_VERSION=1.55` (moby client MaxAPIVersion) |
 | **Docker API** | **1.55** | Версия API, с которой hub ходит к daemon (`DOCKER_API_VERSION`) |
 | **Docker SDK** | **moby** | `github.com/moby/moby/client` + `github.com/moby/moby/api` (не `github.com/docker/docker`) |
