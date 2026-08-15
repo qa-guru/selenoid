@@ -1,5 +1,5 @@
 // Package warm probes the selenoid-warm-pool orchestrator and exposes
-// ready/total slot counts for hub /status (UI header WARM / HOT metrics).
+// ready/total slot counts plus slot rows for hub /status (UI header + Statistics).
 package warm
 
 import (
@@ -12,6 +12,25 @@ import (
 	"time"
 )
 
+// Slot is a pool row on hub /status (no URLs).
+type Slot struct {
+	ID         string  `json:"id"`
+	Browser    string  `json:"browser"`
+	Protocol   string  `json:"protocol"`
+	Pool       string  `json:"pool"`
+	ReservedBy *string `json:"reservedBy"`
+}
+
+// Snapshot is the last known warm/hot slot counts and rows.
+type Snapshot struct {
+	WarmReady int
+	WarmTotal int
+	HotReady  int
+	HotTotal  int
+	WarmSlots []Slot
+	HotSlots  []Slot
+}
+
 // Tracker periodically polls the warm-pool orchestrator.
 type Tracker struct {
 	baseURL   string
@@ -21,22 +40,39 @@ type Tracker struct {
 	warmTotal int
 	hotReady  int
 	hotTotal  int
+	warmSlots []Slot
+	hotSlots  []Slot
 }
 
 // NewTracker returns a tracker for the orchestrator base URL
 // (e.g. http://127.0.0.1:9090). Empty URL is invalid — caller should skip.
 func NewTracker(baseURL string) *Tracker {
 	return &Tracker{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		client:  &http.Client{Timeout: 3 * time.Second},
+		baseURL:   strings.TrimRight(baseURL, "/"),
+		client:    &http.Client{Timeout: 3 * time.Second},
+		warmSlots: []Slot{},
+		hotSlots:  []Slot{},
 	}
 }
 
-// Snapshot returns the last known warm and hot ready/total slot counts.
-func (t *Tracker) Snapshot() (warmReady, warmTotal, hotReady, hotTotal int) {
+func copySlots(in []Slot) []Slot {
+	out := make([]Slot, len(in))
+	copy(out, in)
+	return out
+}
+
+// Snapshot returns the last known warm and hot ready/total counts and slot rows.
+func (t *Tracker) Snapshot() Snapshot {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	return t.warmReady, t.warmTotal, t.hotReady, t.hotTotal
+	return Snapshot{
+		WarmReady: t.warmReady,
+		WarmTotal: t.warmTotal,
+		HotReady:  t.hotReady,
+		HotTotal:  t.hotTotal,
+		WarmSlots: copySlots(t.warmSlots),
+		HotSlots:  copySlots(t.hotSlots),
+	}
 }
 
 // Start polls until ctx is cancelled. Safe to call once in a goroutine.
@@ -52,11 +88,6 @@ func (t *Tracker) Start(ctx context.Context) {
 			t.refresh()
 		}
 	}
-}
-
-type slotDTO struct {
-	ReservedBy *string `json:"reservedBy"`
-	Pool       string  `json:"pool"`
 }
 
 func (t *Tracker) refresh() {
@@ -75,28 +106,32 @@ func (t *Tracker) refresh() {
 		t.clear()
 		return
 	}
-	var slots []slotDTO
+	var slots []Slot
 	if err := json.NewDecoder(resp.Body).Decode(&slots); err != nil {
 		log.Printf("[-] [WARM_POOL] [decode: %v]", err)
 		return
 	}
 	warmReady, warmTotal, hotReady, hotTotal := 0, 0, 0, 0
+	warmSlots, hotSlots := make([]Slot, 0), make([]Slot, 0)
 	for _, s := range slots {
 		if strings.EqualFold(s.Pool, "hot") {
 			hotTotal++
 			if s.ReservedBy == nil {
 				hotReady++
 			}
+			hotSlots = append(hotSlots, s)
 			continue
 		}
 		warmTotal++
 		if s.ReservedBy == nil {
 			warmReady++
 		}
+		warmSlots = append(warmSlots, s)
 	}
 	t.mu.Lock()
 	t.warmReady, t.warmTotal = warmReady, warmTotal
 	t.hotReady, t.hotTotal = hotReady, hotTotal
+	t.warmSlots, t.hotSlots = warmSlots, hotSlots
 	t.mu.Unlock()
 }
 
@@ -104,5 +139,6 @@ func (t *Tracker) clear() {
 	t.mu.Lock()
 	t.warmReady, t.warmTotal = 0, 0
 	t.hotReady, t.hotTotal = 0, 0
+	t.warmSlots, t.hotSlots = []Slot{}, []Slot{}
 	t.mu.Unlock()
 }

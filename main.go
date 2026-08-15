@@ -19,6 +19,8 @@ import (
 	"time"
 
 	ggr "github.com/aerokube/ggr/config"
+	"github.com/moby/moby/client"
+	"github.com/pkg/errors"
 	"github.com/qa-guru/selenoid/config"
 	"github.com/qa-guru/selenoid/jsonerror"
 	"github.com/qa-guru/selenoid/protect"
@@ -26,8 +28,6 @@ import (
 	"github.com/qa-guru/selenoid/session"
 	"github.com/qa-guru/selenoid/upload"
 	"github.com/qa-guru/selenoid/warm"
-	"github.com/moby/moby/client"
-	"github.com/pkg/errors"
 	"golang.org/x/net/websocket"
 )
 
@@ -397,6 +397,35 @@ var paths = struct {
 	Playwright: "/playwright/",
 }
 
+func applyWarmTracker(state *config.State) {
+	state.WarmSlots = []config.PoolSlot{}
+	state.HotSlots = []config.PoolSlot{}
+	if warmTracker == nil {
+		return
+	}
+	snap := warmTracker.Snapshot()
+	state.WarmReady = snap.WarmReady
+	state.WarmTotal = snap.WarmTotal
+	state.HotReady = snap.HotReady
+	state.HotTotal = snap.HotTotal
+	state.WarmSlots = toPoolSlots(snap.WarmSlots)
+	state.HotSlots = toPoolSlots(snap.HotSlots)
+}
+
+func toPoolSlots(in []warm.Slot) []config.PoolSlot {
+	out := make([]config.PoolSlot, 0, len(in))
+	for _, s := range in {
+		out = append(out, config.PoolSlot{
+			ID:         s.ID,
+			Browser:    s.Browser,
+			Protocol:   s.Protocol,
+			Pool:       s.Pool,
+			ReservedBy: s.ReservedBy,
+		})
+	}
+	return out
+}
+
 func handler() http.Handler {
 	root := http.NewServeMux()
 	root.HandleFunc(paths.WdHub+"/", func(w http.ResponseWriter, r *http.Request) {
@@ -412,9 +441,7 @@ func handler() http.Handler {
 	root.HandleFunc(paths.Status, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")
 		state := conf.State(sessions, limit, queue.Queued(), queue.Pending())
-		if warmTracker != nil {
-			state.WarmReady, state.WarmTotal, state.HotReady, state.HotTotal = warmTracker.Snapshot()
-		}
+		applyWarmTracker(state)
 		_ = json.NewEncoder(w).Encode(state)
 	})
 	root.HandleFunc(paths.Ping, ping)

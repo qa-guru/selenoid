@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/qa-guru/selenoid/session"
 	ctr "github.com/moby/moby/api/types/container"
+	"github.com/qa-guru/selenoid/session"
 )
 
 // Session - session id and vnc flag
@@ -39,17 +39,28 @@ type Version map[string]Quota
 // Browsers - browser names for versions
 type Browsers map[string]Version
 
+// PoolSlot is a warm/hot orchestrator slot on /status (no URLs).
+type PoolSlot struct {
+	ID         string  `json:"id"`
+	Browser    string  `json:"browser"`
+	Protocol   string  `json:"protocol"`
+	Pool       string  `json:"pool"`
+	ReservedBy *string `json:"reservedBy"`
+}
+
 // State - current state
 type State struct {
-	Total     int      `json:"total"`
-	Used      int      `json:"used"`
-	Queued    int      `json:"queued"`
-	Pending   int      `json:"pending"`
-	WarmReady int      `json:"warmReady"`
-	WarmTotal int      `json:"warmTotal"`
-	HotReady  int      `json:"hotReady"`
-	HotTotal  int      `json:"hotTotal"`
-	Browsers  Browsers `json:"browsers"`
+	Total     int        `json:"total"`
+	Used      int        `json:"used"`
+	Queued    int        `json:"queued"`
+	Pending   int        `json:"pending"`
+	WarmReady int        `json:"warmReady"`
+	WarmTotal int        `json:"warmTotal"`
+	HotReady  int        `json:"hotReady"`
+	HotTotal  int        `json:"hotTotal"`
+	WarmSlots []PoolSlot `json:"warmSlots"`
+	HotSlots  []PoolSlot `json:"hotSlots"`
+	Browsers  Browsers   `json:"browsers"`
 }
 
 // Browser configuration
@@ -62,15 +73,15 @@ type Browser struct {
 	User              string            `json:"user,omitempty"`
 	WorkDir           string            `json:"workDir,omitempty"`
 	Tmpfs             map[string]string `json:"tmpfs,omitempty"`
-	Volumes         []string          `json:"volumes,omitempty"`
-	Env             []string          `json:"env,omitempty"`
-	Hosts           []string          `json:"hosts,omitempty"`
-	ShmSize         int64             `json:"shmSize,omitempty"`
-	Labels          map[string]string `json:"labels,omitempty"`
-	Sysctl          map[string]string `json:"sysctl,omitempty"`
-	Mem             string            `json:"mem,omitempty"`
-	Cpu             string            `json:"cpu,omitempty"`
-	PublishAllPorts bool              `json:"publishAllPorts,omitempty"`
+	Volumes           []string          `json:"volumes,omitempty"`
+	Env               []string          `json:"env,omitempty"`
+	Hosts             []string          `json:"hosts,omitempty"`
+	ShmSize           int64             `json:"shmSize,omitempty"`
+	Labels            map[string]string `json:"labels,omitempty"`
+	Sysctl            map[string]string `json:"sysctl,omitempty"`
+	Mem               string            `json:"mem,omitempty"`
+	Cpu               string            `json:"cpu,omitempty"`
+	PublishAllPorts   bool              `json:"publishAllPorts,omitempty"`
 }
 
 // Versions configuration
