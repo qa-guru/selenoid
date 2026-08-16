@@ -166,7 +166,7 @@ Chrome WebDriver sessions can **container-reuse** a pre-started slot when `-warm
 ./selenoid -conf config/browsers.json -warm-pool-url http://127.0.0.1:9090
 ```
 
-Operator guide: [docs/HUB-ATTACH.md](docs/HUB-ATTACH.md) · ADR: [docs/ADR-hub-attach.md](docs/ADR-hub-attach.md).
+Operator guide: [docs/CONTAINER-REUSE.md](docs/CONTAINER-REUSE.md) · ADR: [docs/ADR-container-reuse.md](docs/ADR-container-reuse.md).
 
 **SSOT:** [`../dev/browsers.json`](../dev/browsers.json) (полный каталог).  
 Sync: [`../dev/scripts/sync-cm-browsers.sh`](../dev/scripts/sync-cm-browsers.sh) → [`config/browsers.json`](config/browsers.json), CM embed, CI fixture, UI.

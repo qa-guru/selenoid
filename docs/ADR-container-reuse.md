@@ -2,8 +2,7 @@
 
 **Status:** accepted (2026-08-13); glossary 2026-08-16  
 **Repo:** [qa-guru/selenoid](https://github.com/qa-guru/selenoid)  
-**Companion:** [HUB-ATTACH.md](HUB-ATTACH.md) · [qa-guru/selenoid-warm-pool](https://github.com/qa-guru/selenoid-warm-pool)  
-**Former name:** hub-attach (filename kept).
+**Companion:** [CONTAINER-REUSE.md](CONTAINER-REUSE.md) · [qa-guru/selenoid-warm-pool](https://github.com/qa-guru/selenoid-warm-pool)
 
 ## Glossary
 
@@ -13,7 +12,6 @@
 | **session-reuse** | hot | Client joins an existing WD UUID / PW WS (page may be live); bypasses the hub | This ADR |
 | **cold** | cold | Hub `docker run` + New Session | reuse |
 | Allure **attachment** | — | Screenshot / page source / console on the report (`*-full-attachments` jobs) | pool reuse |
-| `hub-attach` | — | Historical name for container-reuse | new prose |
 
 `WarmRemoteWebDriver.attach(...)` is the Java helper for **session-reuse**, not the pool name.
 

@@ -2,8 +2,8 @@
 
 Hub can reuse a pre-started Chrome **container** from [selenoid-warm-pool](https://github.com/qa-guru/selenoid-warm-pool) instead of `docker run` on every session.
 
-**ADR:** [ADR-hub-attach.md](ADR-hub-attach.md)  
-**Former name:** hub-attach (filename kept). Not an Allure **attachment**.
+**ADR:** [ADR-container-reuse.md](ADR-container-reuse.md)  
+Not an Allure **attachment**.
 
 ## Glossary
 
