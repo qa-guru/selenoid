@@ -15,7 +15,7 @@
 | Prod | [selenoid.qa.guru](https://selenoid.qa.guru) |
 | Git anchor | `main` |
 | Docker image | `qaguru/selenoid:v3.0.x` |
-| **Фичи v3+** | native Playwright WS, HAR (`harContent`), warm-pool metrics + Chrome WD hub-attach |
+| **Фичи v3+** | native Playwright WS, HAR (`harContent`), warm-pool metrics + Chrome WD container-reuse |
 
 ## Selenoid 2 maintenance pin (не путать)
 

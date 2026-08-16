@@ -54,7 +54,7 @@
 |---|---|
 | **GitHub** | [qa-guru/selenoid](https://github.com/qa-guru/selenoid) |
 | **Docker Hub** | [`qaguru/selenoid`](https://hub.docker.com/r/qaguru/selenoid) |
-| **Текущий релиз** | **v3.0.12** — [docs/RELEASE_v3.0.12.md](docs/RELEASE_v3.0.12.md) · `qaguru/selenoid:v3.0.12` · **Selenoid 3 hub** (hub-attach Chrome WD) |
+| **Текущий релиз** | **v3.0.12** — [docs/RELEASE_v3.0.12.md](docs/RELEASE_v3.0.12.md) · `qaguru/selenoid:v3.0.12` · **Selenoid 3 hub** (Chrome WD container-reuse) |
 | **Selenoid 3** | [selenoid.qa.guru](https://selenoid.qa.guru) — hub **v3.0.12** + UI **v3.0.33** |
 
 ## Что это
@@ -158,9 +158,9 @@ go build -o selenoid .
 DOCKER_API_VERSION=1.55 ./selenoid -conf config/browsers.json -limit 5
 ```
 
-## Warm-pool hub-attach
+## Warm-pool container-reuse
 
-Chrome WebDriver sessions can attach to a pre-started slot when `-warm-pool-url` / `SELENOID_WARM_POOL_URL` points at [selenoid-warm-pool](https://github.com/qa-guru/selenoid-warm-pool) **and** the slot exposes a loopback `webdriverUrl` (`127.0.0.1`). Otherwise the hub starts a cold Docker container. Playwright / video / VNC / HAR stay cold.
+Chrome WebDriver sessions can **container-reuse** a pre-started slot when `-warm-pool-url` / `SELENOID_WARM_POOL_URL` points at [selenoid-warm-pool](https://github.com/qa-guru/selenoid-warm-pool) **and** the slot exposes a loopback `webdriverUrl` (`127.0.0.1`). Otherwise the hub starts a cold Docker container. Playwright / video / VNC / HAR stay cold. Hot is **session-reuse** (existing UUID / WS, bypasses hub) — not this path. Not an Allure attachment.
 
 ```bash
 ./selenoid -conf config/browsers.json -warm-pool-url http://127.0.0.1:9090

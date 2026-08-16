@@ -1,16 +1,26 @@
-# Hub-attach: warm Chrome WebDriver
+# Container-reuse: warm Chrome WebDriver
 
-Hub can reuse a pre-started Chrome node from [selenoid-warm-pool](https://github.com/qa-guru/selenoid-warm-pool) instead of `docker run` on every session.
+Hub can reuse a pre-started Chrome **container** from [selenoid-warm-pool](https://github.com/qa-guru/selenoid-warm-pool) instead of `docker run` on every session.
 
-**ADR:** [ADR-hub-attach.md](ADR-hub-attach.md)
+**ADR:** [ADR-hub-attach.md](ADR-hub-attach.md)  
+**Former name:** hub-attach (filename kept). Not an Allure **attachment**.
+
+## Glossary
+
+| Term | Pool | Means |
+|------|------|--------|
+| **container-reuse** | warm (this doc) | New Session on a container that is already up |
+| **session-reuse** | hot | Client joins an existing WD UUID / PW WS; bypasses the hub |
+| **cold** | cold | Hub `docker run` + New Session |
+| Allure **attachment** | — | Report file (screenshot / page source / console). Jobs `*-full-attachments` can run on warm; that is not session-reuse. |
 
 ## Pools
 
 | Pool | What | Client |
 |------|------|--------|
 | **Cold** (default, live) | Classic Selenoid: hub `docker run` of the image from `browsers.json` for each session | Hub `POST /session` |
-| **Warm** (this doc) | Container already up; hub-attach **New Session** on that node | Hub → `POST /pool/reserve` |
-| **Hot** | Same WD/PW session + live page; attach by UUID / WS **bypassing the hub** | Backlog — window 03 |
+| **Warm** (this doc) | Container already up; **container-reuse** = New Session on that node | Hub → `POST /pool/reserve` |
+| **Hot** | Same WD/PW session + live page; **session-reuse** by UUID / WS **bypassing the hub** | Backlog — window 03 |
 
 Cold is the existing path: no `-warm-pool-url`, 409, not Chrome WD, or video/VNC/HAR. Do not change the Docker starter.
 
@@ -23,7 +33,7 @@ Same flag as UI WARM metrics:
 # or: SELENOID_WARM_POOL_URL=http://127.0.0.1:9090
 ```
 
-Empty URL → no probe, no attach (cold Docker only).
+Empty URL → no probe, no container-reuse (cold Docker only).
 
 ## Flow
 
@@ -48,7 +58,7 @@ webdriver_url: http://warm-chrome-1:4444/       # docker-DNS for in-network clie
 webdriver_url_loopback: http://127.0.0.1:14441/ # hub-on-host
 ```
 
-If no such slot exists → **409** → cold. Box1 publishes `127.0.0.1:14441/14442` so attach is live; metrics stay on the same `-warm-pool-url`.
+If no such slot exists → **409** → cold. Box1 publishes `127.0.0.1:14441/14442` so container-reuse is live; metrics stay on the same `-warm-pool-url`.
 
 ## Local stand
 
@@ -80,16 +90,16 @@ Materials / URL gate: **GET** `/`, `/health`, `/pool/slots` only. Do not put `PO
 
 ## Prod ([selenoid.qa.guru](https://selenoid.qa.guru))
 
-Hub pin **v3.0.9** + warm-pool **v1.1.2** (attach since [v1.1.1](https://github.com/qa-guru/selenoid-warm-pool/releases/tag/v1.1.1)). Compose SSOT is warm **4/4**: headed `qaguru/webdriver-chrome:149` on `127.0.0.1:14441` (shm 2g, first reserve), `:149-min` on `14442` (shm 2g), Playwright `1.61.1` / `1.61.1-min` on `14501/14502`. Live box1 until that compose is deployed may still be 2× `:149`. Chrome WD sessions **without** video/VNC/HAR attach a warm WD slot; Playwright and everything else stay **cold** Docker. Ports are host-loopback only (not public).
+Hub pin **v3.0.9** + warm-pool **v1.1.2** (container-reuse since [v1.1.1](https://github.com/qa-guru/selenoid-warm-pool/releases/tag/v1.1.1)). Compose SSOT is warm **4/4**: headed `qaguru/webdriver-chrome:149` on `127.0.0.1:14441` (shm 2g, first reserve), `:149-min` on `14442` (shm 2g), Playwright `1.61.1` / `1.61.1-min` on `14501/14502`. Live box1 until that compose is deployed may still be 2× `:149`. Chrome WD sessions **without** video/VNC/HAR reuse a warm WD container; Playwright and everything else stay **cold** Docker. Ports are host-loopback only (not public).
 
-Still out: Jenkins preopen / reuse-session · MCP · nginx `/pool/*` · Playwright **hub-attach** · Box2 Jenkins jobs · Gridlane · UI changes · killing the local warm-pool stand.
+Still out: Jenkins preopen / session-reuse · MCP · nginx `/pool/*` · Playwright **container-reuse** · Box2 Jenkins jobs · Gridlane · UI changes · killing the local warm-pool stand.
 
 ## Verify
 
 ```bash
 cd projects/selenoid-home/selenoid && go test ./warm/ ./service/ -count=1
 cd projects/selenoid-home/selenoid-warm-pool && go test . -count=1
-# live pyramid slice (stand :9090; hub-attach skips unless slots + hub -warm-pool-url)
+# live pyramid slice (stand :9090; container-reuse skips unless slots + hub -warm-pool-url)
 python scripts/stands/ensure.py selenoid-warm-pool
 cd projects/selenoid-home/selenoid-tests && ./scripts/run-go-pyramid.sh warm-pool
 ```
