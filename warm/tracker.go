@@ -1,4 +1,4 @@
-// Package warm probes the selenoid-warm-pool orchestrator and exposes
+// Package warm probes the selenoid-pool orchestrator and exposes
 // ready/total slot counts plus slot rows for hub /status (UI header + Statistics).
 package warm
 

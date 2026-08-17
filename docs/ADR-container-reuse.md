@@ -2,7 +2,7 @@
 
 **Status:** accepted (2026-08-13); glossary 2026-08-16  
 **Repo:** [qa-guru/selenoid](https://github.com/qa-guru/selenoid)  
-**Companion:** [CONTAINER-REUSE.md](CONTAINER-REUSE.md) · [qa-guru/selenoid-warm-pool](https://github.com/qa-guru/selenoid-warm-pool)
+**Companion:** [CONTAINER-REUSE.md](CONTAINER-REUSE.md) · [qa-guru/selenoid-pool](https://github.com/qa-guru/selenoid-pool)
 
 ## Glossary
 

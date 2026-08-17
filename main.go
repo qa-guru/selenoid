@@ -102,6 +102,7 @@ func init() {
 	flag.BoolVar(&saveAllLogs, "save-all-logs", false, "Whether to save all logs without considering capabilities")
 	flag.StringVar(&accessKeys, "access-key", "", "Comma-separated required ?accessKey= values for /playwright/ WebSocket (empty = no check)")
 	flag.StringVar(&warmPoolURL, "warm-pool-url", os.Getenv("SELENOID_WARM_POOL_URL"), "Warm-pool orchestrator base URL for /status warmReady/warmTotal/hotReady/hotTotal and Chrome WD attach (e.g. http://127.0.0.1:9090); empty disables")
+	flag.StringVar(&warmPoolURL, "pool-url", os.Getenv("SELENOID_WARM_POOL_URL"), "alias for -warm-pool-url")
 	flag.DurationVar(&gracefulPeriod, "graceful-period", 300*time.Second, "graceful shutdown period in time.Duration format, e.g. 300s or 500ms")
 	flag.Parse()
 

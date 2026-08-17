@@ -15,7 +15,7 @@ import (
 // ErrNoSlot is returned when the orchestrator has no matching free slot (HTTP 409).
 var ErrNoSlot = errors.New("no available warm slots")
 
-// Client calls the selenoid-warm-pool orchestrator (reserve / release).
+// Client calls the selenoid-pool orchestrator (reserve / release).
 type Client struct {
 	baseURL string
 	http    *http.Client

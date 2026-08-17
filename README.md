@@ -160,10 +160,11 @@ DOCKER_API_VERSION=1.55 ./selenoid -conf config/browsers.json -limit 5
 
 ## Warm-pool container-reuse
 
-Chrome WebDriver sessions can **container-reuse** a pre-started slot when `-warm-pool-url` / `SELENOID_WARM_POOL_URL` points at [selenoid-warm-pool](https://github.com/qa-guru/selenoid-warm-pool) **and** the slot exposes a loopback `webdriverUrl` (`127.0.0.1`). Otherwise the hub starts a cold Docker container. Playwright / video / VNC / HAR stay cold. Hot is **session-reuse** (existing UUID / WS, bypasses hub) — not this path. Not an Allure attachment.
+Chrome WebDriver sessions can **container-reuse** a pre-started slot when `-warm-pool-url` / `-pool-url` / `SELENOID_WARM_POOL_URL` points at [selenoid-pool](https://github.com/qa-guru/selenoid-pool) **and** the slot exposes a loopback `webdriverUrl` (`127.0.0.1`). Otherwise the hub starts a cold Docker container. Playwright / video / VNC / HAR stay cold. Hot is **session-reuse** (existing UUID / WS, bypasses hub) — not this path. Not an Allure attachment.
 
 ```bash
 ./selenoid -conf config/browsers.json -warm-pool-url http://127.0.0.1:9090
+# alias: -pool-url
 ```
 
 Operator guide: [docs/CONTAINER-REUSE.md](docs/CONTAINER-REUSE.md) · ADR: [docs/ADR-container-reuse.md](docs/ADR-container-reuse.md).

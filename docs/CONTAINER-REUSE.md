@@ -1,6 +1,6 @@
 # Container-reuse: warm Chrome WebDriver
 
-Hub can reuse a pre-started Chrome **container** from [selenoid-warm-pool](https://github.com/qa-guru/selenoid-warm-pool) instead of `docker run` on every session.
+Hub can reuse a pre-started Chrome **container** from [selenoid-pool](https://github.com/qa-guru/selenoid-pool) instead of `docker run` on every session.
 
 **ADR:** [ADR-container-reuse.md](ADR-container-reuse.md)  
 Not an Allure **attachment**.
@@ -64,10 +64,10 @@ If no such slot exists → **409** → cold. Box1 publishes `127.0.0.1:14441/144
 
 ```bash
 # slots (published WD ports) — once
-docker compose -f docker-compose.local.yml up -d   # in selenoid-warm-pool/
+docker compose -f docker-compose.local.yml up -d   # in selenoid-pool/
 
 # orchestrator — reuse stand, do not kill
-python scripts/stands/ensure.py selenoid-warm-pool
+python scripts/stands/ensure.py selenoid-pool
 curl -sf http://127.0.0.1:9090/health
 curl -sf http://127.0.0.1:9090/pool/slots
 
@@ -90,7 +90,7 @@ Materials / URL gate: **GET** `/`, `/health`, `/pool/slots` only. Do not put `PO
 
 ## Prod ([selenoid.qa.guru](https://selenoid.qa.guru))
 
-Hub pin **v3.0.9** + warm-pool **v1.1.2** (container-reuse since [v1.1.1](https://github.com/qa-guru/selenoid-warm-pool/releases/tag/v1.1.1)). Compose SSOT is warm **4/4**: headed `qaguru/webdriver-chrome:149` on `127.0.0.1:14441` (shm 2g, first reserve), `:149-min` on `14442` (shm 2g), Playwright `1.61.1` / `1.61.1-min` on `14501/14502`. Live box1 until that compose is deployed may still be 2× `:149`. Chrome WD sessions **without** video/VNC/HAR reuse a warm WD container; Playwright and everything else stay **cold** Docker. Ports are host-loopback only (not public).
+Hub pin **v3.0.9** + pool **v1.1.2** (container-reuse since [v1.1.1](https://github.com/qa-guru/selenoid-pool/releases/tag/v1.1.1)). Compose SSOT is warm **4/4**: headed `qaguru/webdriver-chrome:149` on `127.0.0.1:14441` (shm 2g, first reserve), `:149-min` on `14442` (shm 2g), Playwright `1.61.1` / `1.61.1-min` on `14501/14502`. Live box1 until that compose is deployed may still be 2× `:149`. Chrome WD sessions **without** video/VNC/HAR reuse a warm WD container; Playwright and everything else stay **cold** Docker. Ports are host-loopback only (not public).
 
 Still out: Jenkins preopen / session-reuse · MCP · nginx `/pool/*` · Playwright **container-reuse** · Box2 Jenkins jobs · Gridlane · UI changes · killing the local warm-pool stand.
 
@@ -98,8 +98,8 @@ Still out: Jenkins preopen / session-reuse · MCP · nginx `/pool/*` · Playwrig
 
 ```bash
 cd projects/selenoid-home/selenoid && go test ./warm/ ./service/ -count=1
-cd projects/selenoid-home/selenoid-warm-pool && go test . -count=1
+cd projects/selenoid-home/selenoid-pool && go test . -count=1
 # live pyramid slice (stand :9090; container-reuse skips unless slots + hub -warm-pool-url)
-python scripts/stands/ensure.py selenoid-warm-pool
+python scripts/stands/ensure.py selenoid-pool
 cd projects/selenoid-home/selenoid-tests && ./scripts/run-go-pyramid.sh warm-pool
 ```
