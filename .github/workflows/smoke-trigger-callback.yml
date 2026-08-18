@@ -1,4 +1,4 @@
-# SSOT: generators/ethalon/selenoid-stack/smoke-trigger-callback.yml
+# SSOT: projects/selenoid-home/ethalon/smoke-trigger-callback.yml
 # Copy to consumer: .github/workflows/smoke-trigger-callback.yml
 # Sync: ./scripts/selenoid/sync-selenoid-stack-workflows.sh
 #

@@ -1,4 +1,4 @@
-# SSOT: generators/ethalon/selenoid-stack/smoke-complete.yml
+# SSOT: projects/selenoid-home/ethalon/smoke-complete.yml
 # Copy to consumer: .github/workflows/smoke-complete.yml
 # Sync: ./scripts/selenoid/sync-selenoid-stack-workflows.sh
 

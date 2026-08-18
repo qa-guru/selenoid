@@ -1,4 +1,4 @@
-# SSOT: generators/ethalon/selenoid-stack/deploy-prod-dispatch.yml
+# SSOT: projects/selenoid-home/ethalon/deploy-prod-dispatch.yml
 # Copy to consumer: .github/workflows/deploy-prod-dispatch.yml
 # Sync: ./scripts/selenoid/sync-selenoid-stack-workflows.sh
 #
