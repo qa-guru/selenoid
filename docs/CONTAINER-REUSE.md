@@ -62,20 +62,33 @@ If no such slot exists → **409** → cold. Box1 publishes `127.0.0.1:14441/144
 
 ## Local stand
 
+On a clean Docker host, [qa-guru/cm](https://github.com/qa-guru/cm) starts the sidecar and points the hub at it:
+
+```bash
+./cm selenoid start -c "$HOME/selenoid" --warm-pool
+# alias: --pool
+curl -sf http://127.0.0.1:9090/health
+curl -sf http://127.0.0.1:9090/pool/slots
+# hub /status → warmTotal>0
+```
+
+Hub already running? Pass `-warm-pool-url http://127.0.0.1:9090` (or `SELENOID_WARM_POOL_URL`).
+
+Materials / URL gate: **GET** `/`, `/health`, `/pool/slots` only. Do not put `POST /pool/*` in Materials.
+
+### Monorepo (zero-design-system)
+
+Hub developers in this workspace — slots + orchestrator without cm:
+
 ```bash
 # slots (published WD ports) — once
 docker compose -f docker-compose.local.yml up -d   # in selenoid-pool/
 
-# orchestrator — reuse stand, do not kill
 python scripts/stands/ensure.py selenoid-pool
 curl -sf http://127.0.0.1:9090/health
-curl -sf http://127.0.0.1:9090/pool/slots
 
-# hub
 ./selenoid -conf config/browsers.json -warm-pool-url http://127.0.0.1:9090
 ```
-
-Materials / URL gate: **GET** `/`, `/health`, `/pool/slots` only. Do not put `POST /pool/*` in Materials.
 
 ## Cold fallback (always)
 
@@ -95,6 +108,16 @@ Hub pin **v3.0.9** + pool **v1.1.2** (container-reuse since [v1.1.1](https://git
 Still out: Jenkins preopen / session-reuse · MCP · nginx `/pool/*` · Playwright **container-reuse** · Box2 Jenkins jobs · Gridlane · UI changes · killing the local warm-pool stand.
 
 ## Verify
+
+Public clone of this repo:
+
+```bash
+go test ./warm/ ./service/ -count=1
+```
+
+Live slots after `cm selenoid start --warm-pool`: Chrome WD to `http://127.0.0.1:4444/wd/hub` (no video/VNC/HAR) should reuse; otherwise cold fallback.
+
+### Monorepo (zero-design-system)
 
 ```bash
 cd projects/selenoid-home/selenoid && go test ./warm/ ./service/ -count=1
