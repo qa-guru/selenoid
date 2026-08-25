@@ -10,7 +10,7 @@ require (
 	github.com/docker/go-connections v0.7.0
 	github.com/docker/go-units v0.5.0
 	github.com/google/uuid v1.6.0
-	github.com/gorilla/websocket v1.5.1
+	github.com/gorilla/websocket v1.5.3
 	github.com/imdario/mergo v0.3.15
 	github.com/mafredri/cdp v0.34.1
 	github.com/moby/moby/api v1.55.0
