@@ -160,6 +160,7 @@ func TestPlaywrightDeleteSessionWritesHarAndRenamesLog(t *testing.T) {
 	logBytes, err := os.ReadFile(filepath.Join(logDir, sessionId+".log"))
 	assert.NoError(t, err)
 	assert.Equal(t, "pw-container-log\n", string(logBytes))
+	assert.FileExists(t, filepath.Join(logDir, sessionId+".json"))
 }
 
 func TestParsePlaywrightRequestLabels(t *testing.T) {

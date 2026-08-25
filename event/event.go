@@ -54,7 +54,7 @@ func AddFileCreatedListener(listener FileCreatedListener) {
 
 func SessionStopped(stoppedSession StoppedSession) {
 	for _, l := range sessionStoppedListeners {
-		go l.OnSessionStopped(stoppedSession)
+		l.OnSessionStopped(stoppedSession)
 	}
 }
 

@@ -248,7 +248,7 @@ func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName,
 			})
 		}
 	}
-	if logOutputDir != "" && (saveAllLogs || sess.Caps.Log) {
+	if logOutputDir != "" && (saveAllLogs || sess.Caps.Log) && sess.Caps.LogName != "" {
 		oldLogName := filepath.Join(logOutputDir, sess.Caps.LogName)
 		if finalLogName == "" {
 			finalLogName = sessionId + logFileExtension
