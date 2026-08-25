@@ -14,12 +14,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
 	"github.com/qa-guru/selenoid/event"
 	harpkg "github.com/qa-guru/selenoid/har"
 	"github.com/qa-guru/selenoid/info"
 	"github.com/qa-guru/selenoid/session"
-	"github.com/google/uuid"
-	"github.com/gorilla/websocket"
 )
 
 func playwrightConnect(w http.ResponseWriter, r *http.Request) {
@@ -78,6 +78,10 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 	if caps.Video && !disableDocker {
 		caps.VideoName = getTemporaryFileName(videoOutputDir, videoFileExtension)
 	}
+	finalLogName := caps.LogName
+	if logOutputDir != "" && (saveAllLogs || caps.Log) {
+		caps.LogName = getTemporaryFileName(logOutputDir, logFileExtension)
+	}
 
 	sessionTimeout, err := getSessionTimeout(caps.SessionTimeout, maxTimeout, timeout)
 	if err != nil {
@@ -109,8 +113,11 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 	// param). Capture reuses the same CDP path as WebDriver — best-effort, only
 	// when a DevTools endpoint is exposed for the container. Automated Playwright
 	// tests should prefer the client-side recordHar option (one writer/session).
+	//
 	// The recorder is stashed in a registry so whichever delete path fires
 	// (client WS close, idle timeout or an explicit hub DELETE) writes the HAR.
+	// A slot is reserved *before* the async attach so Stop/DELETE can wait for
+	// CDP instead of racing putPlaywrightHar and dropping the file.
 	//
 	// Playwright launchServer has no page until the client calls newPage(), so
 	// HAR start runs asynchronously with retries (unlike WebDriver, where a page
@@ -127,7 +134,7 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 		Cancel:    startedService.Cancel,
 		Timeout:   sessionTimeout,
 		TimeoutCh: onTimeout(sessionTimeout, func() {
-			playwrightDeleteSession(requestId, sessionId, finalVideoName)
+			playwrightDeleteSession(requestId, sessionId, finalVideoName, finalLogName)
 		}),
 		Started: time.Now(),
 	}
@@ -139,20 +146,24 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 	if startPWHar {
 		harName := caps.HARName
 		captureBodies := caps.HARBodies()
+		beginPlaywrightHar(sessionId, harName)
 		go func() {
+			var rec *harpkg.Session
+			defer func() { completePlaywrightHar(sessionId, rec) }()
 			// Manual UI sessions keep a bare WS without Playwright newPage(); seed a page
 			// over DevTools HTTP so hub HAR can attach before the client navigates.
 			ensureDevtoolsPage(requestId, sessionId, devtoolsHP)
-			if rec := startHarCapturePlaywright(requestId, sessionId, devtoolsHP, captureBodies, 120, 250*time.Millisecond); rec != nil {
-				putPlaywrightHar(sessionId, rec, harName)
-			}
+			fitPlaywrightWindow(requestId, sessionId, devtoolsHP, caps.ScreenResolution)
+			rec = startHarCapturePlaywright(requestId, sessionId, devtoolsHP, captureBodies, 120, 250*time.Millisecond)
 		}()
+	} else if caps.VNC && !caps.Headless && devtoolsHP != "" {
+		go fitPlaywrightWindow(requestId, sessionId, devtoolsHP, caps.ScreenResolution)
 	}
 
 	backendURL := startedService.Url
 	log.Printf("[%d] [PLAYWRIGHT_CONNECTING] [%s] [%s]", requestId, sessionId, backendURL.String())
 	proxyPlaywright(w, r, backendURL)
-	playwrightDeleteSession(requestId, sessionId, finalVideoName)
+	playwrightDeleteSession(requestId, sessionId, finalVideoName, finalLogName)
 }
 
 func proxyPlaywright(w http.ResponseWriter, r *http.Request, backend *url.URL) {
@@ -180,9 +191,15 @@ func isPlaywrightSession(sess *session.Session) bool {
 	return sess.HostPort.Playwright != "" || (sess.URL != nil && sess.URL.Scheme == "ws")
 }
 
-func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName string) {
+func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName, finalLogName string) {
+	// Wait for async CDP attach *before* tearing down the container. The UI
+	// Stop path (DELETE /wd/hub/session) races the connect-handler cleanup;
+	// only the first caller writes artifacts.
+	h := waitPlaywrightHarDone(sessionId, playwrightHarWait)
+
 	sess, ok := sessions.Get(sessionId)
 	if !ok {
+		saveTakenPlaywrightHar(requestId, sessionId, nil, takePlaywrightHar(sessionId))
 		return
 	}
 	sess.Lock.Lock()
@@ -194,7 +211,21 @@ func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName 
 	}
 	sessions.Remove(sessionId)
 	queue.Release()
-	if sess.Cancel != nil {
+
+	cancelled := false
+	if h != nil && !harSlotDone(h) {
+		// Attach still retrying — drop the container so CDP dials fail, then
+		// wait for the goroutine to complete() so we flush once.
+		if sess.Cancel != nil {
+			sess.Cancel()
+			sess.Cancel = nil
+			cancelled = true
+		}
+		waitPlaywrightHarDone(sessionId, 5*time.Second)
+	}
+
+	saveTakenPlaywrightHar(requestId, sessionId, sess, takePlaywrightHar(sessionId))
+	if !cancelled && sess.Cancel != nil {
 		sess.Cancel()
 	}
 	if sess.Caps.Video && !disableDocker {
@@ -217,15 +248,15 @@ func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName 
 			})
 		}
 	}
-	if h := takePlaywrightHar(sessionId); h != nil {
-		rec := h.recorder.Stop()
-		finalHarName := h.name
-		if finalHarName == "" {
-			finalHarName = sessionId + harFileExtension
+	if logOutputDir != "" && (saveAllLogs || sess.Caps.Log) {
+		oldLogName := filepath.Join(logOutputDir, sess.Caps.LogName)
+		if finalLogName == "" {
+			finalLogName = sessionId + logFileExtension
+			sess.Caps.LogName = finalLogName
 		}
-		harPath := filepath.Join(harOutputDir, finalHarName)
-		if err := rec.WriteFile(harPath, sess.Caps.TestName); err != nil {
-			log.Printf("[%d] [HAR_ERROR] [%s]", requestId, fmt.Sprintf("Failed to write HAR %s: %v", harPath, err))
+		newLogName := filepath.Join(logOutputDir, finalLogName)
+		if err := os.Rename(oldLogName, newLogName); err != nil {
+			log.Printf("[%d] [LOG_ERROR] [%s]", requestId, fmt.Sprintf("Failed to rename %s to %s: %v", oldLogName, newLogName, err))
 		} else {
 			event.FileCreated(event.CreatedFile{
 				Event: event.Event{
@@ -233,10 +264,9 @@ func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName 
 					SessionId: sessionId,
 					Session:   sess,
 				},
-				Name: harPath,
-				Type: "har",
+				Name: newLogName,
+				Type: "log",
 			})
-			log.Printf("[%d] [HAR_SAVED] [%s] [%s] [%d entries]", requestId, sessionId, finalHarName, rec.EntryCount())
 		}
 	}
 	event.SessionStopped(event.StoppedSession{
@@ -249,15 +279,18 @@ func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName 
 	log.Printf("[%d] [PLAYWRIGHT_SESSION_DELETED] [%s]", requestId, sessionId)
 }
 
+// playwrightHarWait bounds how long Stop/DELETE waits for the async CDP attach
+// goroutine (120 attempts × 250ms plus dial timeouts).
+const playwrightHarWait = 35 * time.Second
+
 // playwrightHar holds a live hub HAR recorder for a manual Playwright session
-// plus the requested output name. It is kept in a package-level registry so any
-// session-teardown path (client WS close, idle timeout or an explicit hub
-// DELETE via the /wd/hub proxy) can stop the recorder and write the HAR exactly
-// once — the recorder cannot live on the closure alone because the hub-DELETE
-// path removes the session before the connect handler's deferred cleanup runs.
+// plus the requested output name. A slot is reserved at session start so Stop
+// can wait for attach instead of racing the goroutine and dropping the file.
 type playwrightHar struct {
 	recorder *harpkg.Session
 	name     string
+	done     chan struct{}
+	once     sync.Once
 }
 
 var (
@@ -265,11 +298,60 @@ var (
 	playwrightHarByID = map[string]*playwrightHar{}
 )
 
-// putPlaywrightHar registers a recorder for a session id.
-func putPlaywrightHar(sessionId string, recorder *harpkg.Session, name string) {
+func beginPlaywrightHar(sessionId, name string) {
+	h := &playwrightHar{name: name, done: make(chan struct{})}
 	playwrightHarMu.Lock()
-	defer playwrightHarMu.Unlock()
-	playwrightHarByID[sessionId] = &playwrightHar{recorder: recorder, name: name}
+	playwrightHarByID[sessionId] = h
+	playwrightHarMu.Unlock()
+}
+
+func completePlaywrightHar(sessionId string, rec *harpkg.Session) {
+	playwrightHarMu.Lock()
+	h := playwrightHarByID[sessionId]
+	playwrightHarMu.Unlock()
+	if h == nil {
+		if rec != nil {
+			rec.Stop()
+		}
+		return
+	}
+	h.once.Do(func() {
+		h.recorder = rec
+		close(h.done)
+	})
+}
+
+func harSlotDone(h *playwrightHar) bool {
+	if h == nil {
+		return true
+	}
+	select {
+	case <-h.done:
+		return true
+	default:
+		return false
+	}
+}
+
+func waitPlaywrightHarDone(sessionId string, wait time.Duration) *playwrightHar {
+	playwrightHarMu.Lock()
+	h := playwrightHarByID[sessionId]
+	playwrightHarMu.Unlock()
+	if h == nil {
+		return nil
+	}
+	select {
+	case <-h.done:
+	case <-time.After(wait):
+		log.Printf("[-] [HAR_CAPTURE_WAIT_TIMEOUT] [%s]", sessionId)
+	}
+	return h
+}
+
+// putPlaywrightHar registers an already-started recorder (tests / sync path).
+func putPlaywrightHar(sessionId string, recorder *harpkg.Session, name string) {
+	beginPlaywrightHar(sessionId, name)
+	completePlaywrightHar(sessionId, recorder)
 }
 
 // takePlaywrightHar removes and returns the recorder for a session id, or nil if
@@ -281,6 +363,55 @@ func takePlaywrightHar(sessionId string) *playwrightHar {
 	h := playwrightHarByID[sessionId]
 	delete(playwrightHarByID, sessionId)
 	return h
+}
+
+func saveTakenPlaywrightHar(requestId uint64, sessionId string, sess *session.Session, h *playwrightHar) {
+	if harOutputDir == "" {
+		if h != nil && h.recorder != nil {
+			h.recorder.Stop()
+		}
+		return
+	}
+	var rec *harpkg.Recorder
+	name := ""
+	testName := ""
+	if h != nil {
+		name = h.name
+		if h.recorder != nil {
+			rec = h.recorder.Stop()
+		}
+	}
+	if sess != nil {
+		testName = sess.Caps.TestName
+		if name == "" {
+			name = sess.Caps.HARName
+		}
+	}
+	if rec == nil {
+		wantHar := h != nil || (sess != nil && sess.Caps.HAR)
+		if !wantHar {
+			return
+		}
+		rec = harpkg.NewRecorder()
+	}
+	if name == "" {
+		name = sessionId + harFileExtension
+	}
+	harPath := filepath.Join(harOutputDir, name)
+	if err := rec.WriteFile(harPath, testName); err != nil {
+		log.Printf("[%d] [HAR_ERROR] [%s]", requestId, fmt.Sprintf("Failed to write HAR %s: %v", harPath, err))
+		return
+	}
+	event.FileCreated(event.CreatedFile{
+		Event: event.Event{
+			RequestId: requestId,
+			SessionId: sessionId,
+			Session:   sess,
+		},
+		Name: harPath,
+		Type: "har",
+	})
+	log.Printf("[%d] [HAR_SAVED] [%s] [%s] [%d entries]", requestId, sessionId, name, rec.EntryCount())
 }
 
 func accessKeyOK(r *http.Request) bool {

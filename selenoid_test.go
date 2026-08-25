@@ -16,9 +16,9 @@ import (
 	"time"
 
 	ggr "github.com/aerokube/ggr/config"
-	"github.com/qa-guru/selenoid/config"
 	"github.com/mafredri/cdp"
 	"github.com/mafredri/cdp/rpcc"
+	"github.com/qa-guru/selenoid/config"
 	assert "github.com/stretchr/testify/require"
 )
 
@@ -107,6 +107,20 @@ func TestGetShortScreenResolution(t *testing.T) {
 		res, err := getScreenResolution("1024x768")
 		assert.NoError(t, err)
 		assert.Equal(t, res, "1024x768x24")
+	})
+}
+
+func TestScreenSizePixels(t *testing.T) {
+	t.Run("parses WxHxD and defaults", func(t *testing.T) {
+		w, h := screenSizePixels("1280x1024x24")
+		assert.Equal(t, 1280, w)
+		assert.Equal(t, 1024, h)
+		dw, dh := screenSizePixels("")
+		assert.Equal(t, 1920, dw)
+		assert.Equal(t, 1080, dh)
+		bw, bh := screenSizePixels("bad")
+		assert.Equal(t, 1920, bw)
+		assert.Equal(t, 1080, bh)
 	})
 }
 

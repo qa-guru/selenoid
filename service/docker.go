@@ -13,14 +13,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/qa-guru/selenoid/config"
-	"github.com/qa-guru/selenoid/session"
-	ctr "github.com/moby/moby/api/types/container"
-	"github.com/moby/moby/api/types/network"
-	"github.com/moby/moby/api/pkg/stdcopy"
-	"github.com/moby/moby/client"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
+	"github.com/moby/moby/api/pkg/stdcopy"
+	ctr "github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/client"
+	"github.com/qa-guru/selenoid/config"
+	"github.com/qa-guru/selenoid/session"
 )
 
 const (
@@ -273,27 +273,7 @@ func (d *Docker) StartWithCancel() (*StartedService, error) {
 			}
 			defer removeContainer(ctx, cl, requestId, browserContainerId)
 			if d.LogOutputDir != "" && (d.SaveAllLogs || d.Log) {
-				r, err := d.Client.ContainerLogs(ctx, browserContainerId, client.ContainerLogsOptions{
-					Timestamps: true,
-					ShowStdout: true,
-					ShowStderr: true,
-				})
-				if err != nil {
-					log.Printf("[%d] [FAILED_TO_COPY_LOGS] [%s] [Failed to capture container logs: %v]", requestId, browserContainerId, err)
-					return
-				}
-				defer r.Close()
-				filename := filepath.Join(d.LogOutputDir, d.LogName)
-				f, err := os.Create(filename)
-				if err != nil {
-					log.Printf("[%d] [FAILED_TO_COPY_LOGS] [%s] [Failed to create log file %s: %v]", requestId, browserContainerId, filename, err)
-					return
-				}
-				defer f.Close()
-				_, err = stdcopy.StdCopy(f, f, r)
-				if err != nil {
-					log.Printf("[%d] [FAILED_TO_COPY_LOGS] [%s] [Failed to copy data to log file %s: %v]", requestId, browserContainerId, filename, err)
-				}
+				copyContainerLogs(ctx, cl, requestId, browserContainerId, d.LogOutputDir, d.LogName)
 			}
 		},
 	}
@@ -653,6 +633,36 @@ func stopVideoContainer(ctx context.Context, cli *client.Client, requestId uint6
 	case <-time.After(env.SessionDeleteTimeout):
 		removeContainer(ctx, cli, requestId, containerId)
 		return
+	}
+}
+
+// copyContainerLogs dumps stdout/stderr of a still-running (or just-stopped)
+// browser container into logOutputDir/logName. Call before removeContainer:
+// AutoRemove containers vanish on stop and logs are then gone. No-op when the
+// output dir or file name is empty.
+func copyContainerLogs(ctx context.Context, cl *client.Client, requestId uint64, containerId, logOutputDir, logName string) {
+	if strings.TrimSpace(logOutputDir) == "" || strings.TrimSpace(logName) == "" {
+		return
+	}
+	r, err := cl.ContainerLogs(ctx, containerId, client.ContainerLogsOptions{
+		Timestamps: true,
+		ShowStdout: true,
+		ShowStderr: true,
+	})
+	if err != nil {
+		log.Printf("[%d] [FAILED_TO_COPY_LOGS] [%s] [Failed to capture container logs: %v]", requestId, containerId, err)
+		return
+	}
+	defer r.Close()
+	filename := filepath.Join(logOutputDir, logName)
+	f, err := os.Create(filename)
+	if err != nil {
+		log.Printf("[%d] [FAILED_TO_COPY_LOGS] [%s] [Failed to create log file %s: %v]", requestId, containerId, filename, err)
+		return
+	}
+	defer f.Close()
+	if _, err = stdcopy.StdCopy(f, f, r); err != nil {
+		log.Printf("[%d] [FAILED_TO_COPY_LOGS] [%s] [Failed to copy data to log file %s: %v]", requestId, containerId, filename, err)
 	}
 }
 

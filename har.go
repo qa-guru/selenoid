@@ -8,6 +8,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mafredri/cdp"
+	"github.com/mafredri/cdp/protocol/browser"
+	"github.com/mafredri/cdp/rpcc"
 	harpkg "github.com/qa-guru/selenoid/har"
 	"github.com/qa-guru/selenoid/info"
 	"github.com/qa-guru/selenoid/session"
@@ -123,6 +126,59 @@ func ensureDevtoolsPage(requestId uint64, sessionId, devtoolsHostPort string) {
 		return
 	}
 	log.Printf("[%d] [HAR_PAGE_BOOTSTRAP] [%s]", requestId, sessionId)
+}
+
+// fitPlaywrightWindow resizes the Chromium window on Xvfb to screenResolution.
+// Manual UI sessions (and HAR /json/new) otherwise keep Chrome's default ~800×600
+// because --window-size is ignored without a window manager.
+func fitPlaywrightWindow(requestId uint64, sessionId, devtoolsHostPort, screenResolution string) {
+	devtoolsHostPort = strings.TrimSpace(devtoolsHostPort)
+	if devtoolsHostPort == "" {
+		return
+	}
+	width, height := screenSizePixels(screenResolution)
+	var lastErr error
+	for i := 0; i < 40; i++ {
+		if err := setDevtoolsWindowBounds(devtoolsHostPort, width, height); err == nil {
+			log.Printf("[%d] [PLAYWRIGHT_WINDOW_FIT] [%s] [%dx%d]", requestId, sessionId, width, height)
+			return
+		} else {
+			lastErr = err
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	log.Printf("[%d] [PLAYWRIGHT_WINDOW_FIT_FAILED] [%s] [%v]", requestId, sessionId, lastErr)
+}
+
+func setDevtoolsWindowBounds(devtoolsHostPort string, width, height int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	wsURL := "ws://" + devtoolsHostPort + "/page"
+	conn, err := rpcc.DialContext(ctx, wsURL)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	c := cdp.NewClient(conn)
+	win, err := c.Browser.GetWindowForTarget(ctx, browser.NewGetWindowForTargetArgs())
+	if err != nil {
+		return err
+	}
+	maxErr := c.Browser.SetWindowBounds(ctx, browser.NewSetWindowBoundsArgs(win.WindowID, browser.Bounds{
+		WindowState: browser.WindowStateMaximized,
+	}))
+	if maxErr == nil {
+		return nil
+	}
+	left, top := 0, 0
+	w, h := width, height
+	return c.Browser.SetWindowBounds(ctx, browser.NewSetWindowBoundsArgs(win.WindowID, browser.Bounds{
+		Left:        &left,
+		Top:         &top,
+		Width:       &w,
+		Height:      &h,
+		WindowState: browser.WindowStateNormal,
+	}))
 }
 
 type devtoolsTarget struct {

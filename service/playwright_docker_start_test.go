@@ -5,14 +5,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/qa-guru/selenoid/session"
 	ctr "github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
+	"github.com/qa-guru/selenoid/session"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,12 +32,13 @@ type playwrightDockerMock struct {
 
 	mu sync.Mutex
 
-	createCalls      int
-	started          map[string]int
-	inspectCalls     int
-	removed          []string
-	killed           []string
-	waitCalls        int
+	createCalls  int
+	started      map[string]int
+	inspectCalls int
+	removed      []string
+	killed       []string
+	waitCalls    int
+	logCalls     int
 
 	failCreate       bool
 	failStartBrowser bool
@@ -116,6 +118,15 @@ func (m *playwrightDockerMock) serveHTTP(w http.ResponseWriter, r *http.Request)
 		}
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, inspectJSON(hostPort), hostPort)
+
+	case r.Method == http.MethodGet && strings.HasSuffix(path, "/logs"):
+		m.logCalls++
+		w.Header().Set("Content-Type", "application/vnd.docker.raw-stream")
+		w.WriteHeader(http.StatusOK)
+		payload := []byte("test-data")
+		header := []byte{1, 0, 0, 0, 0, 0, 0, byte(len(payload))}
+		_, _ = w.Write(header)
+		_, _ = w.Write(payload)
 
 	case r.Method == http.MethodPost && strings.HasSuffix(path, "/kill"):
 		id := containerIDFromPath(path, "/kill")
@@ -235,6 +246,33 @@ func TestPlaywrightDockerStartWithCancel_Success(t *testing.T) {
 	mock.mu.Lock()
 	assert.Contains(t, mock.removed, mockBrowserContainerID)
 	mock.mu.Unlock()
+}
+
+func TestPlaywrightDockerStartWithCancel_CopiesLogs(t *testing.T) {
+	pwSrv := newPlaywrightHTTPServer()
+	defer pwSrv.Close()
+
+	mock := newPlaywrightDockerMock(t, pwSrv)
+	defer mock.server.Close()
+
+	logDir := t.TempDir()
+	env := testPlaywrightEnvironment()
+	env.LogOutputDir = logDir
+	caps := session.Caps{Headless: true, Log: true, LogName: "pw.log"}
+	started, err := newPlaywrightDockerStarter(t, mock, caps, env).StartWithCancel()
+	require.NoError(t, err)
+	require.NotNil(t, started)
+
+	started.Cancel()
+
+	mock.mu.Lock()
+	assert.Equal(t, 1, mock.logCalls)
+	assert.Contains(t, mock.removed, mockBrowserContainerID)
+	mock.mu.Unlock()
+
+	data, err := os.ReadFile(filepath.Join(logDir, "pw.log"))
+	require.NoError(t, err)
+	assert.Contains(t, string(data), "test-data")
 }
 
 func TestPlaywrightDockerStartWithCancel_CreateError(t *testing.T) {

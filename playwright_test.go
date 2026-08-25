@@ -6,12 +6,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/qa-guru/selenoid/session"
 	"github.com/gorilla/websocket"
+	"github.com/qa-guru/selenoid/session"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -83,6 +85,81 @@ func TestPlaywrightHarRegistryTakeOnce(t *testing.T) {
 
 	// A second take for the same id yields nil so only one teardown path writes.
 	assert.Nil(t, takePlaywrightHar(id))
+}
+
+func TestPlaywrightHarRegistryWaitsForLateComplete(t *testing.T) {
+	id := "har-late-complete"
+	beginPlaywrightHar(id, "late.har")
+	go func() {
+		time.Sleep(40 * time.Millisecond)
+		completePlaywrightHar(id, nil)
+	}()
+
+	h := waitPlaywrightHarDone(id, time.Second)
+	assert.NotNil(t, h)
+	assert.True(t, harSlotDone(h))
+	assert.Equal(t, "late.har", h.name)
+	assert.Equal(t, h, takePlaywrightHar(id))
+	assert.Nil(t, takePlaywrightHar(id))
+}
+
+func TestPlaywrightDeleteSessionWritesHarAndRenamesLog(t *testing.T) {
+	harDir := t.TempDir()
+	logDir := t.TempDir()
+	prevH, prevL := harOutputDir, logOutputDir
+	harOutputDir, logOutputDir = harDir, logDir
+	t.Cleanup(func() {
+		harOutputDir, logOutputDir = prevH, prevL
+		takePlaywrightHar("pw-art-session")
+	})
+
+	sessionId := "pw-art-session"
+	tempLog := "selenoid-pw-temp.log"
+	assert.NoError(t, os.WriteFile(filepath.Join(logDir, tempLog), []byte("pw-container-log\n"), 0644))
+	putPlaywrightHar(sessionId, nil, "")
+
+	wsURL, err := url.Parse("ws://127.0.0.1:3000")
+	assert.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	assert.True(t, queue.Wait(ctx))
+	queue.Create()
+	t.Cleanup(func() {
+		if _, ok := sessions.Get(sessionId); ok {
+			sessions.Remove(sessionId)
+			queue.Release()
+		}
+	})
+
+	canceled := false
+	sessions.Put(sessionId, &session.Session{
+		Caps: session.Caps{
+			Name:    "playwright-chromium",
+			HAR:     true,
+			Log:     true,
+			LogName: tempLog,
+		},
+		URL: wsURL,
+		HostPort: session.HostPort{
+			Playwright: "127.0.0.1:3000",
+		},
+		Cancel:    func() { canceled = true },
+		TimeoutCh: make(chan struct{}),
+	})
+
+	playwrightDeleteSession(1, sessionId, "", "")
+	assert.True(t, canceled)
+	_, ok := sessions.Get(sessionId)
+	assert.False(t, ok)
+
+	harBytes, err := os.ReadFile(filepath.Join(harDir, sessionId+".har"))
+	assert.NoError(t, err)
+	assert.Contains(t, string(harBytes), `"version": "1.2"`)
+
+	logBytes, err := os.ReadFile(filepath.Join(logDir, sessionId+".log"))
+	assert.NoError(t, err)
+	assert.Equal(t, "pw-container-log\n", string(logBytes))
 }
 
 func TestParsePlaywrightRequestLabels(t *testing.T) {

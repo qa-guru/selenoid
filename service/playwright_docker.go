@@ -10,13 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/qa-guru/selenoid/config"
-	"github.com/qa-guru/selenoid/info"
-	"github.com/qa-guru/selenoid/session"
+	"github.com/docker/go-connections/nat"
 	ctr "github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/api/types/network"
 	"github.com/moby/moby/client"
-	"github.com/docker/go-connections/nat"
+	"github.com/qa-guru/selenoid/config"
+	"github.com/qa-guru/selenoid/info"
+	"github.com/qa-guru/selenoid/session"
 )
 
 const (
@@ -188,7 +188,10 @@ func (d *PlaywrightDocker) StartWithCancel() (*StartedService, error) {
 			if videoContainerId != "" {
 				stopVideoContainer(ctx, d.Client, requestId, videoContainerId, d.Environment)
 			}
-			removeContainer(ctx, d.Client, requestId, browserContainerId)
+			defer removeContainer(ctx, d.Client, requestId, browserContainerId)
+			if d.LogOutputDir != "" && (d.SaveAllLogs || d.Log) {
+				copyContainerLogs(ctx, d.Client, requestId, browserContainerId, d.LogOutputDir, d.LogName)
+			}
 		},
 	}, nil
 }

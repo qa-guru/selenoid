@@ -28,13 +28,13 @@ import (
 	harpkg "github.com/qa-guru/selenoid/har"
 	"github.com/qa-guru/selenoid/info"
 
+	"github.com/imdario/mergo"
+	"github.com/moby/moby/api/pkg/stdcopy"
+	"github.com/moby/moby/client"
 	"github.com/qa-guru/selenoid/event"
 	"github.com/qa-guru/selenoid/jsonerror"
 	"github.com/qa-guru/selenoid/service"
 	"github.com/qa-guru/selenoid/session"
-	"github.com/moby/moby/client"
-	"github.com/moby/moby/api/pkg/stdcopy"
-	"github.com/imdario/mergo"
 	"golang.org/x/net/websocket"
 )
 
@@ -645,6 +645,18 @@ func shortenScreenResolution(screenResolution string) string {
 	return fullFormat.FindStringSubmatch(screenResolution)[1]
 }
 
+func screenSizePixels(input string) (width, height int) {
+	res, err := getScreenResolution(input)
+	if err != nil {
+		res = "1920x1080x24"
+	}
+	short := shortenScreenResolution(res)
+	if _, scanErr := fmt.Sscanf(short, "%dx%d", &width, &height); scanErr != nil || width <= 0 || height <= 0 {
+		return 1920, 1080
+	}
+	return width, height
+}
+
 func getVideoScreenSize(videoScreenSize string, screenResolution string) (string, error) {
 	if videoScreenSize != "" {
 		if shortFormat.MatchString(videoScreenSize) {
@@ -706,7 +718,7 @@ func proxy(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodDelete && len(fragments) == 3 {
 		id := fragments[2]
 		if sess, ok := sessions.Get(id); ok && isPlaywrightSession(sess) {
-			playwrightDeleteSession(requestId, id, "")
+			playwrightDeleteSession(requestId, id, "", "")
 			w.WriteHeader(http.StatusOK)
 			return
 		}
