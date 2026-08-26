@@ -1,6 +1,6 @@
 # Таблица совместимости версий браузеров
 
-**SSOT:** [`../../dev/browsers.json`](../../dev/browsers.json) → `dev/scripts/sync-cm-browsers.sh` → hub config, CM embed (`cm/selenoid/data/browsers.json`), CI fixture, UI. Сейчас: Chrome default **149.0**, Playwright **1.61.1**, + firefox/msedge и все PW engines. Последняя проверка: июль 2026.
+**SSOT:** [`../../dev/browsers.json`](../../dev/browsers.json) → `dev/scripts/sync-cm-browsers.sh` → hub config, CM embed (`cm/selenoid/data/browsers.json`), CI fixture, UI. Сейчас: Chrome default **152.0**, Playwright **1.62.1**, Firefox **154.0**, Edge **151.0**. Последняя проверка: 26 августа 2026.
 
 ## Политика стека: три слоя
 
@@ -22,8 +22,8 @@
 
 | Стек | Браузеры в `browsers.json` | Протокол | Что означает поле `version` |
 |------|----------------------------|----------|------------------------------|
-| **WebDriver** | `chrome`, `firefox`, `msedge` | Selenium (`/wd/hub`) | Мажорная версия браузера (`149.0` → Chrome 149.x) |
-| **Playwright** | `playwright-chromium`, `playwright-firefox`, `playwright-webkit`, `playwright-chrome`, `playwright-msedge` | WebSocket (`/playwright/...`) | Версия npm-пакета `@playwright/test` (`1.61.1`) |
+| **WebDriver** | `chrome`, `firefox`, `msedge` | Selenium (`/wd/hub`) | Мажорная версия браузера (`152.0` → Chrome 152.x) |
+| **Playwright** | `playwright-chromium`, `playwright-firefox`, `playwright-webkit`, `playwright-chrome`, `playwright-msedge` | WebSocket (`/playwright/...`) | Версия npm-пакета `@playwright/test` (`1.62.1`) |
 
 Образы — [`browser-image`](https://github.com/qa-guru/browser-image).
 
@@ -35,14 +35,14 @@
 
 | Имя в hub | Default | Версии в конфиге | Docker-образ | Протокол | В SSOT `dev/` |
 |-----------|---------|------------------|--------------|----------|:-------------:|
-| `chrome` | `149.0` | 149.0, 149.0-min, 148.0, 148.0-min | `qaguru/webdriver-chrome:<major>[-min]` | WebDriver | ✓ |
-| `firefox` | `151.0` | 151.0, 151.0-min, 150.0, 150.0-min | `qaguru/webdriver-firefox:<major>[-min]` | WebDriver | ✓ |
-| `msedge` | `145.0` | 145.0, 145.0-min, 144.0, 144.0-min | `qaguru/webdriver-msedge:<major>[-min]` | WebDriver | ✓ |
-| `playwright-chromium` | `1.61.1` | 1.61.1, 1.61.1-min | `qaguru/playwright-chromium:<версия>` | Playwright | ✓ |
-| `playwright-firefox` | `1.61.1` | 1.61.1 | `qaguru/playwright-firefox:<версия>` | Playwright | ✓ |
-| `playwright-webkit` | `1.61.1` | 1.61.1 | `qaguru/playwright-webkit:<версия>` | Playwright | ✓ |
-| `playwright-chrome` | `1.61.1` | 1.61.1 | `qaguru/playwright-chrome:<версия>` | Playwright | ✓ |
-| `playwright-msedge` | `1.61.1` | 1.61.1 | `qaguru/playwright-msedge:<версия>` | Playwright | ✓ |
+| `chrome` | `152.0` | 152.0, 152.0-min, 151.0, 151.0-min | `qaguru/webdriver-chrome:<major>[-min]` | WebDriver | ✓ |
+| `firefox` | `154.0` | 154.0, 154.0-min, 153.0, 153.0-min | `qaguru/webdriver-firefox:<major>[-min]` | WebDriver | ✓ |
+| `msedge` | `151.0` | 151.0, 151.0-min, 150.0, 150.0-min | `qaguru/webdriver-msedge:<major>[-min]` | WebDriver | ✓ |
+| `playwright-chromium` | `1.62.1` | 1.62.1, 1.62.1-min, 1.61.1, 1.61.1-min | `qaguru/playwright-chromium:<версия>` | Playwright | ✓ |
+| `playwright-firefox` | `1.62.1` | 1.62.1, 1.61.1 | `qaguru/playwright-firefox:<версия>` | Playwright | ✓ |
+| `playwright-webkit` | `1.62.1` | 1.62.1, 1.61.1 | `qaguru/playwright-webkit:<версия>` | Playwright | ✓ |
+| `playwright-chrome` | `1.62.1` | 1.62.1, 1.61.1 | `qaguru/playwright-chrome:<версия>` | Playwright | ✓ |
+| `playwright-msedge` | `1.62.1` | 1.62.1, 1.61.1 | `qaguru/playwright-msedge:<версия>` | Playwright | ✓ |
 
 ---
 
@@ -50,13 +50,13 @@
 
 | Версия в hub | Docker-тег | Содержимое | `path` | Endpoint |
 |--------------|------------|------------|--------|----------|
-| **chrome 149.0** *(default)* | `qaguru/webdriver-chrome:149` | CfT + chromedriver, warm VNC | `/` | `POST /wd/hub/session`, `browserName: chrome` |
-| chrome 149.0-min | `qaguru/webdriver-chrome:149-min` | headless CI | `/` | то же, `browserVersion: 149.0-min` |
-| chrome 148.0 / 148.0-min | `…:148` / `:148-min` | regression | `/` | то же |
-| **firefox 151.0** *(default)* | `qaguru/webdriver-firefox:151` | Mozilla FF + geckodriver 0.37, warm VNC | `/` | `browserName: firefox` |
-| firefox 151.0-min / 150.* | `…:151-min` / `:150[-min]` | CI / regression | `/` | то же |
-| **msedge 145.0** *(default)* | `qaguru/webdriver-msedge:145` | Edge + msedgedriver, warm VNC (**amd64 only**) | `/` | `browserName: MicrosoftEdge` |
-| msedge 145.0-min / 144.* | `…:145-min` / `:144[-min]` | CI / regression | `/` | то же |
+| **chrome 152.0** *(default)* | `qaguru/webdriver-chrome:152` | CfT + chromedriver, warm VNC | `/` | `POST /wd/hub/session`, `browserName: chrome` |
+| chrome 152.0-min | `qaguru/webdriver-chrome:152-min` | headless CI | `/` | то же, `browserVersion: 152.0-min` |
+| chrome 151.0 / 151.0-min | `…:151` / `:151-min` | regression | `/` | то же |
+| **firefox 154.0** *(default)* | `qaguru/webdriver-firefox:154` | Mozilla FF + geckodriver 0.37.1, warm VNC | `/` | `browserName: firefox` |
+| firefox 154.0-min / 153.* | `…:154-min` / `:153[-min]` | CI / regression | `/` | то же |
+| **msedge 151.0** *(default)* | `qaguru/webdriver-msedge:151` | Edge + msedgedriver, warm VNC (**amd64 only**) | `/` | `browserName: MicrosoftEdge` |
+| msedge 151.0-min / 150.* | `…:151-min` / `:150[-min]` | CI / regression | `/` | то же |
 
 **Клиент:** любой Selenium WebDriver. Edge в caps — `MicrosoftEdge` (alias → `msedge` в hub).
 
@@ -72,20 +72,23 @@
 
 | Playwright в hub | `playwrightVersion` | Chromium в контейнере | npm-клиент | WebSocket endpoint |
 |------------------|---------------------|------------------------|------------|-------------------|
-| **1.61.1** *(default)* | `1.61.1` | **149.0.7827.55** (rev 1223) | `@playwright/test@1.61.1` | `ws://host:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableVideo=true` |
-| 1.61.1-min | `1.61.1` | **149.0.7827.55** (headless CI) | `@playwright/test@1.61.1` | `ws://host:4444/playwright/playwright-chromium/1.61.1-min` |
+| **1.62.1** *(default)* | `1.62.1` | **151.0.7922.34** (rev 1234) | `@playwright/test@1.62.1` | `ws://host:4444/playwright/playwright-chromium/1.62.1?enableVNC=true&enableVideo=true` |
+| 1.62.1-min | `1.62.1` | **151.0.7922.34** (headless CI) | `@playwright/test@1.62.1` | `ws://host:4444/playwright/playwright-chromium/1.62.1-min` |
+| 1.61.1 / 1.61.1-min | `1.61.1` | **149.0.7827.55** (rev 1223) | `@playwright/test@1.61.1` | `…/playwright-chromium/1.61.1[-min]` |
 
 ### Firefox Playwright (`playwright-firefox`)
 
 | Playwright в hub | `playwrightVersion` | Firefox в контейнере | npm-клиент | WebSocket endpoint |
 |------------------|---------------------|----------------------|------------|-------------------|
-| **1.61.1** *(default)* | `1.61.1` | **151.0** (rev 1522) | `@playwright/test@1.61.1` | `ws://host:4444/playwright/playwright-firefox/1.61.1?enableVNC=true&enableVideo=true` |
+| **1.62.1** *(default)* | `1.62.1` | **153.0** (rev 1538) | `@playwright/test@1.62.1` | `ws://host:4444/playwright/playwright-firefox/1.62.1?enableVNC=true&enableVideo=true` |
+| 1.61.1 | `1.61.1` | **151.0** (rev 1522) | `@playwright/test@1.61.1` | `…/playwright-firefox/1.61.1` |
 
 ### WebKit Playwright (`playwright-webkit`)
 
 | Playwright в hub | `playwrightVersion` | WebKit в контейнере | npm-клиент | WebSocket endpoint |
 |------------------|---------------------|---------------------|------------|-------------------|
-| **1.61.1** *(default)* | `1.61.1` | **26.5** (rev 2287) | `@playwright/test@1.61.1` | `ws://host:4444/playwright/playwright-webkit/1.61.1?enableVNC=true&enableVideo=true` |
+| **1.62.1** *(default)* | `1.62.1` | **26.5** (rev 2336) | `@playwright/test@1.62.1` | `ws://host:4444/playwright/playwright-webkit/1.62.1?enableVNC=true&enableVideo=true` |
+| 1.61.1 | `1.61.1` | **26.5** (rev 2287) | `@playwright/test@1.61.1` | `…/playwright-webkit/1.61.1` |
 
 ---
 
@@ -94,7 +97,7 @@
 | Что проверять | Правило | Последствие при нарушении |
 |---------------|---------|---------------------------|
 | Playwright npm ↔ hub | `@playwright/test` **должен совпадать** с `playwrightVersion` и версией в URL | Ошибки протокола, несовместимость CDP/BiDi |
-| Playwright ↔ WebDriver | **Нельзя** подставить `chrome:149.0` вместо `playwright-chromium:1.61.1` | Сессия не создастся |
+| Playwright ↔ WebDriver | **Нельзя** подставить `chrome:152.0` вместо `playwright-chromium:1.62.1` | Сессия не создастся |
 | Образ Docker | Образ из `browsers.json` должен быть **скачан** до старта сессии | `No such image` при создании сессии |
 
 ---
@@ -103,8 +106,8 @@
 
 | Playwright | Chromium/Firefox (Playwright) | WebDriver qaguru | Комментарий |
 |------------|--------------------------------|------------------|-------------|
-| 1.61.1 | Chromium **149** | Chrome **149.0** | Близкие CfT-линии |
-| 1.61.1 | Firefox **151** | Firefox **151.0** | WebDriver и Playwright параллельны |
+| 1.62.1 | Chromium **151** | Chrome **152.0** | Близкие CfT-линии; WD на milestone впереди |
+| 1.62.1 | Firefox **153** | Firefox **154.0** | WebDriver и Playwright параллельны |
 
 ---
 
@@ -112,10 +115,10 @@
 
 | Компонент | Команда pull / build |
 |-----------|----------------------|
-| WebDriver Chrome | `docker pull qaguru/webdriver-chrome:149 qaguru/webdriver-chrome:149-min` |
-| WebDriver Firefox | `docker pull qaguru/webdriver-firefox:151 qaguru/webdriver-firefox:151-min` |
-| WebDriver Edge | `docker pull qaguru/webdriver-msedge:145 qaguru/webdriver-msedge:145-min` |
-| Playwright 1.61.1 | [browser-image](https://github.com/qa-guru/browser-image) `./playwright/scripts/build.sh all 1.61.1` |
+| WebDriver Chrome | `docker pull qaguru/webdriver-chrome:152 qaguru/webdriver-chrome:152-min` |
+| WebDriver Firefox | `docker pull qaguru/webdriver-firefox:154 qaguru/webdriver-firefox:154-min` |
+| WebDriver Edge | `docker pull qaguru/webdriver-msedge:151 qaguru/webdriver-msedge:151-min` |
+| Playwright 1.62.1 | [browser-image](https://github.com/qa-guru/browser-image) `./playwright/scripts/build.sh all 1.62.1` |
 | Видеозапись | `docker pull qaguru/video-recorder:latest` · [browser-image/video-recorder](https://github.com/qa-guru/browser-image/tree/master/video-recorder) |
 
 Базовый слой Playwright: `mcr.microsoft.com/playwright:v<версия>-noble` (Ubuntu Noble).
@@ -128,11 +131,11 @@
 
 | Задача | Браузер в hub | Версия по умолчанию |
 |--------|---------------|---------------------|
-| Selenium Chrome | `chrome` | `149.0` |
-| Selenium Firefox | `firefox` | `151.0` |
-| Selenium Edge | `msedge` | `145.0` |
+| Selenium Chrome | `chrome` | `152.0` |
+| Selenium Firefox | `firefox` | `154.0` |
+| Selenium Edge | `msedge` | `151.0` |
 | Selenium headless CI | `chrome` / `firefox` / `msedge` | `*-min` |
-| `@playwright/test` в CI | `playwright-chromium` | `1.61.1` |
-| Playwright + Firefox | `playwright-firefox` | `1.61.1` |
-| Playwright + Edge | `playwright-msedge` | `1.61.1` |
-| Playwright + Safari-движок | `playwright-webkit` | `1.61.1` |
+| `@playwright/test` в CI | `playwright-chromium` | `1.62.1` |
+| Playwright + Firefox | `playwright-firefox` | `1.62.1` |
+| Playwright + Edge | `playwright-msedge` | `1.62.1` |
+| Playwright + Safari-движок | `playwright-webkit` | `1.62.1` |
