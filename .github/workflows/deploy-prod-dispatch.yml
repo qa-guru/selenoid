@@ -3,6 +3,8 @@
 # Sync: ./scripts/selenoid/sync-selenoid-stack-workflows.sh
 #
 # Dispatches qa-guru/selenoid.qa.guru deploy-selenoid (repository_dispatch).
+# Empty version AND ui_version → browsers-only (copy+pull+SIGHUP). Omit both keys;
+# never send empty strings (rewind pin). Hub/UI tags — only an explicit release.
 # Release repos call this before deploy-smoke wait — removes manual prod pin step.
 
 name: Deploy prod pin dispatch
@@ -11,12 +13,12 @@ on:
   workflow_call:
     inputs:
       version:
-        description: "Hub release tag (empty = keep deploy.sh default / current pin)"
+        description: "Hub release tag. Empty + empty ui_version = browsers-only (omit key)"
         required: false
         type: string
         default: ""
       ui_version:
-        description: "selenoid-ui release tag (empty = keep deploy workflow default)"
+        description: "selenoid-ui release tag. Empty + empty version = browsers-only (omit key)"
         required: false
         type: string
         default: ""
@@ -89,12 +91,17 @@ jobs:
 
       - name: Job summary
         run: |
+          MODE="full stack"
+          if [[ -z "${{ inputs.version }}" && -z "${{ inputs.ui_version }}" ]]; then
+            MODE="browsers-only (copy+pull+SIGHUP)"
+          fi
           {
             echo "## Deploy prod pin dispatch"
             echo ""
             echo "- Target: [\`qa-guru/selenoid.qa.guru\`](https://github.com/qa-guru/selenoid.qa.guru) (\`deploy-selenoid\`)"
-            echo "- Hub version: \`${{ inputs.version || '(unchanged)' }}\`"
-            echo "- UI version: \`${{ inputs.ui_version || '(unchanged)' }}\`"
+            echo "- Mode: \`${MODE}\`"
+            echo "- Hub version: \`${{ inputs.version || '(omit — do not bounce hub)' }}\`"
+            echo "- UI version: \`${{ inputs.ui_version || '(omit — do not bounce UI)' }}\`"
             echo "- pull_browsers: \`${{ inputs.pull_browsers }}\`"
             echo "- skip_inline_browser_smoke: \`${{ inputs.skip_inline_browser_smoke }}\`"
             echo "- Prod smoke owner: **selenoid.qa.guru** \`deploy.yml\` (release uses \`wait_only\` pin gate — no second dispatch)"

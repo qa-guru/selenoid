@@ -1,6 +1,6 @@
 # Таблица совместимости версий браузеров
 
-**SSOT:** [`../../dev/browsers.json`](../../dev/browsers.json) → `dev/scripts/sync-cm-browsers.sh` → hub config, CM embed (`cm/selenoid/data/browsers.json`), CI fixture, UI. Сейчас: Chrome default **152.0**, Playwright **1.62.1**, Firefox **154.0**, Edge **151.0**. Последняя проверка: 26 августа 2026.
+**SSOT prod:** [qa-guru/browser-image](https://github.com/qa-guru/browser-image) `pins.json` + `watch.yml` → `catalog_sync.sh` (hub / cm / tests / UI + **последним** `deploy/browsers-production.json`). Box1: copy + `docker pull` + **SIGHUP** хабу — без stop hub/UI. Локально: [`../../dev/browsers.json`](../../dev/browsers.json). Сейчас: Chrome default **152.0**, Playwright **1.62.1**, Firefox **154.0**, Edge **151.0**. Последняя проверка: 26 августа 2026.
 
 ## Политика стека: три слоя
 
