@@ -1,28 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-EXPECTED_GO_MIN="1.26"
+EXPECTED_GO_MIN="1.27"
 EXPECTED_DOCKER_API="1.55"
 EXPECTED_DOCKER_ENGINE_PREFIX="29"
 
 fail=0
 
-echo "==> Go (minimum ${EXPECTED_GO_MIN}.x, .go-version / toolchain go1.26.x)"
+echo "==> Go (minimum ${EXPECTED_GO_MIN}.x, .go-version / toolchain go1.27.x)"
 if command -v go >/dev/null 2>&1; then
   go_v="$(go version)"
   echo "    $go_v"
   if [[ "$go_v" =~ go([0-9]+)\.([0-9]+) ]]; then
     major="${BASH_REMATCH[1]}"
     minor="${BASH_REMATCH[2]}"
-    if (( major < 1 || (major == 1 && minor < 26) )); then
+    if (( major < 1 || (major == 1 && minor < 27) )); then
       echo "    ERROR: need Go >= ${EXPECTED_GO_MIN}" >&2
       fail=1
-    elif (( minor > 26 )); then
+    elif (( minor > 27 )); then
       echo "    NOTE: newer than ${EXPECTED_GO_MIN}.x is fine for local builds" >&2
     fi
   fi
 else
-  echo "    WARN: go not in PATH (build scripts use golang:1.26)" >&2
+  echo "    WARN: go not in PATH (build scripts use golang:1.27)" >&2
   fail=1
 fi
 

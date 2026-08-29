@@ -10,8 +10,8 @@
 | Stack semver | hub cut **v3.0.14** (prod pin [selenoid.qa.guru](https://selenoid.qa.guru)) |
 | Docker API | TBD (paired с prod Engine 29.6+) |
 | Docker Engine | TBD (prod: Debian 12 · Docker 29.6) |
-| Go | 1.26.6 |
-| Go (примечание) | Факт `go.mod` + `toolchain go1.26.6` |
+| Go | 1.27.0 |
+| Go (примечание) | Факт `go.mod` + `toolchain go1.27.0` |
 | Prod | [selenoid.qa.guru](https://selenoid.qa.guru) |
 | Git anchor | `main` |
 | Docker image | `qaguru/selenoid:v3.0.x` |

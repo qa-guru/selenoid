@@ -124,7 +124,7 @@ ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableV
 
 | Компонент | Версия | Зачем |
 |-----------|--------|-------|
-| **Go** | **1.26.x** | Сборка hub (`.go-version` — `1.26.6`, `go.mod` `toolchain go1.26.6`) |
+| **Go** | **1.27.x** | Сборка hub (`.go-version` — `1.27.0`, `go.mod` `toolchain go1.27.0`) |
 | **Docker Engine** | **29.x** (рекомендуется 29.6+) | Совместим с `DOCKER_API_VERSION=1.55` (moby client MaxAPIVersion) |
 | **Docker API** | **1.55** | Версия API, с которой hub ходит к daemon (`DOCKER_API_VERSION`) |
 | **Docker SDK** | **moby** | `github.com/moby/moby/client` + `github.com/moby/moby/api` (не `github.com/docker/docker`) |
@@ -135,12 +135,12 @@ ws://127.0.0.1:4444/playwright/playwright-chromium/1.61.1?enableVNC=true&enableV
 ./scripts/check-toolchain.sh
 docker version | grep -E 'Version:|API'
 # Engine: 29.x, API version: 1.55
-go version   # go1.26.x
+go version   # go1.27.x
 ```
 
 Hub и `cm` фиксируют `DOCKER_API_VERSION=1.55` (скрипт `./scripts/start-selenoid.sh`, образ, CI). На Linux/CI: Engine **29.x** (`./scripts/check-toolchain.sh`). Hub без env пина может снизить API через negotiation (`main.go`).
 
-Сборка без локального Go использует образ `golang:1.26` (см. `./scripts/build-selenoid.sh`).
+Сборка без локального Go использует образ `golang:1.27` (см. `./scripts/build-selenoid.sh`).
 
 ## Сборка и запуск
 

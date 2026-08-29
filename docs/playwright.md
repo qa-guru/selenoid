@@ -136,7 +136,7 @@ cd browser-image/playwright
 
 ## Toolchain
 
-Hub требует **Docker Engine 29.x** (API **1.55**), **Go 1.26.x** и Docker SDK **moby** (`github.com/moby/moby/client`). Локальный старт:
+Hub требует **Docker Engine 29.x** (API **1.55**), **Go 1.27.x** и Docker SDK **moby** (`github.com/moby/moby/client`). Локальный старт:
 
 ```bash
 ./scripts/start-selenoid.sh
