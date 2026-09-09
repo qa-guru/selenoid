@@ -54,8 +54,8 @@
 |---|---|
 | **GitHub** | [qa-guru/selenoid](https://github.com/qa-guru/selenoid) |
 | **Docker Hub** | [`qaguru/selenoid`](https://hub.docker.com/r/qaguru/selenoid) |
-| **Текущий релиз** | **v3.0.15** — [docs/RELEASE_v3.0.15.md](docs/RELEASE_v3.0.15.md) · `qaguru/selenoid:v3.0.15` · **Selenoid 3 hub** (Chrome WD container-reuse) |
-| **Selenoid 3** | [selenoid.qa.guru](https://selenoid.qa.guru) — hub **v3.0.15** + UI **v3.0.54** |
+| **Текущий релиз** | **v3.0.16** — [docs/RELEASE_v3.0.16.md](docs/RELEASE_v3.0.16.md) · `qaguru/selenoid:v3.0.16` · **Selenoid 3 hub** (Chrome WD container-reuse) |
+| **Selenoid 3** | [selenoid.qa.guru](https://selenoid.qa.guru) — hub **v3.0.16** + UI **v3.0.58** |
 
 ## Что это
 
