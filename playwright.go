@@ -96,6 +96,11 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Requested Playwright environment is not available", http.StatusBadRequest)
 		return
 	}
+	if err := caps.MinImageCapabilityError(); err != nil {
+		log.Printf("[%d] [PLAYWRIGHT_MIN_IMAGE_CAPS] [%s] [%s] [%v]", requestId, browser, version, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	startedService, err := starter.StartWithCancel()
 	if err != nil {
@@ -116,8 +121,8 @@ func playwrightConnect(w http.ResponseWriter, r *http.Request) {
 	//
 	// The recorder is stashed in a registry so whichever delete path fires
 	// (client WS close, idle timeout or an explicit hub DELETE) writes the HAR.
-	// A slot is reserved *before* the async attach so Stop/DELETE can wait for
-	// CDP instead of racing putPlaywrightHar and dropping the file.
+	// A slot is reserved *before* the async attach so teardown can cancel a
+	// pending CDP dial and still flush once, without blocking Stop for 35s.
 	//
 	// Playwright launchServer has no page until the client calls newPage(), so
 	// HAR start runs asynchronously with retries (unlike WebDriver, where a page
@@ -192,10 +197,11 @@ func isPlaywrightSession(sess *session.Session) bool {
 }
 
 func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName, finalLogName string) {
-	// Wait for async CDP attach *before* tearing down the container. The UI
-	// Stop path (DELETE /wd/hub/session) races the connect-handler cleanup;
-	// only the first caller writes artifacts.
-	h := waitPlaywrightHarDone(sessionId, playwrightHarWait)
+	// Peek the HAR slot without waiting. Stop/DELETE must drop the session from
+	// the map immediately — waiting for CDP attach (min images have no :7070)
+	// used to block the UI for playwrightHarWait (35s). If attach is still
+	// retrying, cancel the container so dials fail, then flush once.
+	h := playwrightHarSlot(sessionId)
 
 	sess, ok := sessions.Get(sessionId)
 	if !ok {
@@ -279,10 +285,6 @@ func playwrightDeleteSession(requestId uint64, sessionId string, finalVideoName,
 	log.Printf("[%d] [PLAYWRIGHT_SESSION_DELETED] [%s]", requestId, sessionId)
 }
 
-// playwrightHarWait bounds how long Stop/DELETE waits for the async CDP attach
-// goroutine (120 attempts × 250ms plus dial timeouts).
-const playwrightHarWait = 35 * time.Second
-
 // playwrightHar holds a live hub HAR recorder for a manual Playwright session
 // plus the requested output name. A slot is reserved at session start so Stop
 // can wait for attach instead of racing the goroutine and dropping the file.
@@ -333,10 +335,14 @@ func harSlotDone(h *playwrightHar) bool {
 	}
 }
 
-func waitPlaywrightHarDone(sessionId string, wait time.Duration) *playwrightHar {
+func playwrightHarSlot(sessionId string) *playwrightHar {
 	playwrightHarMu.Lock()
-	h := playwrightHarByID[sessionId]
-	playwrightHarMu.Unlock()
+	defer playwrightHarMu.Unlock()
+	return playwrightHarByID[sessionId]
+}
+
+func waitPlaywrightHarDone(sessionId string, wait time.Duration) *playwrightHar {
+	h := playwrightHarSlot(sessionId)
 	if h == nil {
 		return nil
 	}

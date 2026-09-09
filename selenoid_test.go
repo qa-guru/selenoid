@@ -581,12 +581,30 @@ func TestSessionCreatedStripsMinSuffixForDriver(t *testing.T) {
 
 		// Fixture firefox version in tests is "49.0"; use "49.0-min" as catalog-style suffix.
 		// Config Find uses HasPrefix, so "49.0-min" still resolves to the "49.0" browser entry.
-		resp, err := httpClient.Post(With(srv.URL).Path("/wd/hub/session"), "", bytes.NewReader([]byte(`{"capabilities":{"alwaysMatch":{"browserName":"firefox","browserVersion":"49.0-min","selenoid:options":{"enableVNC":true}}}}`)))
+		resp, err := httpClient.Post(With(srv.URL).Path("/wd/hub/session"), "", bytes.NewReader([]byte(`{"capabilities":{"alwaysMatch":{"browserName":"firefox","browserVersion":"49.0-min"}}}`)))
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Equal(t, "49.0", proxiedBrowserVersion)
 		sessions.Remove("test-session-min")
 		queue.Release()
+	})
+}
+
+func TestMinImageRejectsDesktopCaps(t *testing.T) {
+	t.Run("POST /wd/hub/session rejects -min with enableVideo as invalid argument", func(t *testing.T) {
+		manager = &HTTPTest{Handler: Selenium()}
+
+		resp, err := httpClient.Post(With(srv.URL).Path("/wd/hub/session"), "", bytes.NewReader([]byte(`{"capabilities":{"alwaysMatch":{"browserName":"firefox","browserVersion":"49.0-min","selenoid:options":{"enableVideo":true}}}}`)))
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+		var body map[string]interface{}
+		assert.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+		value := body["value"].(map[string]interface{})
+		assert.Equal(t, "invalid argument", value["error"])
+		assert.Contains(t, value["message"], "49.0-min")
+		assert.Contains(t, value["message"], "enableVideo")
+		assert.Contains(t, value["message"], "headless CI image")
+		assert.Equal(t, 0, queue.Used())
 	})
 }
 

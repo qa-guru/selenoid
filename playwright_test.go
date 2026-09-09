@@ -103,6 +103,51 @@ func TestPlaywrightHarRegistryWaitsForLateComplete(t *testing.T) {
 	assert.Nil(t, takePlaywrightHar(id))
 }
 
+func TestPlaywrightDeleteSessionDoesNotBlockOnPendingHar(t *testing.T) {
+	sessionId := "pw-pending-har"
+	beginPlaywrightHar(sessionId, "pending.har")
+	t.Cleanup(func() { takePlaywrightHar(sessionId) })
+
+	wsURL, err := url.Parse("ws://127.0.0.1:3000")
+	assert.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	assert.True(t, queue.Wait(ctx))
+	queue.Create()
+	t.Cleanup(func() {
+		if _, ok := sessions.Get(sessionId); ok {
+			sessions.Remove(sessionId)
+			queue.Release()
+		}
+	})
+
+	canceled := make(chan struct{})
+	sessions.Put(sessionId, &session.Session{
+		Caps: session.Caps{Name: "playwright-chromium", HAR: true},
+		URL:  wsURL,
+		HostPort: session.HostPort{
+			Playwright: "127.0.0.1:3000",
+		},
+		Cancel: func() {
+			close(canceled)
+			completePlaywrightHar(sessionId, nil)
+		},
+		TimeoutCh: make(chan struct{}),
+	})
+
+	start := time.Now()
+	playwrightDeleteSession(1, sessionId, "", "")
+	assert.Less(t, time.Since(start), 2*time.Second)
+	select {
+	case <-canceled:
+	default:
+		t.Fatal("expected container cancel while HAR attach was still pending")
+	}
+	_, ok := sessions.Get(sessionId)
+	assert.False(t, ok)
+}
+
 func TestPlaywrightDeleteSessionWritesHarAndRenamesLog(t *testing.T) {
 	harDir := t.TempDir()
 	logDir := t.TempDir()

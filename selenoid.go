@@ -198,6 +198,12 @@ func create(w http.ResponseWriter, r *http.Request) {
 		queue.Drop()
 		return
 	}
+	if err := caps.MinImageCapabilityError(); err != nil {
+		log.Printf("[%d] [MIN_IMAGE_CAPS] [%s] [%s] [%v]", requestId, caps.BrowserName(), caps.Version, err)
+		jsonerror.InvalidArgument(err).Encode(w)
+		queue.Drop()
+		return
+	}
 	startedService, err := starter.StartWithCancel()
 	if err != nil {
 		log.Printf("[%d] [SERVICE_STARTUP_FAILED] [%v]", requestId, err)
