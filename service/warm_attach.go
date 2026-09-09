@@ -81,14 +81,36 @@ func (f *fallbackStarter) StartWithCancel() (*StartedService, error) {
 	return f.fallback.StartWithCancel()
 }
 
-func warmEligible(browserName string, caps session.Caps) bool {
+func chromeMajor(version string) string {
+	v := strings.TrimSpace(version)
+	if v == "" || strings.EqualFold(v, "latest") {
+		return ""
+	}
+	v = strings.TrimSuffix(v, "-min")
+	if i := strings.IndexByte(v, '.'); i > 0 {
+		v = v[:i]
+	}
+	return v
+}
+
+func warmEligible(browserName, resolvedVersion, catalogDefault string, caps session.Caps) bool {
 	if !strings.EqualFold(browserName, "chrome") {
 		return false
 	}
 	if caps.Video || caps.VNC || caps.HAR {
 		return false
 	}
-	return true
+	// Warm WD slots are headed catalog-default Chrome. Compat pins (148, 151)
+	// and *-min tags must cold-start their catalog image so students get that version.
+	if strings.HasSuffix(strings.TrimSpace(resolvedVersion), "-min") {
+		return false
+	}
+	req := chromeMajor(resolvedVersion)
+	def := chromeMajor(catalogDefault)
+	if req == "" || def == "" {
+		return true
+	}
+	return req == def
 }
 
 func tryWarmAttach(pool WarmPool, env *Environment, requestId uint64) Starter {
@@ -119,8 +141,8 @@ func tryWarmAttach(pool WarmPool, env *Environment, requestId uint64) Starter {
 	}
 }
 
-func wrapWarm(requestId uint64, browserName string, caps session.Caps, cold Starter, pool WarmPool, env *Environment) Starter {
-	if cold == nil || pool == nil || !warmEligible(browserName, caps) {
+func wrapWarm(requestId uint64, browserName, resolvedVersion, catalogDefault string, caps session.Caps, cold Starter, pool WarmPool, env *Environment) Starter {
+	if cold == nil || pool == nil || !warmEligible(browserName, resolvedVersion, catalogDefault, caps) {
 		return cold
 	}
 	att := tryWarmAttach(pool, env, requestId)

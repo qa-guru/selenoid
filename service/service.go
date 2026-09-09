@@ -100,7 +100,11 @@ func (m *DefaultManager) Find(caps session.Caps, requestId uint64) (Starter, boo
 	default:
 		return nil, false
 	}
-	return wrapWarm(requestId, browserName, caps, cold, m.WarmPool, m.Environment), true
+	catalogDefault := ""
+	if b, ok := m.Config.Browsers[browserName]; ok {
+		catalogDefault = b.Default
+	}
+	return wrapWarm(requestId, browserName, version, catalogDefault, caps, cold, m.WarmPool, m.Environment), true
 }
 
 // FindPlaywright locates a Playwright browser by public URL name and version.

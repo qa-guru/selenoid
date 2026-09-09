@@ -73,18 +73,33 @@ func chromeDriverConfig() *config.Config {
 }
 
 func TestWarmEligible(t *testing.T) {
-	require.True(t, warmEligible("chrome", session.Caps{}))
-	require.True(t, warmEligible("Chrome", session.Caps{}))
-	require.False(t, warmEligible("firefox", session.Caps{}))
-	require.False(t, warmEligible("chrome", session.Caps{Video: true}))
-	require.False(t, warmEligible("chrome", session.Caps{VNC: true}))
-	require.False(t, warmEligible("chrome", session.Caps{HAR: true}))
+	require.True(t, warmEligible("chrome", "152.0", "152.0", session.Caps{}))
+	require.True(t, warmEligible("Chrome", "152.0", "152.0", session.Caps{}))
+	require.True(t, warmEligible("chrome", "", "152.0", session.Caps{}))
+	require.False(t, warmEligible("firefox", "152.0", "152.0", session.Caps{}))
+	require.False(t, warmEligible("chrome", "152.0", "152.0", session.Caps{Video: true}))
+	require.False(t, warmEligible("chrome", "152.0", "152.0", session.Caps{VNC: true}))
+	require.False(t, warmEligible("chrome", "152.0", "152.0", session.Caps{HAR: true}))
+	require.False(t, warmEligible("chrome", "148.0", "152.0", session.Caps{}))
+	require.False(t, warmEligible("chrome", "148", "152.0", session.Caps{}))
+	require.False(t, warmEligible("chrome", "151.0", "152.0", session.Caps{}))
+	require.False(t, warmEligible("chrome", "152.0-min", "152.0", session.Caps{}))
+	require.True(t, warmEligible("chrome", "152.0", "152.0", session.Caps{}))
+}
+
+func TestChromeMajor(t *testing.T) {
+	require.Equal(t, "148", chromeMajor("148"))
+	require.Equal(t, "148", chromeMajor("148.0"))
+	require.Equal(t, "148", chromeMajor("148.0-min"))
+	require.Equal(t, "152", chromeMajor("152.0"))
+	require.Equal(t, "", chromeMajor(""))
+	require.Equal(t, "", chromeMajor("latest"))
 }
 
 func TestWrapWarmAttachesChrome(t *testing.T) {
 	pool := &stubPool{id: "pool-chrome-1", wdURL: "http://127.0.0.1:14441/"}
 	cold := &stubStarter{}
-	got := wrapWarm(7, "chrome", session.Caps{}, cold, pool, &Environment{StartupTimeout: time.Second})
+	got := wrapWarm(7, "chrome", "152.0", "152.0", session.Caps{}, cold, pool, &Environment{StartupTimeout: time.Second})
 	fb, ok := got.(*fallbackStarter)
 	require.True(t, ok)
 	require.Equal(t, 1, pool.reserved)
@@ -94,10 +109,18 @@ func TestWrapWarmAttachesChrome(t *testing.T) {
 	require.Equal(t, cold, fb.fallback)
 }
 
+func TestWrapWarmSkipsCompatVersion(t *testing.T) {
+	pool := &stubPool{id: "pool-chrome-1", wdURL: "http://127.0.0.1:14441/"}
+	cold := &stubStarter{}
+	got := wrapWarm(7, "chrome", "148.0", "152.0", session.Caps{}, cold, pool, nil)
+	require.Equal(t, cold, got)
+	require.Equal(t, 0, pool.reserved)
+}
+
 func TestWrapWarmSkipsWhenNoLoopbackURL(t *testing.T) {
 	pool := &stubPool{id: "pool-chrome-1", wdURL: "http://warm-chrome-1:4444/"}
 	cold := &stubStarter{}
-	got := wrapWarm(7, "chrome", session.Caps{}, cold, pool, nil)
+	got := wrapWarm(7, "chrome", "152.0", "152.0", session.Caps{}, cold, pool, nil)
 	require.Equal(t, cold, got)
 	require.Equal(t, []string{"pool-chrome-1"}, pool.released)
 }
@@ -105,14 +128,14 @@ func TestWrapWarmSkipsWhenNoLoopbackURL(t *testing.T) {
 func TestWrapWarmSkipsOnReserveError(t *testing.T) {
 	pool := &stubPool{err: errors.New("409")}
 	cold := &stubStarter{}
-	got := wrapWarm(7, "chrome", session.Caps{}, cold, pool, nil)
+	got := wrapWarm(7, "chrome", "152.0", "152.0", session.Caps{}, cold, pool, nil)
 	require.Equal(t, cold, got)
 }
 
 func TestWrapWarmSkipsVideoCaps(t *testing.T) {
 	pool := &stubPool{id: "x", wdURL: "http://127.0.0.1:1/"}
 	cold := &stubStarter{}
-	got := wrapWarm(7, "chrome", session.Caps{Video: true}, cold, pool, nil)
+	got := wrapWarm(7, "chrome", "152.0", "152.0", session.Caps{Video: true}, cold, pool, nil)
 	require.Equal(t, cold, got)
 	require.Equal(t, 0, pool.reserved)
 }
