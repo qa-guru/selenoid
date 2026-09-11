@@ -20,7 +20,7 @@ on:
         required: true
         type: string
       source_ref:
-        description: "Git ref for selenoid-tests Go checkout"
+        description: "Git ref of the publisher (hub/UI/cm). browser-image tags are not product refs; orchestrator checkouts those at main."
         required: false
         type: string
         default: ""
@@ -124,6 +124,10 @@ jobs:
           ref="${{ inputs.source_ref }}"
           if [[ -z "${ref}" ]]; then
             ref="${{ github.ref_name }}"
+          fi
+          # browser-image tags (webdriver/msedge-153) are not hub/ui/cm refs.
+          if [[ "${{ github.repository }}" == "qa-guru/browser-image" ]]; then
+            ref="main"
           fi
           echo "ref=${ref}" >> "$GITHUB_OUTPUT"
           echo "version=${{ inputs.source_version }}" >> "$GITHUB_OUTPUT"
