@@ -26,7 +26,7 @@ Browser-image теги (`playwright/1.61.1`, `webdriver/*`) — без изме�
 2. Обновить hub binary/image до `v2.3.0`.
 3. Обновить UI и cm до `v2.3.0` (cm передаёт hub `DOCKER_API_VERSION=1.55`).
 
-**Не в scope v2.3.0:** prod [selenoid.autotests.cloud](https://selenoid.autotests.cloud) — остаётся на v2.2.x (старый стек); обновление prod — отдельный deploy-cut.
+**Не в scope v2.3.0:** prod [selenoid.qa.guru](https://selenoid.qa.guru) — остаётся на v2.2.x (старый стек); обновление prod — отдельный deploy-cut.
 
 ---
 
@@ -49,5 +49,5 @@ Docker: `docker pull qaguru/selenoid:v2.3.0`
 1. Commit docs + code на `main`.
 2. `git tag -a v2.3.0 -m "v2.3.0"` → `git push origin main --tags` *(только по явной команде)*.
 3. GitHub Release / CI `release.yml` → assets `dist/selenoid_*`; Docker `qaguru/selenoid:v2.3.0`.
-4. deploy-smoke dispatch → selenoid-tests (CI/github profile; **не** prod autotests.cloud).
-5. OUT: `selenoid-warm-pool/`; prod [selenoid.autotests.cloud](https://selenoid.autotests.cloud) (v2.2.x, обновление отложено).
+4. deploy-smoke dispatch → selenoid-tests (CI/github profile; **не** prod [selenoid.qa.guru](https://selenoid.qa.guru)).
+5. OUT: `selenoid-warm-pool/`; prod [selenoid.qa.guru](https://selenoid.qa.guru) (v2.2.x, обновление отложено).
