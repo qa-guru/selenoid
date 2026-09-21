@@ -1,7 +1,27 @@
 {
   "chrome": {
-    "default": "152.0",
+    "default": "153.0",
     "versions": {
+      "153.0": {
+        "image": "qaguru/webdriver-chrome:153",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": ["host.docker.internal:host-gateway"]
+      },
+      "153.0-min": {
+        "image": "qaguru/webdriver-chrome:153-min",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": ["host.docker.internal:host-gateway"]
+      },
       "152.0": {
         "image": "qaguru/webdriver-chrome:152",
         "port": "4444",
@@ -14,26 +34,6 @@
       },
       "152.0-min": {
         "image": "qaguru/webdriver-chrome:152-min",
-        "port": "4444",
-        "path": "/",
-        "shmSize": 2147483648,
-        "tmpfs": {
-          "/tmp": "size=512m"
-        },
-        "hosts": ["host.docker.internal:host-gateway"]
-      },
-      "151.0": {
-        "image": "qaguru/webdriver-chrome:151",
-        "port": "4444",
-        "path": "/",
-        "shmSize": 2147483648,
-        "tmpfs": {
-          "/tmp": "size=512m"
-        },
-        "hosts": ["host.docker.internal:host-gateway"]
-      },
-      "151.0-min": {
-        "image": "qaguru/webdriver-chrome:151-min",
         "port": "4444",
         "path": "/",
         "shmSize": 2147483648,
@@ -65,10 +65,10 @@
     }
   },
   "firefox": {
-    "default": "154.0",
+    "default": "156.0",
     "versions": {
-      "154.0": {
-        "image": "qaguru/webdriver-firefox:154",
+      "156.0": {
+        "image": "qaguru/webdriver-firefox:156",
         "port": "4444",
         "path": "/",
         "shmSize": 2147483648,
@@ -77,8 +77,8 @@
         },
         "hosts": ["host.docker.internal:host-gateway"]
       },
-      "154.0-min": {
-        "image": "qaguru/webdriver-firefox:154-min",
+      "156.0-min": {
+        "image": "qaguru/webdriver-firefox:156-min",
         "port": "4444",
         "path": "/",
         "shmSize": 2147483648,
@@ -87,8 +87,8 @@
         },
         "hosts": ["host.docker.internal:host-gateway"]
       },
-      "153.0": {
-        "image": "qaguru/webdriver-firefox:153",
+      "155.0": {
+        "image": "qaguru/webdriver-firefox:155",
         "port": "4444",
         "path": "/",
         "shmSize": 2147483648,
@@ -97,8 +97,8 @@
         },
         "hosts": ["host.docker.internal:host-gateway"]
       },
-      "153.0-min": {
-        "image": "qaguru/webdriver-firefox:153-min",
+      "155.0-min": {
+        "image": "qaguru/webdriver-firefox:155-min",
         "port": "4444",
         "path": "/",
         "shmSize": 2147483648,
@@ -110,10 +110,10 @@
     }
   },
   "msedge": {
-    "default": "151.0",
+    "default": "153.0",
     "versions": {
-      "151.0": {
-        "image": "qaguru/webdriver-msedge:151",
+      "153.0": {
+        "image": "qaguru/webdriver-msedge:153",
         "port": "4444",
         "path": "/",
         "shmSize": 2147483648,
@@ -122,8 +122,8 @@
         },
         "hosts": ["host.docker.internal:host-gateway"]
       },
-      "151.0-min": {
-        "image": "qaguru/webdriver-msedge:151-min",
+      "153.0-min": {
+        "image": "qaguru/webdriver-msedge:153-min",
         "port": "4444",
         "path": "/",
         "shmSize": 2147483648,
@@ -132,8 +132,8 @@
         },
         "hosts": ["host.docker.internal:host-gateway"]
       },
-      "150.0": {
-        "image": "qaguru/webdriver-msedge:150",
+      "152.0": {
+        "image": "qaguru/webdriver-msedge:152",
         "port": "4444",
         "path": "/",
         "shmSize": 2147483648,
@@ -142,8 +142,8 @@
         },
         "hosts": ["host.docker.internal:host-gateway"]
       },
-      "150.0-min": {
-        "image": "qaguru/webdriver-msedge:150-min",
+      "152.0-min": {
+        "image": "qaguru/webdriver-msedge:152-min",
         "port": "4444",
         "path": "/",
         "shmSize": 2147483648,
@@ -155,8 +155,30 @@
     }
   },
   "playwright-chromium": {
-    "default": "1.62.1",
+    "default": "1.63.0",
     "versions": {
+      "1.63.0": {
+        "image": "qaguru/playwright-chromium:1.63.0",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.63.0",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "shmSize": 2147483648,
+        "hosts": ["host.docker.internal:host-gateway"]
+      },
+      "1.63.0-min": {
+        "image": "qaguru/playwright-chromium:1.63.0-min",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.63.0",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "shmSize": 2147483648,
+        "hosts": ["host.docker.internal:host-gateway"]
+      },
       "1.62.1": {
         "image": "qaguru/playwright-chromium:1.62.1",
         "port": "3000",
@@ -178,34 +200,22 @@
         "workDir": "/home/pwuser",
         "shmSize": 2147483648,
         "hosts": ["host.docker.internal:host-gateway"]
-      },
-      "1.61.1": {
-        "image": "qaguru/playwright-chromium:1.61.1",
-        "port": "3000",
-        "path": "/",
-        "protocol": "playwright",
-        "playwrightVersion": "1.61.1",
-        "user": "pwuser",
-        "workDir": "/home/pwuser",
-        "shmSize": 2147483648,
-        "hosts": ["host.docker.internal:host-gateway"]
-      },
-      "1.61.1-min": {
-        "image": "qaguru/playwright-chromium:1.61.1-min",
-        "port": "3000",
-        "path": "/",
-        "protocol": "playwright",
-        "playwrightVersion": "1.61.1",
-        "user": "pwuser",
-        "workDir": "/home/pwuser",
-        "shmSize": 2147483648,
-        "hosts": ["host.docker.internal:host-gateway"]
       }
     }
   },
   "playwright-firefox": {
-    "default": "1.62.1",
+    "default": "1.63.0",
     "versions": {
+      "1.63.0": {
+        "image": "qaguru/playwright-firefox:1.63.0",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.63.0",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "shmSize": 2147483648
+      },
       "1.62.1": {
         "image": "qaguru/playwright-firefox:1.62.1",
         "port": "3000",
@@ -215,22 +225,22 @@
         "user": "pwuser",
         "workDir": "/home/pwuser",
         "shmSize": 2147483648
-      },
-      "1.61.1": {
-        "image": "qaguru/playwright-firefox:1.61.1",
-        "port": "3000",
-        "path": "/",
-        "protocol": "playwright",
-        "playwrightVersion": "1.61.1",
-        "user": "pwuser",
-        "workDir": "/home/pwuser",
-        "shmSize": 2147483648
       }
     }
   },
   "playwright-webkit": {
-    "default": "1.62.1",
+    "default": "1.63.0",
     "versions": {
+      "1.63.0": {
+        "image": "qaguru/playwright-webkit:1.63.0",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.63.0",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "shmSize": 2147483648
+      },
       "1.62.1": {
         "image": "qaguru/playwright-webkit:1.62.1",
         "port": "3000",
@@ -240,22 +250,22 @@
         "user": "pwuser",
         "workDir": "/home/pwuser",
         "shmSize": 2147483648
-      },
-      "1.61.1": {
-        "image": "qaguru/playwright-webkit:1.61.1",
-        "port": "3000",
-        "path": "/",
-        "protocol": "playwright",
-        "playwrightVersion": "1.61.1",
-        "user": "pwuser",
-        "workDir": "/home/pwuser",
-        "shmSize": 2147483648
       }
     }
   },
   "playwright-chrome": {
-    "default": "1.62.1",
+    "default": "1.63.0",
     "versions": {
+      "1.63.0": {
+        "image": "qaguru/playwright-chrome:1.63.0",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.63.0",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "shmSize": 2147483648
+      },
       "1.62.1": {
         "image": "qaguru/playwright-chrome:1.62.1",
         "port": "3000",
@@ -265,38 +275,28 @@
         "user": "pwuser",
         "workDir": "/home/pwuser",
         "shmSize": 2147483648
-      },
-      "1.61.1": {
-        "image": "qaguru/playwright-chrome:1.61.1",
-        "port": "3000",
-        "path": "/",
-        "protocol": "playwright",
-        "playwrightVersion": "1.61.1",
-        "user": "pwuser",
-        "workDir": "/home/pwuser",
-        "shmSize": 2147483648
       }
     }
   },
   "playwright-msedge": {
-    "default": "1.62.1",
+    "default": "1.63.0",
     "versions": {
+      "1.63.0": {
+        "image": "qaguru/playwright-msedge:1.63.0",
+        "port": "3000",
+        "path": "/",
+        "protocol": "playwright",
+        "playwrightVersion": "1.63.0",
+        "user": "pwuser",
+        "workDir": "/home/pwuser",
+        "shmSize": 2147483648
+      },
       "1.62.1": {
         "image": "qaguru/playwright-msedge:1.62.1",
         "port": "3000",
         "path": "/",
         "protocol": "playwright",
         "playwrightVersion": "1.62.1",
-        "user": "pwuser",
-        "workDir": "/home/pwuser",
-        "shmSize": 2147483648
-      },
-      "1.61.1": {
-        "image": "qaguru/playwright-msedge:1.61.1",
-        "port": "3000",
-        "path": "/",
-        "protocol": "playwright",
-        "playwrightVersion": "1.61.1",
         "user": "pwuser",
         "workDir": "/home/pwuser",
         "shmSize": 2147483648
