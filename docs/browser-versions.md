@@ -36,7 +36,7 @@
 | Имя в hub | Default | Версии в конфиге | Docker-образ | Протокол | В SSOT `dev/` |
 |-----------|---------|------------------|--------------|----------|:-------------:|
 | `chrome` | `152.0` | 152.0, 152.0-min, 151.0, 151.0-min, 148.0, 148.0-min | `qaguru/webdriver-chrome:<major>[-min]` | WebDriver | ✓ |
-| `firefox` | `154.0` | 154.0, 154.0-min, 153.0, 153.0-min | `qaguru/webdriver-firefox:<major>[-min]` | WebDriver | ✓ |
+| `firefox` | `154.0` | 155.0, 155.0-min, 154.0, 154.0-min | `qaguru/webdriver-firefox:<major>[-min]` | WebDriver | ✓ |
 | `msedge` | `151.0` | 151.0, 151.0-min, 150.0, 150.0-min | `qaguru/webdriver-msedge:<major>[-min]` | WebDriver | ✓ |
 | `playwright-chromium` | `1.62.1` | 1.62.1, 1.62.1-min, 1.61.1, 1.61.1-min | `qaguru/playwright-chromium:<версия>` | Playwright | ✓ |
 | `playwright-firefox` | `1.62.1` | 1.62.1, 1.61.1 | `qaguru/playwright-firefox:<версия>` | Playwright | ✓ |
@@ -55,7 +55,7 @@
 | chrome 151.0 / 151.0-min | `…:151` / `:151-min` | regression | `/` | то же |
 | chrome 148.0 / 148.0-min | `…:148` / `:148-min` | compat (Jenkins/CFT pin) | `/` | то же |
 | **firefox 154.0** *(default)* | `qaguru/webdriver-firefox:154` | Mozilla FF + geckodriver 0.37.1, warm VNC | `/` | `browserName: firefox` |
-| firefox 154.0-min / 153.* | `…:154-min` / `:153[-min]` | CI / regression | `/` | то же |
+| firefox 154.0-min / 153.* | `…:155-min` / `:153[-min]` | CI / regression | `/` | то же |
 | **msedge 151.0** *(default)* | `qaguru/webdriver-msedge:151` | Edge + msedgedriver, warm VNC (**amd64 only**) | `/` | `browserName: MicrosoftEdge` |
 | msedge 151.0-min / 150.* | `…:151-min` / `:150[-min]` | CI / regression | `/` | то же |
 
@@ -117,7 +117,7 @@
 | Компонент | Команда pull / build |
 |-----------|----------------------|
 | WebDriver Chrome | `docker pull qaguru/webdriver-chrome:152 qaguru/webdriver-chrome:152-min` |
-| WebDriver Firefox | `docker pull qaguru/webdriver-firefox:154 qaguru/webdriver-firefox:154-min` |
+| WebDriver Firefox | `docker pull qaguru/webdriver-firefox:154 qaguru/webdriver-firefox:155-min` |
 | WebDriver Edge | `docker pull qaguru/webdriver-msedge:151 qaguru/webdriver-msedge:151-min` |
 | Playwright 1.62.1 | [browser-image](https://github.com/qa-guru/browser-image) `./playwright/scripts/build.sh all 1.62.1` |
 | Видеозапись | `docker pull qaguru/video-recorder:latest` · [browser-image/video-recorder](https://github.com/qa-guru/browser-image/tree/master/video-recorder) |
