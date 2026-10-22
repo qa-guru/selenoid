@@ -110,8 +110,28 @@
     }
   },
   "msedge": {
-    "default": "155.0",
+    "default": "156.0",
     "versions": {
+      "156.0": {
+        "image": "qaguru/webdriver-msedge:156",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": ["host.docker.internal:host-gateway"]
+      },
+      "156.0-min": {
+        "image": "qaguru/webdriver-msedge:156-min",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": ["host.docker.internal:host-gateway"]
+      },
       "155.0": {
         "image": "qaguru/webdriver-msedge:155",
         "port": "4444",
@@ -124,26 +144,6 @@
       },
       "155.0-min": {
         "image": "qaguru/webdriver-msedge:155-min",
-        "port": "4444",
-        "path": "/",
-        "shmSize": 2147483648,
-        "tmpfs": {
-          "/tmp": "size=512m"
-        },
-        "hosts": ["host.docker.internal:host-gateway"]
-      },
-      "154.0": {
-        "image": "qaguru/webdriver-msedge:154",
-        "port": "4444",
-        "path": "/",
-        "shmSize": 2147483648,
-        "tmpfs": {
-          "/tmp": "size=512m"
-        },
-        "hosts": ["host.docker.internal:host-gateway"]
-      },
-      "154.0-min": {
-        "image": "qaguru/webdriver-msedge:154-min",
         "port": "4444",
         "path": "/",
         "shmSize": 2147483648,
