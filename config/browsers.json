@@ -65,8 +65,28 @@
     }
   },
   "firefox": {
-    "default": "158.0",
+    "default": "159.0",
     "versions": {
+      "159.0": {
+        "image": "qaguru/webdriver-firefox:159",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": ["host.docker.internal:host-gateway"]
+      },
+      "159.0-min": {
+        "image": "qaguru/webdriver-firefox:159-min",
+        "port": "4444",
+        "path": "/",
+        "shmSize": 2147483648,
+        "tmpfs": {
+          "/tmp": "size=512m"
+        },
+        "hosts": ["host.docker.internal:host-gateway"]
+      },
       "158.0": {
         "image": "qaguru/webdriver-firefox:158",
         "port": "4444",
@@ -79,26 +99,6 @@
       },
       "158.0-min": {
         "image": "qaguru/webdriver-firefox:158-min",
-        "port": "4444",
-        "path": "/",
-        "shmSize": 2147483648,
-        "tmpfs": {
-          "/tmp": "size=512m"
-        },
-        "hosts": ["host.docker.internal:host-gateway"]
-      },
-      "157.0": {
-        "image": "qaguru/webdriver-firefox:157",
-        "port": "4444",
-        "path": "/",
-        "shmSize": 2147483648,
-        "tmpfs": {
-          "/tmp": "size=512m"
-        },
-        "hosts": ["host.docker.internal:host-gateway"]
-      },
-      "157.0-min": {
-        "image": "qaguru/webdriver-firefox:157-min",
         "port": "4444",
         "path": "/",
         "shmSize": 2147483648,
