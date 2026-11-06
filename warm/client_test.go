@@ -24,6 +24,9 @@ func TestClientReserveAndRelease(t *testing.T) {
 		case r.Method == http.MethodPost && r.URL.Path == "/pool/release":
 			var in map[string]string
 			_ = json.Unmarshal(body, &in)
+			if in["owner"] != "hub-1" {
+				t.Errorf("release owner=%q", in["owner"])
+			}
 			released = in["slotId"]
 			w.Header().Set("Content-Type", "application/json")
 			_, _ = w.Write([]byte(`{"ok":true,"slotId":"pool-chrome-1"}`))
@@ -33,7 +36,7 @@ func TestClientReserveAndRelease(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := NewClient(srv.URL)
+	c := NewClient(srv.URL, 5400)
 	id, wd, err := c.Reserve("webdriver", "chrome", "hub-1", true)
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +44,7 @@ func TestClientReserveAndRelease(t *testing.T) {
 	if id != "pool-chrome-1" || wd != "http://127.0.0.1:14441/" {
 		t.Fatalf("id=%q wd=%q", id, wd)
 	}
-	if err := c.Release(id); err != nil {
+	if err := c.Release(id, "hub-1"); err != nil {
 		t.Fatal(err)
 	}
 	if released != "pool-chrome-1" {
@@ -56,14 +59,14 @@ func TestClientReserve409(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	_, _, err := NewClient(srv.URL).Reserve("webdriver", "chrome", "hub-1", true)
+	_, _, err := NewClient(srv.URL, 0).Reserve("webdriver", "chrome", "hub-1", true)
 	if err != ErrNoSlot {
 		t.Fatalf("err=%v want ErrNoSlot", err)
 	}
 }
 
 func TestClientReserveDown(t *testing.T) {
-	_, _, err := NewClient("http://127.0.0.1:1").Reserve("webdriver", "chrome", "hub-1", true)
+	_, _, err := NewClient("http://127.0.0.1:1", 0).Reserve("webdriver", "chrome", "hub-1", true)
 	if err == nil {
 		t.Fatal("expected error")
 	}

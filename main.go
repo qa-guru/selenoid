@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -118,7 +119,11 @@ func init() {
 	}
 	if warmPoolURL != "" {
 		warmTracker = warm.NewTracker(warmPoolURL)
-		warmClient = warm.NewClient(warmPoolURL)
+		// The lease must outlive the longest possible session so the pool
+		// reaper cannot free a slot that is still in use: max session idle
+		// timeout + 30m slack (the orchestrator clamps to max_lease_ttl).
+		leaseSec := int(maxTimeout.Seconds()) + 1800
+		warmClient = warm.NewClient(warmPoolURL, leaseSec)
 		go warmTracker.Start(context.Background())
 		log.Printf("[-] [INIT] [Warm pool status probe + Chrome WD attach: %s]", warmPoolURL)
 	}
@@ -401,6 +406,7 @@ var paths = struct {
 func applyWarmTracker(state *config.State) {
 	state.WarmSlots = []config.PoolSlot{}
 	state.HotSlots = []config.PoolSlot{}
+	state.PoolRouting = poolRoutes.snapshot()
 	if warmTracker == nil {
 		return
 	}
@@ -417,14 +423,89 @@ func toPoolSlots(in []warm.Slot) []config.PoolSlot {
 	out := make([]config.PoolSlot, 0, len(in))
 	for _, s := range in {
 		out = append(out, config.PoolSlot{
-			ID:         s.ID,
-			Browser:    s.Browser,
-			Protocol:   s.Protocol,
-			Pool:       s.Pool,
-			ReservedBy: s.ReservedBy,
+			ID:             s.ID,
+			Browser:        s.Browser,
+			Protocol:       s.Protocol,
+			Pool:           s.Pool,
+			ReservedBy:     s.ReservedBy,
+			ReservedAt:     s.ReservedAt,
+			LeaseExpiresAt: s.LeaseExpiresAt,
+			SessionCount:   s.SessionCount,
+			AgeSec:         s.AgeSec,
+			Recycling:      s.Recycling,
+			RecyclePending: s.RecyclePending,
 		})
 	}
 	return out
+}
+
+// poolRoutingStats aggregates which pool actually served recent sessions.
+// Kept in-memory only — it is telemetry, not a ledger.
+type poolRoutingStats struct {
+	mu            sync.Mutex
+	warmServed    int
+	coldServed    int
+	warmFallbacks int
+	recent        []config.PoolRoute // newest last, capped
+}
+
+const poolRoutesKeep = 20
+
+var poolRoutes = &poolRoutingStats{}
+
+// record stores one routing decision. reason is the forcedPoolReason token
+// when the session was rerouted away from the preferred/requested pool.
+func (s *poolRoutingStats) record(sessionID, requested, served, slot, reason string) {
+	if served == "" {
+		served = "cold"
+	}
+	if requested == "" {
+		requested = "auto"
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	switch served {
+	case "warm":
+		s.warmServed++
+	default:
+		s.coldServed++
+	}
+	// warmFallbacks counts real runtime misses only: warm was possible and
+	// preferred (auto/warm) but the pool had nothing free or the attach died.
+	// Deterministic ineligibility (non-chrome, sidecar-caps, pins) is expected
+	// cold, not a fallback.
+	if served == "cold" && requested != "cold" &&
+		(reason == "warm-unavailable" || reason == "warm-attach-failed") {
+		s.warmFallbacks++
+	}
+	s.recent = append(s.recent, config.PoolRoute{
+		Session:   sessionID,
+		Pool:      served,
+		Requested: requested,
+		Slot:      slot,
+		Reason:    reason,
+		At:        time.Now().UTC().Format(time.RFC3339),
+	})
+	if len(s.recent) > poolRoutesKeep {
+		s.recent = s.recent[len(s.recent)-poolRoutesKeep:]
+	}
+}
+
+func (s *poolRoutingStats) snapshot() *config.PoolRouting {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	recent := make([]config.PoolRoute, len(s.recent))
+	copy(recent, s.recent)
+	// newest first for the reader
+	for i, j := 0, len(recent)-1; i < j; i, j = i+1, j-1 {
+		recent[i], recent[j] = recent[j], recent[i]
+	}
+	return &config.PoolRouting{
+		WarmServed:    s.warmServed,
+		ColdServed:    s.coldServed,
+		WarmFallbacks: s.warmFallbacks,
+		Recent:        recent,
+	}
 }
 
 func handler() http.Handler {

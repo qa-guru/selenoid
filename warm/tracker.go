@@ -14,11 +14,17 @@ import (
 
 // Slot is a pool row on hub /status (no URLs).
 type Slot struct {
-	ID         string  `json:"id"`
-	Browser    string  `json:"browser"`
-	Protocol   string  `json:"protocol"`
-	Pool       string  `json:"pool"`
-	ReservedBy *string `json:"reservedBy"`
+	ID             string     `json:"id"`
+	Browser        string     `json:"browser"`
+	Protocol       string     `json:"protocol"`
+	Pool           string     `json:"pool"`
+	ReservedBy     *string    `json:"reservedBy"`
+	ReservedAt     *time.Time `json:"reservedAt"`
+	LeaseExpiresAt *time.Time `json:"leaseExpiresAt"`
+	SessionCount   int        `json:"sessionCount"`
+	AgeSec         int64      `json:"ageSec"`
+	Recycling      bool       `json:"recycling"`
+	RecyclePending bool       `json:"recyclePending"`
 }
 
 // Snapshot is the last known warm/hot slot counts and rows.

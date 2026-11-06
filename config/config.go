@@ -22,6 +22,8 @@ type Session struct {
 	Screen        string             `json:"screen"`
 	Caps          session.Caps       `json:"caps"`
 	Started       time.Time          `json:"started"`
+	ServedPool    string             `json:"servedPool,omitempty"`
+	ServedSlot    string             `json:"servedSlot,omitempty"`
 }
 
 // Sessions - used count and individual sessions for quota user
@@ -41,26 +43,51 @@ type Browsers map[string]Version
 
 // PoolSlot is a warm/hot orchestrator slot on /status (no URLs).
 type PoolSlot struct {
-	ID         string  `json:"id"`
-	Browser    string  `json:"browser"`
-	Protocol   string  `json:"protocol"`
-	Pool       string  `json:"pool"`
-	ReservedBy *string `json:"reservedBy"`
+	ID             string     `json:"id"`
+	Browser        string     `json:"browser"`
+	Protocol       string     `json:"protocol"`
+	Pool           string     `json:"pool"`
+	ReservedBy     *string    `json:"reservedBy"`
+	ReservedAt     *time.Time `json:"reservedAt,omitempty"`
+	LeaseExpiresAt *time.Time `json:"leaseExpiresAt,omitempty"`
+	SessionCount   int        `json:"sessionCount"`
+	AgeSec         int64      `json:"ageSec"`
+	Recycling      bool       `json:"recycling"`
+	RecyclePending bool       `json:"recyclePending"`
+}
+
+// PoolRoute is one recent session's pool routing decision on /status.
+type PoolRoute struct {
+	Session   string `json:"session"`
+	Pool      string `json:"pool"`
+	Requested string `json:"requested"`
+	Slot      string `json:"slot,omitempty"`
+	Reason    string `json:"reason,omitempty"`
+	At        string `json:"at"`
+}
+
+// PoolRouting aggregates pool serve counters and recent routing decisions.
+type PoolRouting struct {
+	WarmServed    int         `json:"warmServed"`
+	ColdServed    int         `json:"coldServed"`
+	WarmFallbacks int         `json:"warmFallbacks"`
+	Recent        []PoolRoute `json:"recent"`
 }
 
 // State - current state
 type State struct {
-	Total     int        `json:"total"`
-	Used      int        `json:"used"`
-	Queued    int        `json:"queued"`
-	Pending   int        `json:"pending"`
-	WarmReady int        `json:"warmReady"`
-	WarmTotal int        `json:"warmTotal"`
-	HotReady  int        `json:"hotReady"`
-	HotTotal  int        `json:"hotTotal"`
-	WarmSlots []PoolSlot `json:"warmSlots"`
-	HotSlots  []PoolSlot `json:"hotSlots"`
-	Browsers  Browsers   `json:"browsers"`
+	Total       int          `json:"total"`
+	Used        int          `json:"used"`
+	Queued      int          `json:"queued"`
+	Pending     int          `json:"pending"`
+	WarmReady   int          `json:"warmReady"`
+	WarmTotal   int          `json:"warmTotal"`
+	HotReady    int          `json:"hotReady"`
+	HotTotal    int          `json:"hotTotal"`
+	WarmSlots   []PoolSlot   `json:"warmSlots"`
+	HotSlots    []PoolSlot   `json:"hotSlots"`
+	PoolRouting *PoolRouting `json:"poolRouting,omitempty"`
+	Browsers    Browsers     `json:"browsers"`
 }
 
 // Browser configuration
@@ -304,6 +331,8 @@ func (config *Config) State(sessions *session.Map, limit, queued, pending int) *
 			Screen:        session.Caps.ScreenResolution,
 			Caps:          session.Caps,
 			Started:       session.Started,
+			ServedPool:    session.ServedPool,
+			ServedSlot:    session.ServedSlot,
 		}
 		if ctr != nil {
 			sess.Container = ctr.ID

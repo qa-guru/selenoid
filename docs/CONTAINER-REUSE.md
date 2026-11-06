@@ -90,16 +90,68 @@ curl -sf http://127.0.0.1:9090/health
 ./selenoid -conf config/browsers.json -warm-pool-url http://127.0.0.1:9090
 ```
 
+## Pool selector (client contract)
+
+Sessions pick a pool explicitly via `selenoid:options.pool` or `labels.pool`
+(`selenoid:options` wins when both are set):
+
+| Value | Behavior |
+|-------|----------|
+| unset / `auto` | Prefer warm; cold fallback possible — the response says which |
+| `cold` | Always cold-start (documented replacement for the `enableHar=true` workaround) |
+| `warm` | Strict: warm slot or `session not created` — never silent cold |
+| `hot` | `invalid argument` — hot slots live behind `POST /pool/lease`, not hub `/session` |
+| other | `invalid argument` naming the bad value |
+
+The New Session response carries the actual routing in `value.capabilities`:
+
+```json
+"servedPool": "warm",            // warm | cold — who really serves it
+"requestedPool": "auto",         // normalized selector (auto when unset)
+"servedSlot": "pool-chrome-1",   // warm only
+"forcedPoolReason": "sidecar-caps"  // only when rerouted away from warm
+```
+
+`forcedPoolReason` tokens: `sidecar-caps` (enableVideo/enableVNC/enableHAR),
+`non-chrome`, `version-pin`, `min-image`, `warm-unavailable`,
+`warm-attach-failed`, `no-warm-pool`. With `pool=warm` the same conditions
+refuse the session instead of falling back — the error message names
+`forcedPoolReason=<token>`.
+
+Hub `/status` aggregates it: `poolRouting.warmServed` / `coldServed` /
+`warmFallbacks` counters plus `poolRouting.recent[]` (last 20 routings), and
+each slot row shows `reservedBy`, `reservedAt`, `leaseExpiresAt`,
+`sessionCount`, `ageSec`, `recycling`, `recyclePending`.
+
+## Lease and release (orchestrator ≥ v1.2)
+
+Reserve/lease write `reservedBy` + `reservedAt` + `leaseExpiresAt` on the slot.
+`release` and `renew` must echo the reserving `owner` — a mismatch is a 409;
+`"force":true` is the operator bypass; reservations without an owner are
+`anonymous` (anyone may release). The hub reserves as `hub-<requestId>` with
+`ttlSec = -max-timeout + 30m` and releases with the same owner on session end.
+
+A reaper sweeps expired leases every 15s (`lease_ttl` default 1h,
+`max_lease_ttl` clamp 6h) — a dead agent cannot hold a slot forever. Warm
+containers rotate on `recycle_after_sessions` / `recycle_after_age` via
+`docker restart` (needs the socket mount); a rotating slot reads
+`recycling:true` and is not handed out, a failed rotation sets
+`recyclePending:true` and keeps serving.
+
 ## Cold fallback (always)
 
 | Condition | Result |
 |-----------|--------|
-| No `-warm-pool-url` | Cold |
-| Not Chrome WD (firefox, PW, …) | Cold |
-| `enableVideo` / `enableVNC` / `enableHAR` | Cold |
-| Orchestrator 409 / down | Cold |
-| Returned URL is not loopback | Release if reserved, then cold |
-| ChromeDriver wait fail (~2s) | Release, then cold |
+| No `-warm-pool-url` | Cold (`forcedPoolReason=no-warm-pool`) |
+| Not Chrome WD (firefox, PW, …) | Cold (`non-chrome`) |
+| `enableVideo` / `enableVNC` / `enableHAR` | Cold (`sidecar-caps`) — with `pool=warm` a refusal instead |
+| Compat pin / `-min` version | Cold (`version-pin` / `min-image`) |
+| Orchestrator 409 / down | Cold (`warm-unavailable`) |
+| Returned URL is not loopback | Release if reserved, then cold (`warm-unavailable`) |
+| ChromeDriver wait fail (~2s) | Release, then cold (`warm-attach-failed`) |
+
+`pool=cold` skips the pool entirely. `pool=warm` is strict — every row above
+becomes a `session not created` error instead of a cold fallback.
 
 ## Prod ([selenoid.qa.guru](https://selenoid.qa.guru))
 

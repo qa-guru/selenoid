@@ -17,15 +17,20 @@ var ErrNoSlot = errors.New("no available warm slots")
 
 // Client calls the selenoid-pool orchestrator (reserve / release).
 type Client struct {
-	baseURL string
-	http    *http.Client
+	baseURL  string
+	http     *http.Client
+	leaseSec int
 }
 
 // NewClient talks to the orchestrator base URL (e.g. http://127.0.0.1:9090).
-func NewClient(baseURL string) *Client {
+// leaseSec is the reservation TTL sent as ttlSec on reserve — it must outlive
+// the longest possible hub session so the pool reaper cannot free a slot that
+// is still in use (the orchestrator clamps it to its max_lease_ttl).
+func NewClient(baseURL string, leaseSec int) *Client {
 	return &Client{
-		baseURL: strings.TrimRight(baseURL, "/"),
-		http:    &http.Client{Timeout: 2 * time.Second},
+		baseURL:  strings.TrimRight(baseURL, "/"),
+		http:     &http.Client{Timeout: 2 * time.Second},
+		leaseSec: leaseSec,
 	}
 }
 
@@ -34,12 +39,16 @@ func (c *Client) Reserve(protocol, browser, owner string, loopback bool) (slotID
 	if c == nil || c.baseURL == "" {
 		return "", "", ErrNoSlot
 	}
-	payload, err := json.Marshal(map[string]any{
+	body := map[string]any{
 		"protocol": protocol,
 		"browser":  browser,
 		"owner":    owner,
 		"loopback": loopback,
-	})
+	}
+	if c.leaseSec > 0 {
+		body["ttlSec"] = c.leaseSec
+	}
+	payload, err := json.Marshal(body)
 	if err != nil {
 		return "", "", err
 	}
@@ -77,12 +86,13 @@ func (c *Client) Reserve(protocol, browser, owner string, loopback bool) (slotID
 	return out.Slot.ID, out.Slot.WebdriverURL, nil
 }
 
-// Release frees a slot (best-effort reset on the orchestrator).
-func (c *Client) Release(slotID string) error {
+// Release frees a slot (best-effort reset on the orchestrator). The owner must
+// match the reserve-time owner — the orchestrator rejects foreign releases.
+func (c *Client) Release(slotID, owner string) error {
 	if c == nil || c.baseURL == "" || slotID == "" {
 		return nil
 	}
-	payload, err := json.Marshal(map[string]string{"slotId": slotID})
+	payload, err := json.Marshal(map[string]string{"slotId": slotID, "owner": owner})
 	if err != nil {
 		return err
 	}

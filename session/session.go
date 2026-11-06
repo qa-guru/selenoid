@@ -11,21 +11,21 @@ import (
 
 // Caps - user capabilities
 type Caps struct {
-	Name                  string            `json:"browserName,omitempty"`
-	DeviceName            string            `json:"deviceName,omitempty"`
-	Version               string            `json:"version,omitempty"`
-	W3CVersion            string            `json:"browserVersion,omitempty"`
-	Platform              string            `json:"platform,omitempty"`
-	W3CPlatform           string            `json:"platformName,omitempty"`
-	W3CDeviceName         string            `json:"appium:deviceName,omitempty"`
-	ScreenResolution      string            `json:"screenResolution,omitempty"`
-	Skin                  string            `json:"skin,omitempty"`
-	VNC                   bool              `json:"enableVNC,omitempty"`
-	Headless              bool              `json:"headless,omitempty"`
-	Video                 bool              `json:"enableVideo,omitempty"`
-	Log                   bool              `json:"enableLog,omitempty"`
-	HAR                   bool              `json:"enableHAR,omitempty"`
-	HARName               string            `json:"harName,omitempty"`
+	Name             string `json:"browserName,omitempty"`
+	DeviceName       string `json:"deviceName,omitempty"`
+	Version          string `json:"version,omitempty"`
+	W3CVersion       string `json:"browserVersion,omitempty"`
+	Platform         string `json:"platform,omitempty"`
+	W3CPlatform      string `json:"platformName,omitempty"`
+	W3CDeviceName    string `json:"appium:deviceName,omitempty"`
+	ScreenResolution string `json:"screenResolution,omitempty"`
+	Skin             string `json:"skin,omitempty"`
+	VNC              bool   `json:"enableVNC,omitempty"`
+	Headless         bool   `json:"headless,omitempty"`
+	Video            bool   `json:"enableVideo,omitempty"`
+	Log              bool   `json:"enableLog,omitempty"`
+	HAR              bool   `json:"enableHAR,omitempty"`
+	HARName          string `json:"harName,omitempty"`
 	// HARContent selects hub HAR depth when enableHAR is true: "meta" (default)
 	// or "bodies". Absent/unknown → meta. Ignored when enableHAR is off.
 	HARContent            string            `json:"harContent,omitempty"`
@@ -45,7 +45,20 @@ type Caps struct {
 	Labels                map[string]string `json:"labels,omitempty"`
 	SessionTimeout        string            `json:"sessionTimeout,omitempty"`
 	S3KeyPattern          string            `json:"s3KeyPattern,omitempty"`
-	ExtensionCapabilities *Caps             `json:"selenoid:options,omitempty"`
+	// Pool is the explicit pool selector: "cold", "warm", "hot" or "auto".
+	// Set via selenoid:options.pool or labels.pool (selenoid:options wins).
+	Pool                  string `json:"pool,omitempty"`
+	ExtensionCapabilities *Caps  `json:"selenoid:options,omitempty"`
+}
+
+// RequestedPool resolves the explicit pool selector to a normalized value:
+// "", "auto", "cold", "warm" or "hot" — any other string is returned as-is so
+// the caller can reject it. selenoid:options.pool wins over labels.pool.
+func (c *Caps) RequestedPool() string {
+	if p := strings.ToLower(strings.TrimSpace(c.Pool)); p != "" {
+		return p
+	}
+	return strings.ToLower(strings.TrimSpace(c.Labels["pool"]))
 }
 
 func (c *Caps) ProcessExtensionCapabilities() {
@@ -103,17 +116,19 @@ type Container struct {
 
 // Session - holds session info
 type Session struct {
-	Quota     string
-	Caps      Caps
-	URL       *url.URL
-	Container *Container
-	HostPort  HostPort
-	Origin    string
-	Cancel    func()
-	Timeout   time.Duration
-	TimeoutCh chan struct{}
-	Started   time.Time
-	Lock      sync.Mutex
+	Quota      string
+	Caps       Caps
+	URL        *url.URL
+	Container  *Container
+	HostPort   HostPort
+	Origin     string
+	Cancel     func()
+	Timeout    time.Duration
+	TimeoutCh  chan struct{}
+	Started    time.Time
+	ServedPool string
+	ServedSlot string
+	Lock       sync.Mutex
 }
 
 // HostPort - hold host-port values for all forwarded ports

@@ -153,6 +153,12 @@ func create(w http.ResponseWriter, r *http.Request) {
 		caps = browser.Caps
 		_ = mergo.Merge(&caps, *fmc)
 		caps.ProcessExtensionCapabilities()
+		if err := validatePoolSelector(&caps); err != nil {
+			log.Printf("[%d] [BAD_POOL_SELECTOR] [%s]", requestId, caps.RequestedPool())
+			jsonerror.InvalidArgument(err).Encode(w)
+			queue.Drop()
+			return
+		}
 		sessionTimeout, err = getSessionTimeout(caps.SessionTimeout, maxTimeout, timeout)
 		if err != nil {
 			log.Printf("[%d] [BAD_SESSION_TIMEOUT] [%s]", requestId, caps.SessionTimeout)
@@ -216,6 +222,26 @@ func create(w http.ResponseWriter, r *http.Request) {
 	host := "localhost"
 	if startedService.Origin != "" {
 		host = startedService.Origin
+	}
+	// Pool routing metadata echoed into value.capabilities so the client sees
+	// which pool actually served the session (and why, when rerouted).
+	servedPool := startedService.ServedPool
+	if servedPool == "" {
+		servedPool = "cold"
+	}
+	requestedPool := caps.RequestedPool()
+	if requestedPool == "" {
+		requestedPool = "auto"
+	}
+	poolMeta := map[string]interface{}{
+		"servedPool":    servedPool,
+		"requestedPool": requestedPool,
+	}
+	if startedService.ServedSlot != "" {
+		poolMeta["servedSlot"] = startedService.ServedSlot
+	}
+	if startedService.PoolNote != "" {
+		poolMeta["forcedPoolReason"] = startedService.PoolNote
 	}
 
 	var resp *http.Response
@@ -303,7 +329,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(resp.StatusCode)
 			return
 		}
-		newBody, sessionId, err := processBody(body, r.Host)
+		newBody, sessionId, err := processBody(body, r.Host, poolMeta)
 		if err != nil {
 			log.Printf("[%d] [ERROR_PROCESSING_RESPONSE] [%v]", requestId, err)
 			queue.Drop()
@@ -324,13 +350,15 @@ func create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sess := &session.Session{
-		Quota:     user,
-		Caps:      caps,
-		URL:       u,
-		Container: startedService.Container,
-		HostPort:  startedService.HostPort,
-		Origin:    startedService.Origin,
-		Timeout:   sessionTimeout,
+		Quota:      user,
+		Caps:       caps,
+		URL:        u,
+		Container:  startedService.Container,
+		HostPort:   startedService.HostPort,
+		Origin:     startedService.Origin,
+		ServedPool: servedPool,
+		ServedSlot: startedService.ServedSlot,
+		Timeout:    sessionTimeout,
 		TimeoutCh: onTimeout(sessionTimeout, func() {
 			request{r}.session(s.ID).Delete(requestId)
 		}),
@@ -411,17 +439,36 @@ func create(w http.ResponseWriter, r *http.Request) {
 	}
 	sess.Cancel = cancelAndRenameFiles
 	sessions.Put(s.ID, sess)
+	poolRoutes.record(s.ID, caps.RequestedPool(), servedPool, startedService.ServedSlot, startedService.PoolNote)
 	queue.Create()
 	log.Printf("[%d] [SESSION_CREATED] [%s] [%d] [%.2fs]", requestId, s.ID, i, info.SecondsSince(sessionStartTime))
+}
+
+// validatePoolSelector rejects unsupported pool selector values before routing.
+// "hot" is deliberately refused: hot slots live behind POST /pool/lease on the
+// orchestrator and are not attachable through the hub /session flow.
+func validatePoolSelector(caps *session.Caps) error {
+	switch caps.RequestedPool() {
+	case "", "auto", "cold", "warm":
+		return nil
+	case "hot":
+		return errors.New("pool=hot is not routable through /session — lease hot slots via POST /pool/lease on the pool orchestrator")
+	default:
+		return fmt.Errorf("unknown pool selector %q (valid: cold, warm, hot, auto)", caps.RequestedPool())
+	}
 }
 
 func removeSelenoidOptions(input []byte) []byte {
 	body := make(map[string]interface{})
 	_ = json.Unmarshal(input, &body)
 	const selenoidOptions = "selenoid:options"
+	// "pool" is hub routing metadata — strip it so strict drivers do not see an
+	// unknown non-prefixed capability.
+	const poolSelector = "pool"
 	if raw, ok := body["desiredCapabilities"]; ok {
 		if dc, ok := raw.(map[string]interface{}); ok {
 			delete(dc, selenoidOptions)
+			delete(dc, poolSelector)
 		}
 	}
 	if raw, ok := body["capabilities"]; ok {
@@ -429,6 +476,7 @@ func removeSelenoidOptions(input []byte) []byte {
 			if raw, ok := c["alwaysMatch"]; ok {
 				if am, ok := raw.(map[string]interface{}); ok {
 					delete(am, selenoidOptions)
+					delete(am, poolSelector)
 				}
 			}
 			if raw, ok := c["firstMatch"]; ok {
@@ -436,6 +484,7 @@ func removeSelenoidOptions(input []byte) []byte {
 					for _, raw := range fm {
 						if c, ok := raw.(map[string]interface{}); ok {
 							delete(c, selenoidOptions)
+							delete(c, poolSelector)
 						}
 					}
 				}
@@ -559,7 +608,7 @@ func normalizeWebDriverBrowserNames(input []byte) []byte {
 	return ret
 }
 
-func processBody(input []byte, host string) ([]byte, string, error) {
+func processBody(input []byte, host string, extra map[string]interface{}) ([]byte, string, error) {
 	body := make(map[string]interface{})
 	sessionId := ""
 	err := json.Unmarshal(input, &body)
@@ -582,6 +631,9 @@ func processBody(input []byte, host string) ([]byte, string, error) {
 							if bv, ok := rbv.(string); ok {
 								c["se:cdpVersion"] = bv
 							}
+						}
+						for k, val := range extra {
+							c[k] = val
 						}
 					}
 				}

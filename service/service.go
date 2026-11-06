@@ -7,9 +7,9 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/moby/moby/client"
 	"github.com/qa-guru/selenoid/config"
 	"github.com/qa-guru/selenoid/session"
-	"github.com/moby/moby/client"
 )
 
 // Environment - all settings that influence browser startup
@@ -47,6 +47,13 @@ type StartedService struct {
 	HostPort  session.HostPort
 	Origin    string
 	Cancel    func()
+	// ServedPool is the pool that actually serves the session ("warm" or
+	// "cold"); empty means the plain cold path. ServedSlot is the warm slot id.
+	// PoolNote carries the forcedPoolReason token when the request was rerouted
+	// away from the preferred pool (e.g. warm-unavailable, sidecar-caps).
+	ServedPool string
+	ServedSlot string
+	PoolNote   string
 }
 
 // Starter - interface to create session with cancellation ability
