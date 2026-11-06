@@ -36,3 +36,5 @@ jobs:
           name: smoke-result-${{ github.event.client_payload.trigger_run_id }}
           path: callback/smoke-result.json
           retention-days: 1
+          # A re-dispatched trigger may legitimately get a second callback.
+          overwrite: true

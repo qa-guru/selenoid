@@ -225,6 +225,7 @@ jobs:
 
       - name: Dispatch deploy-smoke to selenoid-tests
         if: ${{ !inputs.wait_only }}
+        id: dispatch
         env:
           SOURCE_VARIANT: ${{ inputs.source_variant }}
           SOURCE_BROWSER: ${{ inputs.source_browser }}
@@ -253,36 +254,144 @@ jobs:
             + (if $source_variant != "" then {source_variant: $source_variant} else {} end)
             + (if $source_browser != "" then {source_browser: $source_browser} else {} end)
             + (if $webdriver_variant != "" then {webdriver_variant: $webdriver_variant} else {} end)')"
+          body="$(jq -n --argjson client_payload "${payload}" '{event_type: "deploy-smoke", client_payload: $client_payload}')"
+          # Keep body + dispatch epoch for the wait step: it may re-dispatch when the
+          # queued run is silently dropped by GitHub concurrency (one pending run per
+          # group — a newer dispatch cancels the queued one before it starts).
+          {
+            echo "body_b64=$(printf '%s' "${body}" | base64 -w0)"
+            echo "dispatched_at=$(date +%s)"
+          } >> "$GITHUB_OUTPUT"
           curl -fsSL -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}" \
             "https://api.github.com/repos/${{ env.TESTS_REPO }}/dispatches" \
-            -d "$(jq -n --argjson client_payload "${payload}" '{event_type: "deploy-smoke", client_payload: $client_payload}')"
+            -d "${body}"
 
       - name: Wait for smoke-complete callback
         id: wait
         if: ${{ !inputs.wait_only }}
         env:
           GH_TOKEN: ${{ github.token }}
+          SELENOID_TESTS_DISPATCH_TOKEN: ${{ secrets.SELENOID_TESTS_DISPATCH_TOKEN }}
           CALLBACK_TIMEOUT_MINUTES: ${{ inputs.callback_timeout_minutes }}
           # Include run_attempt so gh run rerun --failed does not pick a stale callback artifact.
           ARTIFACT_NAME: smoke-result-${{ github.run_id }}-${{ github.run_attempt }}
+          PAYLOAD_B64: ${{ steps.dispatch.outputs.body_b64 }}
+          DISPATCHED_AT: ${{ steps.dispatch.outputs.dispatched_at }}
+          TESTS_WORKFLOW: selenoid_github-orchestrator.yml
         run: |
           set -euo pipefail
-          DEADLINE=$(($(date +%s) + CALLBACK_TIMEOUT_MINUTES * 60))
+          START_TS=$(date +%s)
+          DEADLINE=$(( START_TS + CALLBACK_TIMEOUT_MINUTES * 60 ))
+          # job timeout-minutes is 50 — re-dispatch budget must stay under it.
+          HARD_DEADLINE=$(( START_TS + 48 * 60 ))
           ARTIFACT_ID=""
+          attempts=1
+          max_attempts=3
+          dispatched_at="${DISPATCHED_AT}"
+          our_run_id=""
+          our_run_url=""
+          our_run_state=""
+          dead_run_ids=""
+          need_dispatch=false
+
+          tests_api() {
+            # Caller GITHUB_TOKEN cannot see the private tests repo — use the dispatch PAT.
+            GH_TOKEN="${SELENOID_TESTS_DISPATCH_TOKEN}" gh api "$@"
+          }
+
+          post_dispatch() {
+            dispatched_at="$(date +%s)"
+            printf '%s' "${PAYLOAD_B64}" | base64 -d | curl -fsSL -X POST \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${SELENOID_TESTS_DISPATCH_TOKEN}" \
+              "https://api.github.com/repos/${TESTS_REPO}/dispatches" \
+              -d @-
+          }
+
+          drain_gated_redispatch() {
+            # Re-dispatch only into a fully drained deploy-smoke pipeline: posting
+            # while a foreign run is pending would drop THAT run and cascade the
+            # same invisible timeout to its publisher (mutual queue kills).
+            [[ "${attempts}" -lt "${max_attempts}" ]] || return 1
+            local live
+            live="$(tests_api \
+              "/repos/${TESTS_REPO}/actions/workflows/${TESTS_WORKFLOW}/runs?event=repository_dispatch&per_page=30" \
+              --jq '[.workflow_runs[] | select(.status != "completed")] | length')"
+            [[ "${live}" == "0" ]] || return 1
+            # Failed POST must not burn an attempt — count only accepted dispatches.
+            post_dispatch || return 1
+            attempts=$(( attempts + 1 ))
+            our_run_id=""; our_run_state=""
+            echo "::warning::deploy-smoke run dropped before start — re-dispatched (attempt ${attempts}/${max_attempts})"
+            # A fresh smoke run gets its own window, still under the job timeout.
+            DEADLINE=$(( $(date +%s) + 20 * 60 < HARD_DEADLINE ? $(date +%s) + 20 * 60 : HARD_DEADLINE ))
+            need_dispatch=false
+            return 0
+          }
+
           echo "Waiting for artifact ${ARTIFACT_NAME} (smoke-complete callback, timeout ${CALLBACK_TIMEOUT_MINUTES}m)..."
           while [[ "$(date +%s)" -lt "${DEADLINE}" ]]; do
             ARTIFACT_ID="$(gh api \
               "/repos/${GITHUB_REPOSITORY}/actions/artifacts?name=${ARTIFACT_NAME}&per_page=1" \
-              --jq '.artifacts[0].id // empty')"
+              --jq '.artifacts[0].id // empty' || true)"
             if [[ -n "${ARTIFACT_ID}" ]]; then
               break
             fi
+
+            if [[ -z "${our_run_id}" && "${need_dispatch}" != "true" ]]; then
+              # Lock onto our dispatched run = repository_dispatch run created closest
+              # to the POST time (-5s skew/+120s ingestion-lag window; a run created
+              # earlier than the POST can never be ours).
+              run_json="$(T0="${dispatched_at}" DEAD_IDS="${dead_run_ids}" tests_api \
+                "/repos/${TESTS_REPO}/actions/workflows/${TESTS_WORKFLOW}/runs?event=repository_dispatch&per_page=30" \
+                --jq '
+                  (env.T0 | tonumber) as $t0
+                  | (env.DEAD_IDS | split(" ") | map(select(length > 0) | tonumber)) as $dead
+                  | [ .workflow_runs[]
+                    | select(.id as $i | ($dead | index($i)) == null)
+                    | (.created_at | sub("\\.[0-9]+Z$";"Z") | fromdateiso8601) as $c
+                    | select($c >= ($t0 - 5) and $c <= ($t0 + 120))
+                    | {id, html_url, dist: (($c - $t0) | if . < 0 then -. else . end)} ]
+                  | sort_by(.dist) | .[0] // empty | {id, html_url} | @json' || true)"
+              if [[ -n "${run_json}" ]]; then
+                our_run_id="$(jq -r '.id' <<<"${run_json}")"
+                our_run_url="$(jq -r '.html_url' <<<"${run_json}")"
+                echo "Tracking ${TESTS_REPO} run ${our_run_url}"
+              elif [[ $(( $(date +%s) - dispatched_at )) -gt 150 ]]; then
+                need_dispatch=true
+              fi
+            fi
+
+            if [[ -n "${our_run_id}" ]]; then
+              our_run_state="$(tests_api "/repos/${TESTS_REPO}/actions/runs/${our_run_id}" \
+                --jq '.status + "/" + (.conclusion // "running")' || echo 'unknown')"
+              if [[ "${our_run_state}" == "completed/cancelled" ]]; then
+                echo "::warning::deploy-smoke run was dropped from the concurrency queue (a newer dispatch took the pending slot): ${our_run_url}"
+                dead_run_ids="${dead_run_ids} ${our_run_id}"
+                our_run_id=""
+                need_dispatch=true
+              fi
+            fi
+
+            if [[ "${need_dispatch}" == "true" ]]; then
+              drain_gated_redispatch || true
+            fi
             sleep 15
           done
+          {
+            echo "our_run_url=${our_run_url}"
+            echo "attempts=${attempts}"
+          } >> "$GITHUB_OUTPUT"
           if [[ -z "${ARTIFACT_ID}" ]]; then
-            echo "::error::Timed out waiting for smoke-complete callback (artifact ${ARTIFACT_NAME}, ${CALLBACK_TIMEOUT_MINUTES}m)."
+            echo "::error::Timed out waiting for smoke-complete callback (artifact ${ARTIFACT_NAME}, ${CALLBACK_TIMEOUT_MINUTES}m, dispatch attempts ${attempts})."
+            if [[ -n "${our_run_url}" ]]; then
+              echo "::error::Last tracked ${TESTS_REPO} run: ${our_run_url} (${our_run_state:-unknown})"
+            else
+              echo "::error::No ${TESTS_REPO} deploy-smoke run could be matched to this trigger."
+            fi
+            echo "::error::A queued deploy-smoke run is silently dropped when a newer dispatch enters the same concurrency group; if the tracked run finished without a callback, check SELENOID_SMOKE_CALLBACK_TOKEN in ${TESTS_REPO}."
             exit 1
           fi
           gh api "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" > /tmp/smoke-result.zip
@@ -367,7 +476,11 @@ jobs:
             echo "- Target: [\`${{ env.TESTS_REPO }}\`](https://github.com/${{ env.TESTS_REPO }})"
             echo "- Deploy version: \`${{ steps.meta.outputs.version }}\`"
             echo "- Callback timeout: \`${{ inputs.callback_timeout_minutes }}m\`"
-            echo "- smoke-complete callback: _не получен (timeout или нет callback token в selenoid-tests)_"
+            echo "- Dispatch attempts: \`${{ steps.wait.outputs.attempts }}\` (queued deploy-smoke runs are auto-dropped by the next dispatch; re-dispatch fires only into a drained pipeline)"
+            if [[ -n "${{ steps.wait.outputs.our_run_url }}" ]]; then
+              echo "- selenoid-tests run: ${{ steps.wait.outputs.our_run_url }}"
+            fi
+            echo "- smoke-complete callback: _не получен (timeout, queue drop или нет callback token в selenoid-tests)_"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Fail if prod smoke failed
