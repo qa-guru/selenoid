@@ -2,7 +2,7 @@ module github.com/qa-guru/selenoid
 
 go 1.27
 
-toolchain go1.27.0
+toolchain go1.27.3
 
 require (
 	github.com/aerokube/ggr v0.0.0-20240420103110-fc913c480489
