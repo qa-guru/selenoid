@@ -68,7 +68,7 @@ func TestProcessBodyInjectsPoolMeta(t *testing.T) {
 	in := `{"value":{"sessionId":"abc123","capabilities":{"browserName":"chrome","browserVersion":"152.0.1"}}}`
 	out, sid, err := processBody([]byte(in), "selenoid.example", map[string]interface{}{
 		"servedPool":    "warm",
-		"requestedPool": "auto",
+		"requestedPool": "warm",
 		"servedSlot":    "pool-chrome-1",
 	})
 	if err != nil {
@@ -82,7 +82,7 @@ func TestProcessBodyInjectsPoolMeta(t *testing.T) {
 		t.Fatal(err)
 	}
 	caps := body["value"].(map[string]any)["capabilities"].(map[string]any)
-	if caps["servedPool"] != "warm" || caps["requestedPool"] != "auto" || caps["servedSlot"] != "pool-chrome-1" {
+	if caps["servedPool"] != "warm" || caps["requestedPool"] != "warm" || caps["servedSlot"] != "pool-chrome-1" {
 		t.Fatalf("caps=%v", caps)
 	}
 	if caps["se:cdp"] != "ws://selenoid.example/devtools/abc123/" {
@@ -120,9 +120,9 @@ func TestRemoveSelenoidOptionsStripsPool(t *testing.T) {
 func TestPoolRoutingStatsRecord(t *testing.T) {
 	s := &poolRoutingStats{}
 	s.record("s1", "warm", "warm", "pool-chrome-1", "")
-	s.record("s2", "auto", "cold", "", "warm-unavailable")
+	s.record("s2", "warm", "cold", "", "warm-unavailable")
 	s.record("s3", "cold", "cold", "", "")
-	s.record("s4", "auto", "cold", "", "sidecar-caps")
+	s.record("s4", "warm", "cold", "", "sidecar-caps")
 	s.record("s5", "", "cold", "", "")
 
 	snap := s.snapshot()
@@ -131,6 +131,8 @@ func TestPoolRoutingStatsRecord(t *testing.T) {
 	}
 	// Only the runtime miss counts: sidecar-caps is expected cold, not a
 	// fallback — and an unset request is the cold default, never a miss.
+	// requested=warm served=cold rows exercise the generic counters; strict
+	// warm refuses instead of serving cold, so production never records them.
 	if snap.WarmFallbacks != 1 {
 		t.Fatalf("fallbacks=%d", snap.WarmFallbacks)
 	}
@@ -147,7 +149,7 @@ func TestPoolRoutingStatsRecord(t *testing.T) {
 	if snap.Recent[2].Requested != "cold" || snap.Recent[2].Reason != "" {
 		t.Fatalf("recent[2]=%+v", snap.Recent[2])
 	}
-	if snap.Recent[3].Requested != "auto" || snap.Recent[3].Reason != "warm-unavailable" {
+	if snap.Recent[3].Requested != "warm" || snap.Recent[3].Reason != "warm-unavailable" {
 		t.Fatalf("recent[3]=%+v", snap.Recent[3])
 	}
 	if snap.Recent[4].Requested != "warm" || snap.Recent[4].Slot != "pool-chrome-1" {
