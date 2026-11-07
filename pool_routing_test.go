@@ -114,33 +114,38 @@ func TestRemoveSelenoidOptionsStripsPool(t *testing.T) {
 func TestPoolRoutingStatsRecord(t *testing.T) {
 	s := &poolRoutingStats{}
 	s.record("s1", "warm", "warm", "pool-chrome-1", "")
-	s.record("s2", "", "cold", "", "warm-unavailable")
+	s.record("s2", "auto", "cold", "", "warm-unavailable")
 	s.record("s3", "cold", "cold", "", "")
 	s.record("s4", "auto", "cold", "", "sidecar-caps")
+	s.record("s5", "", "cold", "", "")
 
 	snap := s.snapshot()
-	if snap.WarmServed != 1 || snap.ColdServed != 3 {
+	if snap.WarmServed != 1 || snap.ColdServed != 4 {
 		t.Fatalf("counters warm=%d cold=%d", snap.WarmServed, snap.ColdServed)
 	}
-	// Only the runtime miss counts: sidecar-caps is expected cold, not a fallback.
+	// Only the runtime miss counts: sidecar-caps is expected cold, not a
+	// fallback — and an unset request is the cold default, never a miss.
 	if snap.WarmFallbacks != 1 {
 		t.Fatalf("fallbacks=%d", snap.WarmFallbacks)
 	}
-	if len(snap.Recent) != 4 {
+	if len(snap.Recent) != 5 {
 		t.Fatalf("recent=%d", len(snap.Recent))
 	}
 	// Newest first.
-	if snap.Recent[0].Session != "s4" || snap.Recent[0].Reason != "sidecar-caps" {
-		t.Fatalf("recent[0]=%+v", snap.Recent[0])
+	if snap.Recent[0].Session != "s5" || snap.Recent[0].Requested != "cold" {
+		t.Fatalf("unset requested must normalize to the cold default: %+v", snap.Recent[0])
 	}
-	if snap.Recent[1].Requested != "cold" || snap.Recent[1].Reason != "" {
+	if snap.Recent[1].Session != "s4" || snap.Recent[1].Reason != "sidecar-caps" {
 		t.Fatalf("recent[1]=%+v", snap.Recent[1])
 	}
-	if snap.Recent[2].Requested != "auto" {
-		t.Fatalf("unset requested must normalize to auto: %+v", snap.Recent[2])
+	if snap.Recent[2].Requested != "cold" || snap.Recent[2].Reason != "" {
+		t.Fatalf("recent[2]=%+v", snap.Recent[2])
 	}
-	if snap.Recent[3].Requested != "warm" || snap.Recent[3].Slot != "pool-chrome-1" {
+	if snap.Recent[3].Requested != "auto" || snap.Recent[3].Reason != "warm-unavailable" {
 		t.Fatalf("recent[3]=%+v", snap.Recent[3])
+	}
+	if snap.Recent[4].Requested != "warm" || snap.Recent[4].Slot != "pool-chrome-1" {
+		t.Fatalf("recent[4]=%+v", snap.Recent[4])
 	}
 }
 

@@ -203,16 +203,17 @@ func tryWarmAttach(pool WarmPool, env *Environment, requestId uint64) Starter {
 }
 
 // wrapWarm routes the starter by the explicit pool selector
-// (selenoid:options.pool or labels.pool): "cold" always cold-starts; "warm"
-// is strict — a served warm slot or a visible error, never a silent cold;
-// unset/"auto" keeps prefer-warm behavior but tags the actual served pool and
-// a forcedPoolReason token so the client sees the fallback in the response.
+// (selenoid:options.pool or labels.pool): unset/"cold" is the hub default and
+// always cold-starts; "warm" is strict — a served warm slot or a visible
+// error, never a silent cold; "auto" keeps prefer-warm behavior but tags the
+// actual served pool and a forcedPoolReason token so the client sees the
+// fallback in the response.
 func wrapWarm(requestId uint64, browserName, resolvedVersion, catalogDefault string, caps session.Caps, cold Starter, pool WarmPool, env *Environment) Starter {
 	if cold == nil {
 		return nil
 	}
 	requested := caps.RequestedPool()
-	if requested == "cold" {
+	if requested == "" || requested == "cold" {
 		return &poolTagged{starter: cold, pool: "cold"}
 	}
 	if pool == nil {

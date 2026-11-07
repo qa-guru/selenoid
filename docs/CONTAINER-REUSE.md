@@ -97,8 +97,9 @@ Sessions pick a pool explicitly via `selenoid:options.pool` or `labels.pool`
 
 | Value | Behavior |
 |-------|----------|
-| unset / `auto` | Prefer warm; cold fallback possible — the response says which |
-| `cold` | Always cold-start (documented replacement for the `enableHar=true` workaround) |
+| unset | **Cold — the hub default** (deterministic; nothing asked, nothing explained) |
+| `auto` | Prefer warm; cold fallback possible — the response says which |
+| `cold` | Always cold-start — explicit pin, same as unset (documented replacement for the `enableHar=true` workaround) |
 | `warm` | Strict: warm slot or `session not created` — never silent cold |
 | `hot` | `invalid argument` — hot slots live behind `POST /pool/lease`, not hub `/session` |
 | other | `invalid argument` naming the bad value |
@@ -107,7 +108,7 @@ The New Session response carries the actual routing in `value.capabilities`:
 
 ```json
 "servedPool": "warm",            // warm | cold — who really serves it
-"requestedPool": "auto",         // normalized selector (auto when unset)
+"requestedPool": "auto",         // normalized selector (cold when unset)
 "servedSlot": "pool-chrome-1",   // warm only
 "forcedPoolReason": "sidecar-caps"  // only when rerouted away from warm
 ```

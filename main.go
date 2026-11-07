@@ -460,7 +460,7 @@ func (s *poolRoutingStats) record(sessionID, requested, served, slot, reason str
 		served = "cold"
 	}
 	if requested == "" {
-		requested = "auto"
+		requested = "cold"
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

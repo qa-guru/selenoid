@@ -231,7 +231,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 	}
 	requestedPool := caps.RequestedPool()
 	if requestedPool == "" {
-		requestedPool = "auto"
+		requestedPool = "cold"
 	}
 	poolMeta := map[string]interface{}{
 		"servedPool":    servedPool,
