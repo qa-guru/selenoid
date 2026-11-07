@@ -45,14 +45,14 @@ type Caps struct {
 	Labels                map[string]string `json:"labels,omitempty"`
 	SessionTimeout        string            `json:"sessionTimeout,omitempty"`
 	S3KeyPattern          string            `json:"s3KeyPattern,omitempty"`
-	// Pool is the explicit pool selector: "cold", "warm", "hot" or "auto".
+	// Pool is the explicit pool selector: "cold" or "warm" ("hot" is refused).
 	// Set via selenoid:options.pool or labels.pool (selenoid:options wins).
 	Pool                  string `json:"pool,omitempty"`
 	ExtensionCapabilities *Caps  `json:"selenoid:options,omitempty"`
 }
 
 // RequestedPool resolves the explicit pool selector to a normalized value:
-// "", "auto", "cold", "warm" or "hot" — any other string is returned as-is so
+// "", "cold", "warm" or "hot" — any other string is returned as-is so
 // the caller can reject it. selenoid:options.pool wins over labels.pool.
 func (c *Caps) RequestedPool() string {
 	if p := strings.ToLower(strings.TrimSpace(c.Pool)); p != "" {

@@ -471,7 +471,8 @@ func (s *poolRoutingStats) record(sessionID, requested, served, slot, reason str
 		s.coldServed++
 	}
 	// warmFallbacks counts real runtime misses only: warm was possible and
-	// preferred (auto/warm) but the pool had nothing free or the attach died.
+	// preferred but the pool had nothing free or the attach died. With the
+	// binary selector this is structural — kept for /status schema compat.
 	// Deterministic ineligibility (non-chrome, sidecar-caps, pins) is expected
 	// cold, not a fallback.
 	if served == "cold" && requested != "cold" &&

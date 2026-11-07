@@ -28,11 +28,17 @@ func TestRequestedPoolResolution(t *testing.T) {
 }
 
 func TestValidatePoolSelector(t *testing.T) {
-	for _, ok := range []string{"", "auto", "cold", "warm"} {
+	for _, ok := range []string{"", "cold", "warm"} {
 		c := &session.Caps{Pool: ok}
 		if err := validatePoolSelector(c); err != nil {
 			t.Errorf("pool=%q must be valid: %v", ok, err)
 		}
+	}
+	// "auto" is deliberately gone: the selector is binary — cold default or
+	// strict warm, no fuzzy third state.
+	autoSel := &session.Caps{Pool: "auto"}
+	if err := validatePoolSelector(autoSel); err == nil || !contains(err.Error(), "auto") {
+		t.Errorf("auto must refuse as unknown, got %v", err)
 	}
 	hot := &session.Caps{Pool: "hot"}
 	if err := validatePoolSelector(hot); err == nil || !contains(err.Error(), "pool/lease") {

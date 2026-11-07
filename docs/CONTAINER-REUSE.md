@@ -98,7 +98,6 @@ Sessions pick a pool explicitly via `selenoid:options.pool` or `labels.pool`
 | Value | Behavior |
 |-------|----------|
 | unset | **Cold — the hub default** (deterministic; nothing asked, nothing explained) |
-| `auto` | Prefer warm; cold fallback possible — the response says which |
 | `cold` | Always cold-start — explicit pin, same as unset (documented replacement for the `enableHar=true` workaround) |
 | `warm` | Strict: warm slot or `session not created` — never silent cold |
 | `hot` | `invalid argument` — hot slots live behind `POST /pool/lease`, not hub `/session` |
@@ -108,16 +107,15 @@ The New Session response carries the actual routing in `value.capabilities`:
 
 ```json
 "servedPool": "warm",            // warm | cold — who really serves it
-"requestedPool": "auto",         // normalized selector (cold when unset)
+"requestedPool": "cold",         // normalized selector (cold when unset)
 "servedSlot": "pool-chrome-1",   // warm only
 "forcedPoolReason": "sidecar-caps"  // only when rerouted away from warm
 ```
 
-`forcedPoolReason` tokens: `sidecar-caps` (enableVideo/enableVNC/enableHAR),
-`non-chrome`, `version-pin`, `min-image`, `warm-unavailable`,
-`warm-attach-failed`, `no-warm-pool`. With `pool=warm` the same conditions
-refuse the session instead of falling back — the error message names
-`forcedPoolReason=<token>`.
+`forcedPoolReason` tokens appear in strict-warm refusal errors:
+`sidecar-caps` (enableVideo/enableVNC/enableHAR), `non-chrome`, `version-pin`,
+`min-image`, `warm-unavailable`, `warm-attach-failed`, `no-warm-pool`.
+Cold sessions carry no reason — cold is the default, not a reroute.
 
 Hub `/status` aggregates it: `poolRouting.warmServed` / `coldServed` /
 `warmFallbacks` counters plus `poolRouting.recent[]` (last 20 routings), and

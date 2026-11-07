@@ -101,28 +101,6 @@ func (t *poolTagged) StartWithCancel() (*StartedService, error) {
 	return ss, nil
 }
 
-type fallbackStarter struct {
-	requestId uint64
-	primary   Starter
-	fallback  Starter
-}
-
-func (f *fallbackStarter) StartWithCancel() (*StartedService, error) {
-	ss, err := f.primary.StartWithCancel()
-	if err == nil {
-		return ss, nil
-	}
-	log.Printf("[%d] [WARM_POOL_FALLBACK_COLD] [%v]", f.requestId, err)
-	ss, err = f.fallback.StartWithCancel()
-	if err == nil && ss != nil {
-		ss.ServedPool = "cold"
-		if ss.PoolNote == "" {
-			ss.PoolNote = "warm-attach-failed"
-		}
-	}
-	return ss, err
-}
-
 func chromeMajor(version string) string {
 	v := strings.TrimSpace(version)
 	if v == "" || strings.EqualFold(v, "latest") {
@@ -203,47 +181,27 @@ func tryWarmAttach(pool WarmPool, env *Environment, requestId uint64) Starter {
 }
 
 // wrapWarm routes the starter by the explicit pool selector
-// (selenoid:options.pool or labels.pool): unset/"cold" is the hub default and
-// always cold-starts; "warm" is strict — a served warm slot or a visible
-// error, never a silent cold; "auto" keeps prefer-warm behavior but tags the
-// actual served pool and a forcedPoolReason token so the client sees the
-// fallback in the response.
+// (selenoid:options.pool or labels.pool). The selector is binary: anything
+// but "warm" is cold (unset is the hub default; "auto" is rejected upstream
+// by validatePoolSelector). "warm" is strict — a served warm slot or a
+// visible error, never a silent cold fallback.
 func wrapWarm(requestId uint64, browserName, resolvedVersion, catalogDefault string, caps session.Caps, cold Starter, pool WarmPool, env *Environment) Starter {
 	if cold == nil {
 		return nil
 	}
-	requested := caps.RequestedPool()
-	if requested == "" || requested == "cold" {
+	if caps.RequestedPool() != "warm" {
 		return &poolTagged{starter: cold, pool: "cold"}
 	}
 	if pool == nil {
-		if requested == "warm" {
-			return &failStarter{err: errors.New("pool=warm requested but the hub has no warm pool configured (forcedPoolReason=no-warm-pool)")}
-		}
-		return &poolTagged{starter: cold, pool: "cold", note: "no-warm-pool"}
+		return &failStarter{err: errors.New("pool=warm requested but the hub has no warm pool configured (forcedPoolReason=no-warm-pool)")}
 	}
 	detail, token := warmIneligible(browserName, resolvedVersion, catalogDefault, caps)
 	if detail != "" {
-		if requested == "warm" {
-			return &failStarter{err: fmt.Errorf("pool=warm unavailable: %s (forcedPoolReason=%s)", detail, token)}
-		}
-		return &poolTagged{starter: cold, pool: "cold", note: token}
+		return &failStarter{err: fmt.Errorf("pool=warm unavailable: %s (forcedPoolReason=%s)", detail, token)}
 	}
 	att := tryWarmAttach(pool, env, requestId)
 	if att == nil {
-		if requested == "warm" {
-			return &failStarter{err: errors.New("pool=warm requested but no warm slot is free (forcedPoolReason=warm-unavailable)")}
-		}
-		log.Printf("[%d] [WARM_POOL_FALLBACK_COLD] [no loopback chrome slot]", requestId)
-		return &poolTagged{starter: cold, pool: "cold", note: "warm-unavailable"}
+		return &failStarter{err: errors.New("pool=warm requested but no warm slot is free (forcedPoolReason=warm-unavailable)")}
 	}
-	if requested == "warm" {
-		// Strict: a served warm slot or a visible startup error — never cold.
-		return att
-	}
-	return &fallbackStarter{
-		requestId: requestId,
-		primary:   att,
-		fallback:  &poolTagged{starter: cold, pool: "cold", note: "warm-attach-failed"},
-	}
+	return att
 }

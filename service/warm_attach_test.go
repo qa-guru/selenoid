@@ -96,19 +96,14 @@ func TestChromeMajor(t *testing.T) {
 	require.Equal(t, "", chromeMajor("latest"))
 }
 
-func TestWrapWarmAttachesChrome(t *testing.T) {
+func TestWrapWarmUnsetIsCold(t *testing.T) {
 	pool := &stubPool{id: "pool-chrome-1", wdURL: "http://127.0.0.1:14441/"}
 	cold := &stubStarter{}
-	got := wrapWarm(7, "chrome", "152.0", "152.0", session.Caps{Pool: "auto"}, cold, pool, &Environment{StartupTimeout: time.Second})
-	fb, ok := got.(*fallbackStarter)
-	require.True(t, ok)
-	require.Equal(t, 1, pool.reserved)
-	att, ok := fb.primary.(*WarmAttach)
-	require.True(t, ok)
-	require.Equal(t, "pool-chrome-1", att.SlotID)
-	tagged, ok := fb.fallback.(*poolTagged)
-	require.True(t, ok)
-	require.Equal(t, cold, tagged.starter)
+	// unset is the hub default: cold directly, no reserve, nothing to explain.
+	got := wrapWarm(7, "chrome", "152.0", "152.0", session.Caps{}, cold, pool, &Environment{StartupTimeout: time.Second})
+	tagged := taggedCold(t, got, cold)
+	require.Equal(t, "", tagged.note)
+	require.Equal(t, 0, pool.reserved)
 }
 
 // taggedCold unwraps the cold-side poolTagged routing wraps around.
@@ -121,34 +116,32 @@ func taggedCold(t *testing.T, got Starter, cold *stubStarter) *poolTagged {
 	return tagged
 }
 
-func TestWrapWarmSkipsCompatVersion(t *testing.T) {
+func TestWrapWarmStrictWarmRefusesCompatVersion(t *testing.T) {
 	pool := &stubPool{id: "pool-chrome-1", wdURL: "http://127.0.0.1:14441/"}
 	cold := &stubStarter{}
-	got := wrapWarm(7, "chrome", "148.0", "152.0", session.Caps{Pool: "auto"}, cold, pool, nil)
-	require.Equal(t, "version-pin", taggedCold(t, got, cold).note)
+	got := wrapWarm(7, "chrome", "148.0", "152.0", session.Caps{Pool: "warm"}, cold, pool, nil)
+	fail, ok := got.(*failStarter)
+	require.True(t, ok, "expected *failStarter, got %T", got)
+	require.Contains(t, fail.err.Error(), "forcedPoolReason=version-pin")
 	require.Equal(t, 0, pool.reserved)
 }
 
-func TestWrapWarmSkipsWhenNoLoopbackURL(t *testing.T) {
+func TestWrapWarmStrictWarmRefusesNonLoopbackURL(t *testing.T) {
 	pool := &stubPool{id: "pool-chrome-1", wdURL: "http://warm-chrome-1:4444/"}
 	cold := &stubStarter{}
-	got := wrapWarm(7, "chrome", "152.0", "152.0", session.Caps{Pool: "auto"}, cold, pool, nil)
-	require.Equal(t, "warm-unavailable", taggedCold(t, got, cold).note)
+	got := wrapWarm(7, "chrome", "152.0", "152.0", session.Caps{Pool: "warm"}, cold, pool, nil)
+	fail, ok := got.(*failStarter)
+	require.True(t, ok, "expected *failStarter, got %T", got)
+	require.Contains(t, fail.err.Error(), "forcedPoolReason=warm-unavailable")
 	require.Equal(t, []string{"pool-chrome-1"}, pool.released)
 }
 
-func TestWrapWarmSkipsOnReserveError(t *testing.T) {
-	pool := &stubPool{err: errors.New("409")}
-	cold := &stubStarter{}
-	got := wrapWarm(7, "chrome", "152.0", "152.0", session.Caps{Pool: "auto"}, cold, pool, nil)
-	require.Equal(t, "warm-unavailable", taggedCold(t, got, cold).note)
-}
-
-func TestWrapWarmSkipsVideoCaps(t *testing.T) {
+func TestWrapWarmUnsetVideoCapsStaysCold(t *testing.T) {
 	pool := &stubPool{id: "x", wdURL: "http://127.0.0.1:1/"}
 	cold := &stubStarter{}
-	got := wrapWarm(7, "chrome", "152.0", "152.0", session.Caps{Pool: "auto", Video: true}, cold, pool, nil)
-	require.Equal(t, "sidecar-caps", taggedCold(t, got, cold).note)
+	// sidecar caps need a cold container — which is the default anyway.
+	got := wrapWarm(7, "chrome", "152.0", "152.0", session.Caps{Video: true}, cold, pool, nil)
+	require.Equal(t, "", taggedCold(t, got, cold).note)
 	require.Equal(t, 0, pool.reserved)
 }
 
@@ -226,18 +219,6 @@ func TestPoolTaggedStampsServedPool(t *testing.T) {
 	require.Equal(t, "sidecar-caps", ss.PoolNote)
 }
 
-func TestFallbackStarterUsesColdWhenWarmFails(t *testing.T) {
-	coldURL, _ := url.Parse("http://127.0.0.1:4444/")
-	f := &fallbackStarter{
-		requestId: 1,
-		primary:   &stubStarter{err: errors.New("wait timeout")},
-		fallback:  &stubStarter{ss: &StartedService{Url: coldURL, Cancel: func() {}}},
-	}
-	ss, err := f.StartWithCancel()
-	require.NoError(t, err)
-	require.Equal(t, "127.0.0.1:4444", ss.Url.Host)
-}
-
 func TestWarmAttachStartAndRelease(t *testing.T) {
 	drv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -282,11 +263,11 @@ func TestFindWrapsWarmForChromeDriver(t *testing.T) {
 		Config:      chromeDriverConfig(),
 		WarmPool:    pool,
 	}
-	starter, ok := m.Find(session.Caps{Name: "chrome", Pool: "auto"}, 9)
+	starter, ok := m.Find(session.Caps{Name: "chrome"}, 9)
 	require.True(t, ok)
-	_, isFB := starter.(*fallbackStarter)
-	require.True(t, isFB)
-	require.Equal(t, 1, pool.reserved)
+	_, isTagged := starter.(*poolTagged)
+	require.True(t, isTagged)
+	require.Equal(t, 0, pool.reserved)
 }
 
 func TestFindFirefoxStaysCold(t *testing.T) {
@@ -306,11 +287,11 @@ func TestFindFirefoxStaysCold(t *testing.T) {
 	require.Equal(t, "", tagged.note)
 	require.Equal(t, 0, pool.reserved)
 
-	starterAuto, okAuto := m.Find(session.Caps{Name: "firefox", Pool: "auto"}, 9)
-	require.True(t, okAuto)
-	taggedAuto, isTaggedAuto := starterAuto.(*poolTagged)
-	require.True(t, isTaggedAuto)
-	// explicit auto opted into prefer-warm — the miss reason is meaningful.
-	require.Equal(t, "non-chrome", taggedAuto.note)
+	starterWarm, okWarm := m.Find(session.Caps{Name: "firefox", Pool: "warm"}, 9)
+	require.True(t, okWarm)
+	failWarm, isFailWarm := starterWarm.(*failStarter)
+	require.True(t, isFailWarm)
+	// strict warm refuses non-chrome with a named reason.
+	require.Contains(t, failWarm.err.Error(), "forcedPoolReason=non-chrome")
 	require.Equal(t, 0, pool.reserved)
 }

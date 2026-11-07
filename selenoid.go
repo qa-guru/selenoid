@@ -445,16 +445,18 @@ func create(w http.ResponseWriter, r *http.Request) {
 }
 
 // validatePoolSelector rejects unsupported pool selector values before routing.
-// "hot" is deliberately refused: hot slots live behind POST /pool/lease on the
-// orchestrator and are not attachable through the hub /session flow.
+// The selector is binary: unset/cold is the default, warm is the explicit
+// opt-in — there is no "auto" third state. "hot" is deliberately refused:
+// hot slots live behind POST /pool/lease on the orchestrator and are not
+// attachable through the hub /session flow.
 func validatePoolSelector(caps *session.Caps) error {
 	switch caps.RequestedPool() {
-	case "", "auto", "cold", "warm":
+	case "", "cold", "warm":
 		return nil
 	case "hot":
 		return errors.New("pool=hot is not routable through /session — lease hot slots via POST /pool/lease on the pool orchestrator")
 	default:
-		return fmt.Errorf("unknown pool selector %q (valid: cold, warm, hot, auto)", caps.RequestedPool())
+		return fmt.Errorf("unknown pool selector %q (valid: cold, warm)", caps.RequestedPool())
 	}
 }
 
